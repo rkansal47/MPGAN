@@ -9,7 +9,7 @@ RUN sudo apt-get install -y wget
 RUN pip install setGPU
 RUN pip install scikit-image
 
-# Install PyTorch Geometric.
+# Install PyTorch Geometric. UPDATE: can be now installed more easily using conda https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html
 RUN CPATH=/usr/local/cuda/include:$CPATH \
  && LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
  && DYLD_LIBRARY_PATH=/usr/local/cuda/lib:$DYLD_LIBRARY_PATH
@@ -23,6 +23,7 @@ RUN pip install torch-scatter==latest+${CUDA_VERSION} -f https://pytorch-geometr
  && pip install torch-spline-conv==latest+${CUDA_VERSION} -f https://pytorch-geometric.com/whl/torch-${TORCH_VERSION}.html \
  && pip install torch-geometric
 
+# More libraries
 RUN pip install mplhep
 RUN pip install scikit-hep
 RUN pip install scikit-learn
@@ -32,7 +33,6 @@ RUN pip install guppy3
 RUN pip install awkward
 RUN pip install wasserstein
 RUN pip install pot
-# RUN sudo apt-get install cuda-cudart-10-1
 
 # Set the default command to python3.
 CMD ["python3"]
