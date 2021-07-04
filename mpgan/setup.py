@@ -189,7 +189,7 @@ def parse_args():
     utils.add_bool_arg(parser, "eval", "calculate the evaluation metrics: W1, FNPD, coverage, mmd", default=True)
     parser.add_argument("--eval-tot-samples", type=int, default=50000, help='tot # of jets to generate to sample from')
 
-    parser.add_argument("--w1-num-samples", type=int, nargs='+', default=[100, 1000, 10000], help='array of # of jet samples to test')
+    parser.add_argument("--w1-num-samples", type=int, nargs='+', default=[10000], help='array of # of jet samples to test')
 
     parser.add_argument("--cov-mmd-num-samples", type=int, default=100, help='size of samples to use for calculating coverage and MMD')
     parser.add_argument("--cov-mmd-num-batches", type=int, default=10, help='# of batches to average coverage and MMD over')
@@ -339,7 +339,7 @@ def check_args(args):
 
     if args.low_samples:
         args.eval_tot_samples = 1000
-        args.w1_num_samples = [10, 100]
+        args.w1_num_samples = [100]
         args.num_samples = 1000
 
     if args.dataset == 'jets-lagan' and args.jets == 'g':
