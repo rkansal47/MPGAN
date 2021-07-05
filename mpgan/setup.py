@@ -96,10 +96,10 @@ def parse_args():
     utils.add_bool_arg(parser, "sum", "mean or sum in models", default=True, no_name="mean")
 
     utils.add_bool_arg(parser, "int-diffs", "use int diffs", default=False)
-    utils.add_bool_arg(parser, "pos-diffs", "use pos diffs", default=True)
-    utils.add_bool_arg(parser, "all-ef", "use all node features for edge distance", default=True)
+    utils.add_bool_arg(parser, "pos-diffs", "use pos diffs", default=False)
+    utils.add_bool_arg(parser, "all-ef", "use all node features for edge distance", default=False)
     # utils.add_bool_arg(parser, "scalar-diffs", "use scalar diff (as opposed to vector)", default=True)
-    utils.add_bool_arg(parser, "deltar", "use delta r as an edge feature", default=True)
+    utils.add_bool_arg(parser, "deltar", "use delta r as an edge feature", default=False)
     utils.add_bool_arg(parser, "deltacoords", "use delta coords as edge features", default=False)
 
     parser.add_argument("--leaky-relu-alpha", type=float, default=0.2, help="leaky relu alpha")
