@@ -104,7 +104,7 @@ def parse_args():
 
     parser.add_argument("--leaky-relu-alpha", type=float, default=0.2, help="leaky relu alpha")
 
-    utils.add_bool_arg(parser, "dea", "use early averaging discriminator", default=False)
+    utils.add_bool_arg(parser, "dea", "use early averaging discriminator", default=True)
     parser.add_argument("--fnd", type=int, nargs='*', default=[], help="hidden disc output layers e.g. 128 64")
 
     utils.add_bool_arg(parser, "lfc", "use a fully connected network to go from noise vector to initial graph", default=False)
@@ -130,7 +130,7 @@ def parse_args():
     utils.add_bool_arg(parser, "mask-learn-sep", "learn mask from separate noise vector", default=False)
     utils.add_bool_arg(parser, "mask-disc-sep", "separate disc network for # particles", default=False)
     utils.add_bool_arg(parser, "mask-fnd-np", "use num masked particles as an additional arg in D (dea will automatically be set true)", default=False)
-    utils.add_bool_arg(parser, "mask-c", "conditional mask", default=False)
+    utils.add_bool_arg(parser, "mask-c", "conditional mask", default=True)
     utils.add_bool_arg(parser, "mask-fne-np", "pass num particles as features into fn and fe", default=False)
     parser.add_argument("--mask-epoch", type=int, default=0, help="# of epochs after which to start masking")
 
