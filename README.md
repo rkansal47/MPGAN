@@ -4,7 +4,7 @@ All the code used for Kansal et. al. *Particle Cloud Generation with Message Pas
 
 ## Overview
 
-This repository provides PyTorch code for the Message Passing GAN (MPGAN) [model](mpgan/model.py) and the four [evaluation metrics](mpgan/evaluation.py) introduced in the paper. Along with this we provide code for [training](train.py) the models from scratch, and for [generating](gen_samples.py) and [plotting](save_outputs.py) the particle clouds, as well as our PyTorch implementations of existing models ([ParticleNet](mpgan/particlenet.py), [point cloud GANs](mpgan/ext_models.py)). Finally, we include [weights of the fully trained models](final_models) discussed in the paper. 
+This repository provides PyTorch code for the message passing GAN (MPGAN) [model](mpgan/model.py) and the four [evaluation metrics](mpgan/evaluation.py) introduced in the paper. Along with this we provide code for [training](train.py) the models from scratch, and for [generating](gen_samples.py) and [plotting](save_outputs.py) the particle clouds, as well as our PyTorch implementations of existing models ([ParticleNet](mpgan/particlenet.py), [point cloud GANs](mpgan/ext_models.py)). Finally, we include [weights of the fully trained models](final_models) discussed in the paper. 
 
 ## Dependencies
 
