@@ -8,7 +8,7 @@ This repository provides PyTorch code for the message passing GAN (MPGAN) [model
 
 ## Dependencies
 
-All necessary libraries (and a couple more) are listed in the [Dockerfile](Dockerfile). You are welcome to use the corresponding image uploaded [here](gitlab-registry.nautilus.optiputer.net/raghsthebest/mnist-graph-gan:latest). 
+All necessary libraries (and a couple more) are listed in the [Dockerfile](Dockerfile). You are welcome to use the corresponding image uploaded [here](https://gitlab-registry.nautilus.optiputer.net/raghsthebest/mnist-graph-gan:latest). 
 
 ## Dataset
 
