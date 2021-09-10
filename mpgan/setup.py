@@ -4,6 +4,7 @@ from . import utils
 
 from os import listdir, mkdir
 from os.path import exists, dirname, realpath
+import pathlib
 
 import torch
 
@@ -396,12 +397,21 @@ def init_project_dirs(args):
     if args.dir_path == "":
         if args.n: args.dir_path = "/graphganvol/mnist_graph_gan/jets"
         elif args.lx: args.dir_path = "/eos/user/r/rkansal/mnist_graph_gan/jets"
-        else: args.dir_path = "./"
+        else: args.dir_path = "./outputs"
 
     args_dict = vars(args)
-    dirs = ['models', 'losses', 'args', 'figs', 'datasets', 'err', 'evaluation', 'outs', 'noise']
+
+    dirs = ['models', 'losses', 'args', 'figs', 'datasets', 'outs']
     for dir in dirs:
         args_dict[dir + '_path'] = args.dir_path + '/' + dir + '/'
+        if not exists(args_dict[dir + '_path']):
+            mkdir(args_dict[dir + '_path'])
+
+    file_dir = pathlib.Path(__file__).parent.resolve()
+
+    dirs = ['evaluation']
+    for dir in dirs:
+        args_dict[dir + '_path'] = file_dir + '/' + dir + '/'
         if not exists(args_dict[dir + '_path']):
             mkdir(args_dict[dir + '_path'])
 
