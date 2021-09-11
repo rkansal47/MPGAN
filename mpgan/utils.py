@@ -14,9 +14,7 @@ from torch.distributions.normal import Normal
 
 import energyflow as ef
 
-import awkward as ak
-from coffea.nanoevents.methods import vector
-ak.behavior.update(vector.behavior)
+import vector
 
 
 # from https://stackoverflow.com/questions/14897756/python-progress-bar-through-logging-module/38895482#38895482
@@ -349,12 +347,13 @@ def rand_mix(args, X1, X2, p):
 
 def jet_features(jets, mask_bool=False, mask=None):
     """ calculates mass and pT of jets using the awkward_array library """
-    vecs = ak.zip({
-            "pt": jets[:, :, 2:3],
-            "eta": jets[:, :, 0:1],
-            "phi": jets[:, :, 1:2],
-            "mass": ak.full_like(jets[:, :, 2:3], 0),
-            }, with_name="PtEtaPhiMLorentzVector")
+
+    vecs = vector.array({
+                            "pt": jets[:, :, 2:3],
+                            "phi": jets[:, :, 1:2],
+                            "eta": jets[:, :, 0:1],
+                            "M": np.zeros_like(jets[:, :, 2:3])
+                        })
 
     sum_vecs = vecs.sum(axis=1)
 
