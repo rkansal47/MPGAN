@@ -5,22 +5,8 @@ import logging
 
 class JetsDataset(Dataset):
     def __init__(self, args, train=True):
-        if args.dataset == 'jets':
-            if args.real_only: dataset = torch.load(args.datasets_path + 'all_t_jets_30p_polarrel_30only.pt')
-            else:
-                if not args.model == 'treegan':
-                    dataset = torch.load(args.datasets_path + 'all_' + args.jets + '_jets_150p_' + args.coords + '_mask.pt').float()[:, :args.num_hits, :]
-                else:
-                    dataset = torch.load(args.datasets_path + 'all_' + args.jets + '_jets_150p_' + args.coords + '_mask.pt').float()[:, :args.num_hits - args.pad_hits, :]
-                    dataset = torch.nn.functional.pad(dataset, (0, 0, 0, args.pad_hits), "constant", 0)  # for treegan zero-pad num hits to the next power 2 (i.e. 30 -> 32)
-                if not args.mask: dataset = dataset[:, :, :args.node_feat_size]
-
-            jet_features = torch.load(args.datasets_path + 'all_' + args.jets + '_jets_150p_jetptetamass.pt').float()[:, :args.clabels]
-        elif args.dataset == 'jets-lagan':
-            sig = 'signal' if args.jets == 'sig' else 'background'
-            dataset = torch.load("{}lagan_{}.pt".format(args.datasets_path, sig)).float()[:, -args.num_hits:, :]
-            jet_features = torch.load("{}lagan_{}_jetptetamass.pt".format(args.datasets_path, sig)).float()
-            logging.debug('dataset: ' + str(dataset))
+        dataset = torch.load(args.datasets_path + args.jets + '_jets.pt').float()[:, :args.num_hits, :]
+        if not args.mask: dataset = dataset[:, :, :args.node_feat_size]
 
         if args.coords == 'cartesian':
             args.maxp = float(torch.max(torch.abs(dataset)))
@@ -47,22 +33,14 @@ class JetsDataset(Dataset):
             args.pt_cutoff = torch.unique(self.X[:, :, 2], sorted=True)[1]  # smallest particle pT after 0
             logging.debug("Cutoff: " + str(args.pt_cutoff))
 
-        if args.clabels == 1:
-            args.maxjf = [torch.max(torch.abs(jet_features))]
-            jet_features /= args.maxjf[0]
-        else:
-            [float(torch.max(torch.abs(jet_features[:, :, i]))) for i in range(args.clabels)]
-            for i in range(args.clabels):
-                jet_features[:, i] /= args.maxjf[i]
-
-        self.jet_features = jet_features * args.norm
-
         if hasattr(args, 'mask_c') and args.mask_c:
             num_particles = (torch.sum(dataset[:, :, 3] + 0.5, dim=1) / args.num_hits).unsqueeze(1)
             logging.debug("num particles: " + str(torch.sum(dataset[:, :, 3] + 0.5, dim=1)))
 
             if args.clabels: self.jet_features = torch.cat((self.jet_features, num_particles), dim=1)
             else: self.jet_features = num_particles
+        else:
+            self.jet_features = torch.zeros((len(dataset)), 1)
 
         if hasattr(args, 'noise_padding') and args.noise_padding:
             logging.debug("pre-noise padded dataset: \n {}".format(dataset[:2, -10:]))
@@ -84,7 +62,7 @@ class JetsDataset(Dataset):
 
         tcut = int(len(self.X) * args.ttsplit)
         self.X = self.X[:tcut] if train else self.X[tcut:]
-        self.jet_features = self.jet_features[:tcut] if train else self.jet_features[tcut:]
+        if self.jet_features is not None: self.jet_features = self.jet_features[:tcut] if train else self.jet_features[tcut:]
         logging.info("Dataset shape: " + str(self.X.shape))
 
     def __len__(self):

@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-import utils
+from mpgan import utils
 from os import remove
 import mplhep as hep
 
@@ -11,13 +11,8 @@ plt.switch_backend('agg')
 plt.rcParams.update({'font.size': 16})
 plt.style.use(hep.style.CMS)
 
-from guppy import hpy
-h = hpy()
-
 
 def plot_part_feats(args, X_rn, mask_real, gen_out, mask_gen, name, losses=None, show=False):
-    # logging.info("part feats")
-    # logging.info(h.heap())
     if args.coords == 'cartesian':
         plabels = ['$p_x$ (GeV)', '$p_y$ (GeV)', '$p_z$ (GeV)']
         bin = np.arange(-500, 500, 10)
@@ -288,17 +283,17 @@ def plot_eval(args, losses, name, epoch, show=False):
     else: plt.close()
 
 
-def save_sample_outputs(args, D, G, X, epoch, losses, X_loaded=None, gen_out=None, pcgan_args=None):
+def save_sample_outputs(args, D, G, X, epoch, losses, X_loaded=None, gen_out=None):
     logging.info("drawing figs")
 
     # Generating data
     G.eval()
     if gen_out is None:
         logging.info("gen out none")
-        gen_out = utils.gen_multi_batch(args, G, args.num_samples, X_loaded=X_loaded, pcgan_args=pcgan_args)
+        gen_out = utils.gen_multi_batch(args, G, args.num_samples, X_loaded=X_loaded)
     elif args.eval_tot_samples < args.num_samples:
         logging.info("gen out not large enough: size {}".format(len(gen_out)))
-        gen_out = np.concatenate((gen_out, utils.gen_multi_batch(args, G, args.num_samples - args.eval_tot_samples, X_loaded=X_loaded, pcgan_args=pcgan_args)), 0)
+        gen_out = np.concatenate((gen_out, utils.gen_multi_batch(args, G, args.num_samples - args.eval_tot_samples, X_loaded=X_loaded)), 0)
 
     X_rn, mask_real = utils.unnorm_data(args, X.cpu().detach().numpy()[:args.num_samples], real=True)
     gen_out, mask_gen = utils.unnorm_data(args, gen_out[:args.num_samples], real=False)
@@ -307,13 +302,7 @@ def save_sample_outputs(args, D, G, X, epoch, losses, X_loaded=None, gen_out=Non
 
     name = args.name + "/" + str(epoch)
 
-    # logging.info("pre part feats")
-    # logging.info(h.heap())
-
     plot_part_feats(args, X_rn, mask_real, gen_out, mask_gen, name + 'p', losses)
-
-    # logging.info("post part feats")
-    # logging.info(h.heap())
 
     if args.jf:
         realjf = utils.jet_features(X_rn, mask=mask_real)

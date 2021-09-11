@@ -9,7 +9,6 @@ from torch_cluster import knn_graph
 import numpy as np
 import torch.nn.functional as F
 
-
 class ParticleNetEdgeNet(nn.Module):
     def __init__(self, in_size, layer_size):
         super(ParticleNetEdgeNet, self).__init__()

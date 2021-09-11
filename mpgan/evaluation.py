@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 import numpy as np
 
-import utils
+from . import utils
 
 from os import path
 
@@ -18,10 +18,12 @@ from energyflow.emd import emds
 
 import logging
 
-from particlenet import ParticleNet
+from .particlenet import ParticleNet
 
 
 def get_mu2_sigma2(args, C, X_loaded, fullpath):
+    """ calculates means (mu) and covariance matrix (sigma) of activations of classifier C wrt real data """
+
     logging.info("Getting mu2, sigma2")
 
     C.eval()
@@ -41,6 +43,8 @@ def get_mu2_sigma2(args, C, X_loaded, fullpath):
 
 
 def load(args, X_loaded=None):
+    """ loads pre-trained ParticleNet classifier and either calculates or loads from directory the means and covariance matrix of the activations wrt real data """
+
     C = ParticleNet(args.num_hits, args.node_feat_size, device=args.device).to(args.device)
     C.load_state_dict(torch.load(args.evaluation_path + "C_state_dict.pt", map_location=args.device))
 
@@ -60,6 +64,8 @@ rng = np.random.default_rng()
 
 # make sure to deepcopy G passing in
 def calc_jsd(args, X, G):
+    """ calculates Jensen-Shannon divergence between real and generated feature distributions """
+
     logging.info("evaluating JSD")
     G.eval()
 
@@ -88,11 +94,13 @@ def calc_jsd(args, X, G):
 
 
 # make sure to deepcopy G passing in
-def calc_w1(args, X, G, losses, X_loaded=None, pcgan_args=None):
+def calc_w1(args, X, G, losses, X_loaded=None):
+    """ calculates 1-Wasserstein distance between real and generated feature distributions and appends them to the respective list in `losses` dict """
+
     logging.info("Evaluating 1-WD")
 
     G.eval()
-    gen_out = utils.gen_multi_batch(args, G, args.eval_tot_samples, X_loaded=X_loaded, pcgan_args=pcgan_args)
+    gen_out = utils.gen_multi_batch(args, G, args.eval_tot_samples, X_loaded=X_loaded)
 
     logging.info("Generated Data")
 
@@ -168,6 +176,8 @@ def calc_w1(args, X, G, losses, X_loaded=None, pcgan_args=None):
 
 
 def get_fpnd(args, C, gen_out, mu2, sigma2):
+    """ calculates Frechet ParticleNet Distance of generated samples `gen_out` """
+
     logging.info("Evaluating FPND")
 
     gen_out_loaded = DataLoader(TensorDataset(torch.tensor(gen_out)), batch_size=args.fpnd_batch_size)
@@ -194,6 +204,8 @@ def get_fpnd(args, C, gen_out, mu2, sigma2):
 
 
 def calc_cov_mmd(args, X, gen_out, losses, X_loaded=None):
+    """ calculates coverage and minimum matching distance, using the energy movers distance metric, and appends them to the respective list in `losses` dict """
+
     X_rn, mask_real = utils.unnorm_data(args, X.cpu().detach().numpy()[:args.eval_tot_samples], real=True)
     gen_out_rn, mask_gen = utils.unnorm_data(args, gen_out[:args.eval_tot_samples], real=False)
 
