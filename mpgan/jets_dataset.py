@@ -5,7 +5,11 @@ import logging
 
 class JetsDataset(Dataset):
     def __init__(self, args, train=True):
-        dataset = torch.load(args.datasets_path + args.jets + '_jets.pt').float()[:, :args.num_hits, :]
+        if not args.model == 'treegan':
+            dataset = torch.load(args.datasets_path + args.jets + '_jets.pt').float()[:, :args.num_hits, :]
+        else:
+            dataset = torch.load(args.datasets_path + args.jets + '_jets.pt').float()[:, :args.num_hits - args.pad_hits, :]
+            dataset = torch.nn.functional.pad(dataset, (0, 0, 0, args.pad_hits), "constant", 0)  # for treegan zero-pad num hits to the next power 2 (i.e. 30 -> 32)
         if not args.mask: dataset = dataset[:, :, :args.node_feat_size]
 
         if args.coords == 'cartesian':
@@ -37,8 +41,8 @@ class JetsDataset(Dataset):
             num_particles = (torch.sum(dataset[:, :, 3] + 0.5, dim=1) / args.num_hits).unsqueeze(1)
             logging.debug("num particles: " + str(torch.sum(dataset[:, :, 3] + 0.5, dim=1)))
 
-            if args.clabels: self.jet_features = torch.cat((self.jet_features, num_particles), dim=1)
-            else: self.jet_features = num_particles
+            # if args.clabels: self.jet_features = torch.cat((self.jet_features, num_particles), dim=1)
+            self.jet_features = num_particles
         else:
             self.jet_features = torch.zeros((len(dataset)), 1)
 
@@ -62,7 +66,7 @@ class JetsDataset(Dataset):
 
         tcut = int(len(self.X) * args.ttsplit)
         self.X = self.X[:tcut] if train else self.X[tcut:]
-        if self.jet_features is not None: self.jet_features = self.jet_features[:tcut] if train else self.jet_features[tcut:]
+        self.jet_features = self.jet_features[:tcut] if train else self.jet_features[tcut:]
         logging.info("Dataset shape: " + str(self.X.shape))
 
     def __len__(self):

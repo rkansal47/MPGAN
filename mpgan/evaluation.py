@@ -94,13 +94,11 @@ def calc_jsd(args, X, G):
 
 
 # make sure to deepcopy G passing in
-def calc_w1(args, X, G, losses, X_loaded=None):
-    """ calculates 1-Wasserstein distance between real and generated feature distributions and appends them to the respective list in `losses` dict """
-
+def calc_w1(args, X, G, losses, X_loaded=None, pcgan_args=None):
     logging.info("Evaluating 1-WD")
 
     G.eval()
-    gen_out = utils.gen_multi_batch(args, G, args.eval_tot_samples, X_loaded=X_loaded)
+    gen_out = utils.gen_multi_batch(args, G, args.eval_tot_samples, X_loaded=X_loaded, pcgan_args=pcgan_args)
 
     logging.info("Generated Data")
 

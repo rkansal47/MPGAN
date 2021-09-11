@@ -14,11 +14,8 @@ from torch.distributions.normal import Normal
 
 import energyflow as ef
 
-from sys import platform
+import awkward as ak
 from coffea.nanoevents.methods import vector
-
-if platform == 'linux': import awkward as ak
-else: import awkward as ak
 ak.behavior.update(vector.behavior)
 
 
@@ -141,7 +138,7 @@ class objectview(object):
         self.__dict__ = d
 
 
-def gen(args, G, num_samples=0, noise=None, labels=None, X_loaded=None):
+def gen(args, G, num_samples=0, noise=None, labels=None, X_loaded=None, pcgan_args=None):
     """ generates `num_samples` jets in one go. Can optionally pass pre-specified `noise`, else will randomly sample from a normal distribution. """
 
     dist = Normal(torch.tensor(0.).to(args.device), torch.tensor(args.sd).to(args.device))
@@ -154,6 +151,13 @@ def gen(args, G, num_samples=0, noise=None, labels=None, X_loaded=None):
                 noise = dist.sample((num_samples, args.num_hits + extra_noise_p, args.latent_node_size if args.latent_node_size else args.hidden_node_size))
         elif args.model == 'rgan' or args.model == 'graphcnngan':
             noise = dist.sample((num_samples, args.latent_dim))
+        elif args.model == 'treegan':
+            noise = [dist.sample((num_samples, 1, args.treegang_features[0]))]
+        elif args.model == 'pcgan':
+            noise = dist.sample((num_samples, args.pcgan_latent_dim))
+            if pcgan_args['sample_points']:
+                point_noise = Normal(torch.tensor(0.).to(args.device), torch.tensor(1.).to(args.device)).sample([num_samples, args.num_hits, args.pcgan_z2_dim])
+
     else: num_samples = noise.size(0)
 
     if (args.clabels or args.mask_c) and labels is None:
@@ -164,20 +168,23 @@ def gen(args, G, num_samples=0, noise=None, labels=None, X_loaded=None):
 
     gen_data = G(noise, labels)
     if args.mask_manual: gen_data = mask_manual(args, gen_data)
+    if args.model == 'pcgan' and pcgan_args['sample_points']:
+        gen_data = pcgan_args['G_pc'](gen_data.unsqueeze(1), point_noise)
 
+    logging.debug(gen_data[0, :10])
     return gen_data
 
 
-def gen_multi_batch(args, G, num_samples, noise=None, labels=None, X_loaded=None, use_tqdm=False):
+def gen_multi_batch(args, G, num_samples, noise=None, labels=None, X_loaded=None, use_tqdm=False, pcgan_args=None):
     """ generates `num_samples` jets in batches of `args.batch_size`. Can optionally pass pre-specified `noise`, else will randomly sample from a normal distribution. """
 
-    gen_out = gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[:args.batch_size], X_loaded=X_loaded).cpu().detach().numpy()
+    gen_out = gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[:args.batch_size], X_loaded=X_loaded, pcgan_args=pcgan_args).cpu().detach().numpy()
     if use_tqdm:
         for i in tqdm.tqdm(range(int(num_samples / args.batch_size))):
-            gen_out = np.concatenate((gen_out, gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[args.batch_size * (i + 1):args.batch_size * (i + 2)], X_loaded=X_loaded).cpu().detach().numpy()), 0)
+            gen_out = np.concatenate((gen_out, gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[args.batch_size * (i + 1):args.batch_size * (i + 2)], X_loaded=X_loaded, pcgan_args=pcgan_args).cpu().detach().numpy()), 0)
     else:
         for i in range(int(num_samples / args.batch_size)):
-            gen_out = np.concatenate((gen_out, gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[args.batch_size * (i + 1):args.batch_size * (i + 2)], X_loaded=X_loaded).cpu().detach().numpy()), 0)
+            gen_out = np.concatenate((gen_out, gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[args.batch_size * (i + 1):args.batch_size * (i + 2)], X_loaded=X_loaded, pcgan_args=pcgan_args).cpu().detach().numpy()), 0)
     gen_out = gen_out[:num_samples]
 
     return gen_out
@@ -186,7 +193,7 @@ def gen_multi_batch(args, G, num_samples, noise=None, labels=None, X_loaded=None
 # from https://github.com/EmilienDupont/wgan-gp
 def gradient_penalty(args, D, real_data, generated_data, batch_size):
     # Calculate interpolation
-    alpha = torch.rand(batch_size, 1, 1).to(args.device)
+    alpha = torch.rand(batch_size, 1, 1).to(args.device) if not args.model == 'pcgan' else torch.rand(batch_size, 1).to(args.device)
     alpha = alpha.expand_as(real_data)
     interpolated = alpha * real_data + (1 - alpha) * generated_data
     interpolated = Variable(interpolated, requires_grad=True).to(args.device)
