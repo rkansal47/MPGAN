@@ -1,9 +1,8 @@
 # import setGPU
 
 import torch
-from mpgan import setup, utils, evaluation, augment
-from mpgan.jets_dataset import JetsDataset
-import save_outputs
+import setup, utils, save_outputs, evaluation, augment
+from jets_dataset import JetsDataset
 from torch.utils.data import DataLoader
 
 from tqdm import tqdm
@@ -11,6 +10,9 @@ from tqdm import tqdm
 # from parallel import DataParallelModel, DataParallelCriterion
 
 import logging
+
+from guppy import hpy
+h = hpy()
 
 
 def main():
@@ -31,6 +33,16 @@ def main():
     logging.info("Data loaded")
 
     G, D = setup.models(args)
+    if args.model == 'pcgan':
+        G_inv, G_pc = setup.pcgan_models(args)
+        G_inv.eval()
+        G_pc.eval()
+        pcgan_train_args = {'sample_points': False}  # no need to sample points while training latent GAN
+        pcgan_eval_args = {'sample_points': True, 'G_pc': G_pc}
+    else:
+        pcgan_train_args = None
+        pcgan_eval_args = None
+
     logging.info("Models loaded")
 
     G_optimizer, D_optimizer = setup.optimizers(args, G, D)
@@ -57,13 +69,14 @@ def main():
 
         run_batch_size = data.shape[0]
 
+        if args.model == 'pcgan': data = G_inv(data.clone())  # run through pre-trained inference network first i.e. find latent representation
         D_real_output = D(data.clone(), labels, epoch=epoch)
 
         log("D real output: ")
         log(D_real_output[:10])
 
         if gen_data is None:
-            gen_data = utils.gen(args, G, run_batch_size, labels=labels)
+            gen_data = utils.gen(args, G, run_batch_size, labels=labels, pcgan_args=pcgan_train_args)
 
         if args.augment:
             p = args.aug_prob if not args.adaptive_prob else losses['p'][-1]
@@ -71,7 +84,7 @@ def main():
             gen_data = augment.augment(args, gen_data, p)
 
         log("G output: ")
-        log(gen_data[:2, :10, :])
+        log(gen_data[:2, :10])
 
         D_fake_output = D(gen_data, labels, epoch=epoch)
 
@@ -91,7 +104,7 @@ def main():
 
         run_batch_size = labels.shape[0] if labels is not None else args.batch_size
 
-        gen_data = utils.gen(args, G, run_batch_size, labels=labels)
+        gen_data = utils.gen(args, G, run_batch_size, labels=labels, pcgan_args=pcgan_train_args)
 
         if args.augment:
             p = args.aug_prob if not args.adaptive_prob else losses['p'][-1]
@@ -110,14 +123,18 @@ def main():
         return G_loss.item()
 
     def train():
+        logging.info(h.heap())
+
         if(args.start_epoch == 0 and args.save_zero):
             if args.eval:
-                gen_out = evaluation.calc_w1(args, X_test[:][0], G, losses, X_loaded=X_test_loaded)
+                gen_out = evaluation.calc_w1(args, X_test[:][0], G, losses, X_loaded=X_test_loaded, pcgan_args=pcgan_eval_args)
                 if args.fpnd: losses['fpnd'].append(evaluation.get_fpnd(args, C, gen_out, mu2, sigma2))
                 evaluation.calc_cov_mmd(args, X_test[:][0], gen_out, losses, X_loaded=X_test_loaded)
             else: gen_out = None
-            save_outputs.save_sample_outputs(args, D, G, X_test[:args.num_samples][0], 0, losses, X_loaded=X_test_loaded, gen_out=gen_out)
+            save_outputs.save_sample_outputs(args, D, G, X_test[:args.num_samples][0], 0, losses, X_loaded=X_test_loaded, gen_out=gen_out, pcgan_args=pcgan_eval_args)
             del(gen_out)
+
+        logging.info(h.heap())
 
         for i in range(args.start_epoch, args.num_epochs):
             logging.info("Epoch {} starting".format(i + 1))
@@ -162,12 +179,14 @@ def main():
 
             if((i + 1) % args.save_epochs == 0):
                 if args.eval:
-                    gen_out = evaluation.calc_w1(args, X_test[:][0], G, losses, X_loaded=X_test_loaded)
+                    gen_out = evaluation.calc_w1(args, X_test[:][0], G, losses, X_loaded=X_test_loaded, pcgan_args=pcgan_eval_args)
                     if args.fpnd: losses['fpnd'].append(evaluation.get_fpnd(args, C, gen_out, mu2, sigma2))
                     evaluation.calc_cov_mmd(args, X_test[:][0], gen_out, losses, X_loaded=X_test_loaded)
                 else: gen_out = None
-                save_outputs.save_sample_outputs(args, D, G, X_test[:args.num_samples][0], i + 1, losses, X_loaded=X_test_loaded, gen_out=gen_out)
+                save_outputs.save_sample_outputs(args, D, G, X_test[:args.num_samples][0], i + 1, losses, X_loaded=X_test_loaded, gen_out=gen_out, pcgan_args=pcgan_eval_args)
                 del(gen_out)
+
+            logging.info(h.heap())
 
     train()
 

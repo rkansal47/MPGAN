@@ -15,10 +15,9 @@ from torch.distributions.normal import Normal
 import energyflow as ef
 
 from sys import platform
-from coffea.nanoevents.methods import vector
+import awkward as ak
 
-if platform == 'linux': import awkward as ak
-else: import awkward as ak
+from coffea.nanoevents.methods import vector
 ak.behavior.update(vector.behavior)
 
 
@@ -113,8 +112,6 @@ def add_bool_arg(parser, name, help, default=False, no_name=None):
 
 
 def mask_manual(args, gen_data):
-    """ applies a zero-mask to particles with pT below `args.pt_cutoff` """
-
     logging.debug("Before Mask: ")
     logging.debug(gen_data[0])
     if args.mask_real_only:
@@ -135,16 +132,13 @@ def mask_manual(args, gen_data):
 
 
 class objectview(object):
-    """ converts a dict into an object """
-
     def __init__(self, d):
         self.__dict__ = d
 
 
-def gen(args, G, num_samples=0, noise=None, labels=None, X_loaded=None):
-    """ generates `num_samples` jets in one go. Can optionally pass pre-specified `noise`, else will randomly sample from a normal distribution. """
-
+def gen(args, G, num_samples=0, noise=None, labels=None, X_loaded=None, pcgan_args=None):
     dist = Normal(torch.tensor(0.).to(args.device), torch.tensor(args.sd).to(args.device))
+
     if(noise is None):
         if args.model == 'mpgan':
             if args.lfc:
@@ -154,6 +148,13 @@ def gen(args, G, num_samples=0, noise=None, labels=None, X_loaded=None):
                 noise = dist.sample((num_samples, args.num_hits + extra_noise_p, args.latent_node_size if args.latent_node_size else args.hidden_node_size))
         elif args.model == 'rgan' or args.model == 'graphcnngan':
             noise = dist.sample((num_samples, args.latent_dim))
+        elif args.model == 'treegan':
+            noise = [dist.sample((num_samples, 1, args.treegang_features[0]))]
+        elif args.model == 'pcgan':
+            noise = dist.sample((num_samples, args.pcgan_latent_dim))
+            if pcgan_args['sample_points']:
+                point_noise = Normal(torch.tensor(0.).to(args.device), torch.tensor(1.).to(args.device)).sample([num_samples, args.num_hits, args.pcgan_z2_dim])
+
     else: num_samples = noise.size(0)
 
     if (args.clabels or args.mask_c) and labels is None:
@@ -164,20 +165,21 @@ def gen(args, G, num_samples=0, noise=None, labels=None, X_loaded=None):
 
     gen_data = G(noise, labels)
     if args.mask_manual: gen_data = mask_manual(args, gen_data)
+    if args.model == 'pcgan' and pcgan_args['sample_points']:
+        gen_data = pcgan_args['G_pc'](gen_data.unsqueeze(1), point_noise)
 
+    logging.debug(gen_data[0, :10])
     return gen_data
 
 
-def gen_multi_batch(args, G, num_samples, noise=None, labels=None, X_loaded=None, use_tqdm=False):
-    """ generates `num_samples` jets in batches of `args.batch_size`. Can optionally pass pre-specified `noise`, else will randomly sample from a normal distribution. """
-
-    gen_out = gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[:args.batch_size], X_loaded=X_loaded).cpu().detach().numpy()
+def gen_multi_batch(args, G, num_samples, noise=None, labels=None, X_loaded=None, use_tqdm=False, pcgan_args=None):
+    gen_out = gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[:args.batch_size], X_loaded=X_loaded, pcgan_args=pcgan_args).cpu().detach().numpy()
     if use_tqdm:
         for i in tqdm.tqdm(range(int(num_samples / args.batch_size))):
-            gen_out = np.concatenate((gen_out, gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[args.batch_size * (i + 1):args.batch_size * (i + 2)], X_loaded=X_loaded).cpu().detach().numpy()), 0)
+            gen_out = np.concatenate((gen_out, gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[args.batch_size * (i + 1):args.batch_size * (i + 2)], X_loaded=X_loaded, pcgan_args=pcgan_args).cpu().detach().numpy()), 0)
     else:
         for i in range(int(num_samples / args.batch_size)):
-            gen_out = np.concatenate((gen_out, gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[args.batch_size * (i + 1):args.batch_size * (i + 2)], X_loaded=X_loaded).cpu().detach().numpy()), 0)
+            gen_out = np.concatenate((gen_out, gen(args, G, num_samples=args.batch_size, labels=None if labels is None else labels[args.batch_size * (i + 1):args.batch_size * (i + 2)], X_loaded=X_loaded, pcgan_args=pcgan_args).cpu().detach().numpy()), 0)
     gen_out = gen_out[:num_samples]
 
     return gen_out
@@ -186,7 +188,7 @@ def gen_multi_batch(args, G, num_samples, noise=None, labels=None, X_loaded=None
 # from https://github.com/EmilienDupont/wgan-gp
 def gradient_penalty(args, D, real_data, generated_data, batch_size):
     # Calculate interpolation
-    alpha = torch.rand(batch_size, 1, 1).to(args.device)
+    alpha = torch.rand(batch_size, 1, 1).to(args.device) if not args.model == 'pcgan' else torch.rand(batch_size, 1).to(args.device)
     alpha = alpha.expand_as(real_data)
     interpolated = alpha * real_data + (1 - alpha) * generated_data
     interpolated = Variable(interpolated, requires_grad=True).to(args.device)
@@ -219,11 +221,6 @@ bce = torch.nn.BCELoss()
 
 
 def calc_D_loss(args, D, data, gen_data, real_outputs, fake_outputs, run_batch_size, Y_real, Y_fake, mse):
-    """
-    calculates discriminator loss for the different possible loss functions + optionally applying label smoothing, label flipping, or a gradient penalty
-    returns individual loss contributions as well for evaluation and plotting
-    """
-
     if(args.loss == 'og' or args.loss == 'ls'):
         if args.label_smoothing:
             Y_real = torch.empty(run_batch_size).uniform_(0.7, 1.2).to(args.device)
@@ -262,7 +259,6 @@ def calc_D_loss(args, D, data, gen_data, real_outputs, fake_outputs, run_batch_s
 
 
 def calc_G_loss(args, fake_outputs, Y_real, run_batch_size, mse):
-    """ calculates generator loss for the different possible loss functions """
     if(args.loss == 'og'):
         G_loss = bce(fake_outputs, Y_real[:run_batch_size])
     elif(args.loss == 'ls'):
@@ -341,7 +337,6 @@ def rand_mix(args, X1, X2, p):
 
 
 def jet_features(jets, mask_bool=False, mask=None):
-    """ calculates mass and pT of jets using the awkward_array library """
     vecs = ak.zip({
             "pt": jets[:, :, 2:3],
             "eta": jets[:, :, 0:1],
@@ -357,7 +352,6 @@ def jet_features(jets, mask_bool=False, mask=None):
 
 
 def unnorm_data(args, jets, real=True, rem_zero=True):
-    """ returns data to original scaling after training/generation """
     if args.mask:
         if real: mask = (jets[:, :, 3] + 0.5) >= 1
         else: mask = (jets[:, :, 3] + 0.5) >= 0.5
@@ -384,8 +378,8 @@ def unnorm_data(args, jets, real=True, rem_zero=True):
     return jets, mask
 
 
+# convert our format (eta, phi, pt) into that of the energyflow library (pt, y, phi)
 def ef_format(jets):
-    """ convert jets from our format (eta, phi, pt) into that of the energyflow library (pt, y, phi) """
     pt = np.expand_dims(jets[:, :, 2], 2)
     eta = np.expand_dims(jets[:, :, 0], 2)
     phi = np.expand_dims(jets[:, :, 1], 2)
@@ -394,7 +388,6 @@ def ef_format(jets):
 
 
 def efp(args, jets, mask=None, real=True):
-    """ returns EFPs of jets """
     efpset = ef.EFPSet(('n==', 4), ('d==', 4), ('p==', 1), measure='hadr', beta=1, normed=None, coords='ptyphim')
 
     efp_format = ef_format(jets)

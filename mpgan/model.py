@@ -2,13 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .spectral_normalization import SpectralNorm
+from spectral_normalization import SpectralNorm
 import logging
 
 
 class Graph_GAN(nn.Module):
-    """ MPGAN model. use default args in setup.py for the model in https://arxiv.org/abs/2106.11535"""
-
     def __init__(self, gen, args):
         super(Graph_GAN, self).__init__()
         self.args = args
@@ -261,8 +259,13 @@ class Graph_GAN(nn.Module):
             # message passing
             A, A_mask = self.getA(x, i, batch_size, fe_in_size, mask_bool, mask)
 
+            # logging.debug('A \n {} \n A_mask \n {}'.format(A[:2, :10], A_mask[:2, :10]))
+
             num_knn = self.args.num_hits if (hasattr(self.args, 'fully_connected') and self.args.fully_connected) else self.args.num_knn
 
+            if (A != A).any(): logging.warning("Nan values in A \n x: \n {} \n A: \n {}".format(x, A))
+
+            # NEED TO FIX FOR MASK-FNE-NP + CLABELS (probably just labels --> labels[:, :self.args.clabels])
             if clabel_iter: A = torch.cat((A, labels.repeat(self.args.num_hits * num_knn, 1)), axis=1)
             if self.args.mask_fne_np: A = torch.cat((A, nump.repeat(self.args.num_hits * num_knn, 1)), axis=1)
 
@@ -271,11 +274,15 @@ class Graph_GAN(nn.Module):
                 if(self.args.batch_norm): A = self.bne[i][j](A)  # try before activation
                 A = self.dropout(A)
 
+            if (A != A).any(): logging.warning("Nan values in A after message passing \n x: \n {} \n A: \n {}".format(x, A))
+
             # message aggregation into new features
             A = A.view(batch_size, self.args.num_hits, num_knn, fe_out_size)
             if mask_bool:
                 if self.args.fully_connected: A = A * mask.unsqueeze(1)
                 else: A = A * A_mask.reshape(batch_size, self.args.num_hits, num_knn, 1)
+
+            # logging.debug('A \n {}'.format(A[:2, :10]))
 
             A = torch.sum(A, 2) if self.args.sum else torch.mean(A, 2)
             x = torch.cat((A, x), 2).view(batch_size * self.args.num_hits, fe_out_size + node_size)
@@ -292,6 +299,8 @@ class Graph_GAN(nn.Module):
 
             x = self.dropout(self.fn[i][-1](x))
             x = x.view(batch_size, self.args.num_hits, self.args.hidden_node_size)
+
+            if (x != x).any(): logging.warning("Nan values in x after fn \n x: \n {} \n A: \n {}".format(x, A))
 
         if(self.G):
             x = torch.tanh(x[:, :, :self.args.node_feat_size]) if self.args.gtanh else x[:, :, :self.args.node_feat_size]
@@ -322,7 +331,12 @@ class Graph_GAN(nn.Module):
             else:
                 x = x[:, :, :1]
                 if mask_bool:
+                    logging.debug("D output pre mask")
+                    logging.debug(mask[:2, :, 0])
+                    logging.debug(x[:2, :, 0])
                     x = x * mask
+                    logging.debug("post mask")
+                    logging.debug(x[:2, :, 0])
                     x = torch.sum(x, 1) / (torch.sum(mask, 1) + 1e-12)
                 else:
                     x = torch.mean(x, 1)
@@ -330,8 +344,6 @@ class Graph_GAN(nn.Module):
             return x if (self.args.loss == 'w' or self.args.loss == 'hinge') else torch.sigmoid(x)
 
     def getA(self, x, i, batch_size, fe_in_size, mask_bool, mask):
-        """ returns adjacency matrix for `x` for message passing """
-
         node_size = x.size(2)
         num_coords = 3 if self.args.coords == 'cartesian' else 2
 
@@ -374,6 +386,8 @@ class Graph_GAN(nn.Module):
             sorted = torch.sort(dists, dim=2)
             self_loops = int(self.args.self_loops is False)
 
+            # logging.debug("x \n {} \n x1 \n {} \n x2 \n {} \n diffs \n {} \n dists \n {} \n sorted[0] \n {} \n sorted[1] \n {}".format(x[0], x1[0], x2[0], diffs[0], dists[0], sorted[0][0], sorted[0][1]))
+
             dists = sorted[0][:, :, self_loops:self.args.num_knn + self_loops].reshape(batch_size, self.args.num_hits * self.args.num_knn, 1)
             sorted = sorted[1][:, :, self_loops:self.args.num_knn + self_loops].reshape(batch_size, self.args.num_hits * self.args.num_knn, 1)
 
@@ -392,6 +406,7 @@ class Graph_GAN(nn.Module):
                 A = torch.cat((x1_knn, x2_knn, dists), dim=2)
             else:
                 A = torch.cat((x1_knn, x2_knn), dim=2)
+            # logging.debug("A \n {} \n".format(A[0]))
 
         return A, A_mask
 
