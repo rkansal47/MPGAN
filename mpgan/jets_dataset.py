@@ -10,6 +10,7 @@ class JetsDataset(Dataset):
         else:
             dataset = torch.load(args.datasets_path + args.jets + '_jets.pt').float()[:, :args.num_hits - args.pad_hits, :]
             dataset = torch.nn.functional.pad(dataset, (0, 0, 0, args.pad_hits), "constant", 0)  # for treegan zero-pad num hits to the next power 2 (i.e. 30 -> 32)
+
         if not args.mask: dataset = dataset[:, :, :args.node_feat_size]
 
         if args.coords == 'cartesian':
@@ -37,7 +38,7 @@ class JetsDataset(Dataset):
             args.pt_cutoff = torch.unique(self.X[:, :, 2], sorted=True)[1]  # smallest particle pT after 0
             logging.debug("Cutoff: " + str(args.pt_cutoff))
 
-        if hasattr(args, 'mask_c') and args.mask_c:
+        if args.mask and args.mask_c:
             num_particles = (torch.sum(dataset[:, :, 3] + 0.5, dim=1) / args.num_hits).unsqueeze(1)
             logging.debug("num particles: " + str(torch.sum(dataset[:, :, 3] + 0.5, dim=1)))
 
@@ -46,7 +47,7 @@ class JetsDataset(Dataset):
         else:
             self.jet_features = torch.zeros((len(dataset)), 1)
 
-        if hasattr(args, 'noise_padding') and args.noise_padding:
+        if args.noise_padding:
             logging.debug("pre-noise padded dataset: \n {}".format(dataset[:2, -10:]))
 
             noise_padding = torch.randn((len(dataset), args.num_hits, 3)) / 6
@@ -62,7 +63,6 @@ class JetsDataset(Dataset):
             dataset += (torch.cat((noise_padding, torch.zeros((len(dataset), args.num_hits, 1))), dim=2))
 
             logging.debug("noise padded dataset: \n {}".format(dataset[:2, -10:]))
-
 
         tcut = int(len(self.X) * args.ttsplit)
         self.X = self.X[:tcut] if train else self.X[tcut:]

@@ -40,7 +40,8 @@ def parse_args():
     parser.add_argument("--start-epoch", type=int, default=-1, help="which epoch to start training on, only applies if loading a model, by default start at the highest epoch model")
     parser.add_argument("--num-epochs", type=int, default=2000, help="number of epochs to train")
 
-    parser.add_argument("--dir-path", type=str, default="", help="path where dataset and output will be stored")
+    parser.add_argument("--dir-path", type=str, default="", help="path where output will be stored")
+    parser.add_argument("--datasets-path", type=str, default="", help="path to datasets")
 
     parser.add_argument("--num-samples", type=int, default=50000, help="num samples to evaluate every 5 epochs")
 
@@ -443,22 +444,26 @@ def check_args(args):
 
 
 def init_project_dirs(args):
-    if args.dir_path == "":
-        if args.n: args.dir_path = "/graphganvol/mnist_graph_gan/jets"
-        elif args.lx: args.dir_path = "/eos/user/r/rkansal/mnist_graph_gan/jets"
-        else: args.dir_path = pathlib.Path(__file__).parent.parent.resolve() + '/outputs'
+    if args.datasets_path == "":
+        if args.n: args.datasets_path = "/graphganvol/MPGAN/datasets/"
+        else: args.datasets_path = str(pathlib.Path(__file__).parent.parent.resolve()) + '/datasets/'
 
     args_dict = vars(args)
 
-    dirs = ['models', 'losses', 'args', 'figs', 'datasets', 'outs']
+    dirs = ['models', 'losses', 'args', 'figs', 'outs']
+
+    if args.dir_path == "":
+        if args.n: args.dir_path = "/graphganvol/MPGAN/outputs"
+        elif args.lx: args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs"
+        else: args.dir_path = str(pathlib.Path(__file__).parent.parent.resolve()) + '/outputs'
+
     for dir in dirs:
         args_dict[dir + '_path'] = args.dir_path + '/' + dir + '/'
         if not exists(args_dict[dir + '_path']):
             mkdir(args_dict[dir + '_path'])
 
-    file_dir = pathlib.Path(__file__).parent.resolve()
-
     dirs = ['evaluation']
+    file_dir = str(pathlib.Path(__file__).parent.resolve())
     for dir in dirs:
         args_dict[dir + '_path'] = file_dir + '/' + dir + '/'
         if not exists(args_dict[dir + '_path']):
