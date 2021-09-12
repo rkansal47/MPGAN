@@ -2,8 +2,8 @@ import argparse
 import sys
 from . import utils
 
-from os import listdir, mkdir
-from os.path import exists, dirname, realpath
+import os
+from os import listdir
 import pathlib
 
 import torch
@@ -448,6 +448,8 @@ def init_project_dirs(args):
         if args.n: args.datasets_path = "/graphganvol/MPGAN/datasets/"
         else: args.datasets_path = str(pathlib.Path(__file__).parent.parent.resolve()) + '/datasets/'
 
+    os.system(f'mkdir -p {args.datasets_path}')
+
     args_dict = vars(args)
 
     dirs = ['models', 'losses', 'args', 'figs', 'outs']
@@ -459,15 +461,13 @@ def init_project_dirs(args):
 
     for dir in dirs:
         args_dict[dir + '_path'] = args.dir_path + '/' + dir + '/'
-        if not exists(args_dict[dir + '_path']):
-            mkdir(args_dict[dir + '_path'])
+        os.system(f'mkdir -p {args_dict[dir + "_path"]}')
 
     dirs = ['evaluation']
     file_dir = str(pathlib.Path(__file__).parent.resolve())
     for dir in dirs:
         args_dict[dir + '_path'] = file_dir + '/' + dir + '/'
-        if not exists(args_dict[dir + '_path']):
-            mkdir(args_dict[dir + '_path'])
+        os.system(f'mkdir -p {args_dict[dir + "_path"]}')
 
     args = utils.objectview(args_dict)
     return args
@@ -481,14 +481,9 @@ def init_model_dirs(args):
             logging.error("Name already used - exiting")
             sys.exit()
 
-    try: mkdir(args.losses_path + args.name)
-    except FileExistsError: logging.debug("losses dir exists")
-
-    try: mkdir(args.models_path + args.name)
-    except FileExistsError: logging.debug("models dir exists")
-
-    try: mkdir(args.figs_path + args.name)
-    except FileExistsError: logging.debug("figs dir exists")
+    os.system(f'mkdir -p {args.losses_path}/{args.name}')
+    os.system(f'mkdir -p {args.models_path}/{args.name}')
+    os.system(f'mkdir -p {args.figs_path}/{args.name}')
 
     return args
 
