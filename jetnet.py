@@ -46,12 +46,9 @@ class JetNet(torch.utils.data.Dataset):
         self.feature_norms = feature_norms
         self.feature_shifts = feature_shifts
         self.use_mask = use_mask
-
-        if not use_mask:
-            use_num_particles_jet_feature = False
-            noise_padding = False
-
-        self.use_jet_features = True if use_num_particles_jet_feature else False  # in the future there'll be more jet features such as jet pT and eta
+        # in the future there'll be more jet features such as jet pT and eta
+        self.use_jet_features = (use_num_particles_jet_feature) and self.use_mask
+        self.noise_padding = noise_padding and self.use_masks
 
         pt_file = f"{data_dir}/{jet_type}_jets.pt"
 
@@ -67,7 +64,7 @@ class JetNet(torch.utils.data.Dataset):
         logging.info(f"Loaded dataset {dataset.shape = } \n Normalizing features")
         dataset, self.feature_maxes, self.pt_cutoff = self.normalize_features(dataset, feature_norms, feature_shifts)
 
-        if noise_padding:
+        if self.noise_padding:
             dataset = self.add_noise_padding(dataset)
 
         tcut = int(len(dataset) * train_fraction)
