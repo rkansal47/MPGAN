@@ -8,11 +8,14 @@ import numpy as np
 class JetNet(torch.utils.data.Dataset):
     """
     PyTorch `torch.utils.data.Dataset` class for the JetNet dataset, shape is [num_jets, num_particles, num_features].
-    Features, in order, are: if polar coords - [eta, phi, pt, mask], if cartesian coords - [px, py, pz, mask]
+    Features, in order: if polar coords - [eta, phi, pt, mask], if cartesian coords - [px, py, pz, mask].
+
+    Dataset is downloaded from https://zenodo.org/record/4834876/ if pt or csv file is not found in the `data_dir` directory.
 
     Args:
         jet_type (str): 'g' (gluon), 't' (top quarks), or 'q' (light quarks).
         data_dir (str): directory which contains (or in which to download) dataset. Defaults to "./" i.e. the working directory.
+        download (bool): download the dataset, even if the csv file exists already. Defaults to False.
         num_particles (int): number of particles to use, has to be less than the total in JetNet (30). 0 means use all. Defaults to 0.
         feature_norms (list[float]): max absolute value of each feature (in order) when normalizing. None means feature won't be scaled. Defaults to [1.0, 1.0, 1., 1.].
         feature_shifts (list[float]): shifts features by this value *after* scaling to maxes in `feature_norms`. None or 0 means won't be shifted. Defaults to [0., 0., -0.5, -0.5].
@@ -28,6 +31,7 @@ class JetNet(torch.utils.data.Dataset):
         self,
         jet_type: str,
         data_dir: str = "./",
+        download: bool = False,
         num_particles: int = 0,
         feature_norms: list[float] = [1.0, 1.0, 1.0, 1.0],
         feature_shifts: list[float] = [0.0, 0.0, -0.5, -0.5],
@@ -51,7 +55,7 @@ class JetNet(torch.utils.data.Dataset):
 
         pt_file = f"{data_dir}/{jet_type}_jets.pt"
 
-        if not exists(pt_file):
+        if not exists(pt_file) or download:
             self.download_and_convert_to_pt(data_dir, jet_type)
 
         logging.info("Loading dataset")
@@ -87,18 +91,35 @@ class JetNet(torch.utils.data.Dataset):
         self.csv_to_pt(data_dir, jet_type, csv_file)
 
     def download(self, jet_type: str, csv_file: str):
-        """Downloads the `jet_type` jet csv from Zenodo and plsaves it as `csv_file`"""
+        """Downloads the `jet_type` jet csv from Zenodo and saves it as `csv_file`"""
         import requests
-        import shutil
+        import sys
 
-        url = f"https://zenodo.org/record/4834876/files/{jet_type}_jets.csv?download=1"
+        records_url = "https://zenodo.org/api/records/5502543"
+        r = requests.get(records_url).json()
+        key = f"{jet_type}_jets.csv"
+        file_url = next(item for item in r['files'] if item["key"] == key)['links']['self']  # finding the url for the particular jet type dataset
+        logging.info(f"{file_url = }")
 
-        # as suggested here https://stackoverflow.com/a/39217788/3759946
-        with requests.get(url, stream=True) as r:
-            with open(csv_file, "wb") as f:
-                shutil.copyfileobj(r.raw, f)
+        # modified from https://sumit-ghosh.com/articles/python-download-progress-bar/
+        with open(csv_file, "wb") as f:
+            response = requests.get(file_url, stream=True)
+            total = response.headers.get("content-length")
 
-        return csv_file
+            if total is None:
+                f.write(response.content)
+            else:
+                downloaded = 0
+                total = int(total)
+
+                for data in response.iter_content(chunk_size=max(int(total / 1000), 1024 * 1024)):
+                    downloaded += len(data)
+                    f.write(data)
+                    done = int(50 * downloaded / total)
+                    sys.stdout.write("\r[{}{}] {:.0f}%".format("█" * done, "." * (50 - done), float(downloaded / total) * 100))
+                    sys.stdout.flush()
+
+        sys.stdout.write("\n")
 
     def csv_to_pt(self, data_dir: str, jet_type: str, csv_file: str):
         """Converts and saves downloaded csv file to pytorch tensor"""
