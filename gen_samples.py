@@ -11,7 +11,7 @@ import os
 import shutil
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-#
+
 # models = [
 #     ['mplfc_g', 1410, '219_g30_mask_c_lfc_dea_no_pos_diffs/'],
 #     ['mplfc_t', 1920, '207_t30_mask_c_lrx2_lfc_dea_no_pos_diffs/'],

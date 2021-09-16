@@ -1,9 +1,12 @@
 # import setGPU
 
-import torch
-from mpgan import setup, utils, evaluation, augment
+# mpgan.evaluation, and specifically the energyflow library, needs to be imported before pytorch because of https://github.com/pkomiske/EnergyFlow/issues/24
+# import torch
+from mpgan import evaluation, setup, utils, augment
 from mpgan.jets_dataset import JetsDataset
 import save_outputs
+
+import torch
 from torch.utils.data import DataLoader
 
 from tqdm import tqdm
@@ -19,7 +22,6 @@ def main():
 
     args, tqdm_out = setup.init()
     torch.manual_seed(args.seed)
-    # args = setup.init()
     args.device = device
     logging.info("Args initalized")
 
