@@ -40,7 +40,7 @@ class JetNet(torch.utils.data.Dataset):
         train_fraction: float = 0.7,
         num_pad_particles: int = 0,
         use_num_particles_jet_feature: bool = True,
-        noise_padding: bool = False
+        noise_padding: bool = False,
     ):
         self.num_particles = num_particles
         self.feature_norms = feature_norms
@@ -75,7 +75,6 @@ class JetNet(torch.utils.data.Dataset):
 
         logging.info("Dataset processed")
 
-
     def download_and_convert_to_pt(self, data_dir: str, jet_type: str):
         """Download jet dataset and convert and save to pytorch tensor"""
         csv_file = f"{data_dir}/{jet_type}_jets.csv"
@@ -95,7 +94,7 @@ class JetNet(torch.utils.data.Dataset):
         records_url = "https://zenodo.org/api/records/5502543"
         r = requests.get(records_url).json()
         key = f"{jet_type}_jets.csv"
-        file_url = next(item for item in r['files'] if item["key"] == key)['links']['self']  # finding the url for the particular jet type dataset
+        file_url = next(item for item in r["files"] if item["key"] == key)["links"]["self"]  # finding the url for the particular jet type dataset
         logging.info(f"{file_url = }")
 
         # modified from https://sumit-ghosh.com/articles/python-download-progress-bar/
@@ -125,7 +124,6 @@ class JetNet(torch.utils.data.Dataset):
         pt_file = f"{data_dir}/{jet_type}_jets.pt"
         torch.save(torch.tensor(np.loadtxt(csv_file).reshape(-1, 30, 4)), pt_file)
 
-
     def load_dataset(self, pt_file: str, num_particles: int, num_pad_particles: int, use_mask: bool):
         """Load the dataset"""
         dataset = torch.load(pt_file).float()
@@ -143,13 +141,11 @@ class JetNet(torch.utils.data.Dataset):
 
         return dataset
 
-
     def get_jet_features(self, dataset: torch.Tensor, use_num_particles_jet_feature: bool):
         """Returns jet-level features. Will be expanded to jet pT and eta"""
         jet_num_particles = (torch.sum(dataset[:, :, 3], dim=1) / self.num_particles).unsqueeze(1)
         logging.debug("{num_particles = }")
         return jet_num_particles
-
 
     def normalize_features(self, dataset: torch.Tensor, feature_norms: list[float], feature_shifts: list[float]):
         """
@@ -215,15 +211,14 @@ class JetNet(torch.utils.data.Dataset):
 
         return dataset[:, :, -1], mask if ret_mask_separate else dataset
 
-
     def add_noise_padding(self, dataset: torch.Tensor):
-        """ Add Gaussian noise to zero-masked particles """
+        """Add Gaussian noise to zero-masked particles"""
         logging.debug(f"Pre-noise padded dataset: \n {dataset[:2, -10:]}")
 
         noise_padding = torch.randn((len(dataset), self.num_particles, dataset.shape[2] - 1)) / 5  # up to 5 sigmas will be within ±1
         noise_padding[noise_padding > 1] = 1
         noise_padding[noise_padding < -1] = -1
-        noise_padding[:, :, 2] /= 2.  # pt is scaled between ±0.5
+        noise_padding[:, :, 2] /= 2.0  # pt is scaled between ±0.5
 
         mask = (dataset[:, :, 3] + 0.5).bool()
         noise_padding[mask] = 0  # only adding noise to zero-masked particles
@@ -232,7 +227,6 @@ class JetNet(torch.utils.data.Dataset):
         logging.debug("Post-noise padded dataset: \n {dataset[:2, -10:]}")
 
         return dataset
-
 
     def __len__(self):
         return len(self.X)

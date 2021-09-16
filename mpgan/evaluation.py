@@ -1,4 +1,5 @@
-# Getting mu and sigma of activation features of GCNN classifier for the FID score
+# needs to be imported before pytorch because of https://github.com/pkomiske/EnergyFlow/issues/24
+from energyflow.emd import emds
 
 import torch
 from torch.utils.data import TensorDataset, DataLoader
@@ -13,8 +14,6 @@ from os import path
 
 from scipy.spatial.distance import jensenshannon
 from scipy.stats import wasserstein_distance
-
-from energyflow.emd import emds
 
 import logging
 
@@ -109,19 +108,13 @@ def calc_w1(args, X, G, losses, X_loaded=None, pcgan_args=None):
 
     if args.jf:
         realjf = utils.jet_features(X_rn, mask=mask_real)
-
-        logging.info("Obtained real jet features")
-
         genjf = utils.jet_features(gen_out_rn, mask=mask_gen)
-
-        logging.info("Obtained gen jet features")
+        logging.info("Obtained jet features")
 
         realefp = utils.efp(args, X_rn, mask=mask_real, real=True)
-
         logging.info("Obtained Real EFPs")
 
         genefp = utils.efp(args, gen_out_rn, mask=mask_gen, real=False)
-
         logging.info("Obtained Gen EFPs")
 
     num_batches = np.array(args.eval_tot_samples / np.array(args.w1_num_samples), dtype=int)
@@ -229,3 +222,6 @@ def calc_cov_mmd(args, X, gen_out, losses, X_loaded=None):
 
     losses['coverage'].append(np.mean(np.array(covs)))
     losses['mmd'].append(np.mean(np.array(mmds)))
+
+    logging.info("Coverage: " + str(losses['coverage'][-1]))
+    logging.info("MMD: " + str(losses['mmd'][-1]))
