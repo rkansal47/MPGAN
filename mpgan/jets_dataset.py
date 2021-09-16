@@ -36,6 +36,7 @@ class JetsDataset(Dataset):
                 dataset[:, :, i] /= args.maxepp[i]
 
             dataset[:, :, 2] -= 0.5  # pT is normalized between -0.5 and 0.5 (instead of ±1) so the peak pT lies in linear region of tanh
+            dataset[:, :, 3] -= 0.5  # mask centered around 0 like all other features
             if args.dataset == "jets-lagan":
                 dataset[:, :, 3] -= 0.5
             dataset *= args.norm
@@ -77,7 +78,7 @@ class JetsDataset(Dataset):
             self.jet_features = self.jet_features[:tcut] if train else self.jet_features[tcut:]
         logging.info("Dataset shape: " + str(self.X.shape))
 
-        logging.debug("Dataset \n" + str(self.X[:2, :10]))
+        logging.info("Dataset \n" + str(self.X[:2, :10]))
 
     def download_and_convert_to_pt(self, data_dir: str, jet_type: str):
         """Download jet dataset and convert and save to pytorch tensor"""

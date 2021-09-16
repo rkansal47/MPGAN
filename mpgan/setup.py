@@ -492,7 +492,7 @@ def init_logging(args):
     if args.log_file == "stdout":
         handler = logging.StreamHandler(sys.stdout)
     else:
-        if args.log_file == "": args.log_file = args.name + ".txt"
+        if args.log_file == "": args.log_file = args.name + "_log.txt"
         handler = logging.FileHandler(args.outs_path + args.log_file)
 
     level = getattr(logging, args.log.upper())
