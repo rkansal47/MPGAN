@@ -294,7 +294,7 @@ class JetNet(torch.utils.data.Dataset):
                 dataset[:, :, i] /= self.feature_norms[i]
                 dataset[:, :, i] *= self.feature_maxes[i]
 
-        mask = dataset[:, :, -1:] >= 0.5 if self.use_mask else None
+        mask = dataset[:, :, -1] >= 0.5 if self.use_mask else None
 
         if not is_real_data and zero_mask_particles and self.use_mask:
             dataset[~mask] = 0

@@ -23,7 +23,7 @@ import logging
 
 
 def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.autograd.set_detect_anomaly(False)
 
     args = setup_training.init()
@@ -101,7 +101,7 @@ def get_gen_noise(model_args, num_samples: int, num_particles: int, model: str =
                 (
                     num_samples,
                     num_particles + extra_noise_p,
-                    model_args["latent_node_size"] if model_args["latent_node_size"] else model_args["hidden_node_size"],
+                    model_args["latent_node_size"],
                 )
             )
     elif model == "rgan" or model == "graphcnngan":
@@ -174,7 +174,7 @@ def gen(
         assert labels.shape[0] == num_samples, "number of labels doesn't match num_samples"
 
     if noise is None:
-        noise, point_noise = get_gen_noise(model_args, num_samples, num_particles, model, device, noise_std, **extra_args)
+        noise, point_noise = get_gen_noise(model_args, num_samples, num_particles, model, device, noise_std)
 
     gen_data = G(noise, labels)
 
@@ -202,7 +202,7 @@ def gen_multi_batch(
     num_samples: int,
     num_particles: int,
     out_device: str = "cpu",
-    detach: bool = True,
+    detach: bool = False,
     use_tqdm: bool = True,
     model: str = "mpgan",
     noise: Tensor = None,
@@ -436,7 +436,7 @@ def save_models(D, G, D_optimizer, G_optimizer, models_path, epoch, multi_gpu=Fa
 
 def save_losses(losses, losses_path):
     for key in losses:
-        np.savetxt(losses_path + "/" + key + ".txt", losses[key])
+        np.savetxt(f"{losses_path}/{key}.txt", losses[key])
 
 
 def evaluate(
@@ -469,17 +469,17 @@ def evaluate(
             use_particle_masses=False,
             num_eval_samples=num_w1_eval_samples,
             num_batches=real_jets.shape[0] // num_w1_eval_samples,
-            average_over_features=False,
+            average_over_efps=False,
             return_std=True,
         )
         losses["w1efp"].append(np.concatenate((w1efpm, w1efpstd)))
 
     if "fpnd" in losses:
-        losses["fpnd"].append(evaluation.fpnd(gen_jets[:num_fpnd_eval_samples], jet_type, fpnd_batch_size=fpnd_batch_size))
+        losses["fpnd"].append(evaluation.fpnd(gen_jets[:num_fpnd_eval_samples], jet_type, batch_size=fpnd_batch_size))
 
-    if "cov" in losses and "mmd" in losses:
+    if "coverage" in losses and "mmd" in losses:
         cov, mmd = evaluation.cov_mmd(real_jets, gen_jets, num_cov_mmd_eval_samples)
-        losses["cov"].append(cov)
+        losses["coverage"].append(cov)
         losses["mmd"].append(mmd)
 
 
@@ -554,10 +554,12 @@ def make_plots(
 
 
 def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, losses, epoch, best_epoch, **extra_args):
+    G.eval()
+    D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
 
     real_jets, real_mask = X_test.unnormalize_features(
-        X_test.data[: args.eval_tot_samples], ret_mask_separate=True, is_real_data=True, zero_mask_particles=True, zero_neg_pt=True
+        X_test.data[: args.eval_tot_samples].clone(), ret_mask_separate=True, is_real_data=True, zero_mask_particles=True, zero_neg_pt=True
     )
     gen_output = gen_multi_batch(
         model_args,
@@ -565,15 +567,20 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
         args.batch_size,
         args.eval_tot_samples,
         args.num_hits,
-        out_device=args.device,
+        out_device='cpu',
         model=args.model,
+        detach=True,
         labels=X_test.jet_features[: args.eval_tot_samples],
-        mask_manual=args.mask_manual,
         **extra_args,
     )
     gen_jets, gen_mask = X_test.unnormalize_features(
         gen_output, ret_mask_separate=True, is_real_data=False, zero_mask_particles=True, zero_neg_pt=True
     )
+
+    real_jets = real_jets.detach().cpu().numpy()
+    real_mask = real_mask.detach().cpu().numpy()
+    gen_jets = gen_jets.numpy()
+    gen_mask = gen_mask.numpy()
 
     evaluate(
         losses,
@@ -585,6 +592,7 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
         fpnd_batch_size=args.fpnd_batch_size,
     )
     save_losses(losses, args.losses_path)
+
     make_plots(
         losses,
         epoch,
@@ -594,7 +602,7 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
         gen_mask,
         args.jets,
         args.num_hits,
-        args.name,
+        str(epoch),
         args.figs_path,
         args.losses_path,
         save_epochs=args.save_epochs,
@@ -612,12 +620,12 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
         np.save(f"{args.outs_path}/best_epoch_gen_mask", gen_mask)
 
         if args.multi_gpu:
-            torch.save(G.module.state_dict(), f"{args.outs_path}/G_epoch_state.pt")
+            torch.save(G.module.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
         else:
-            torch.save(G.state_dict(), f"{args.outs_path}/G_epoch_state.pt")
+            torch.save(G.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
 
 
-def train_loop(args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_loss_args, model_train_args, epoch, extra_args):
+def train_loop(args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_losses, D_loss_args, model_train_args, epoch, extra_args):
     lenX = len(X_train_loaded)
 
     for batch_ndx, data in tqdm(enumerate(X_train_loaded), total=lenX, mininterval=0.1, desc=f"Epoch {epoch}"):
@@ -647,7 +655,7 @@ def train_loop(args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer,
                 **extra_args,
             )
 
-            for key in D_loss_items:
+            for key in D_losses:
                 epoch_loss[key] += D_loss_items[key]
 
         if args.num_critic == 1 or (batch_ndx - 1) % args.num_critic == 0:
@@ -713,7 +721,7 @@ def train(
         for key in epoch_loss:
             epoch_loss[key] = 0
 
-        train_loop(args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_loss_args, model_train_args, epoch, extra_args)
+        train_loop(args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_losses, D_loss_args, model_train_args, epoch, extra_args)
         logging.info(f"Epoch {epoch} Training Over")
 
         for key in D_losses:
@@ -724,7 +732,7 @@ def train(
             logging.info("{} loss: {:.3f}".format(key, losses[key][-1]))
 
         if (epoch) % args.save_epochs == 0:
-            eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_eval_args, losses, 0, best_epoch, **extra_args)
+            eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_eval_args, losses, epoch, best_epoch, **extra_args)
         elif (epoch) % args.save_model_epochs == 0:
             save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
 

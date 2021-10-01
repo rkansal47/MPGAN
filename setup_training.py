@@ -83,7 +83,6 @@ def parse_args():
     parser.add_argument("--name", type=str, default="test", help="name or tag for model; will be appended with other info")
     parser.add_argument("--dataset", type=str, default="jets", help="dataset to use", choices=["jets", "jets-lagan"])
 
-    add_bool_arg(parser, "train", "run training or evaluation", default=True, no_name="eval")
     parser.add_argument("--ttsplit", type=float, default=0.7, help="ratio of train/test split")
 
     parser.add_argument("--model", type=str, default="mpgan", help="model to run", choices=["mpgan", "rgan", "graphcnngan", "treegan", "pcgan"])
@@ -377,8 +376,9 @@ def process_args(args):
         sys.exit()
 
     if args.debug:
-        # args.save_zero = True
+        args.save_zero = True
         args.low_samples = True
+        args.break_zero = True
 
     if args.multi_gpu and args.loss != "ls":
         logging.warning("multi gpu not implemented for non-mse loss")
@@ -448,6 +448,9 @@ def process_args(args):
 
     args.clabels_first_layer = args.clabels if args.clabels_fl else 0
     args.clabels_hidden_layers = args.clabels if args.clabels_hl else 0
+
+    if args.latent_node_size == 0:
+        args.latent_node_size = args.hidden_node_size
 
     if args.model == "mpgan" and (args.mask_feat or args.mask_manual or args.mask_learn or args.mask_real_only or args.mask_c or args.mask_learn_sep):
         args.mask = True
@@ -520,6 +523,7 @@ def process_args(args):
 
         args.num_knn = 20
 
+    args.pad_hits = 0
     if args.model == "treegan":
 
         # for treegan pad num hits to the next power of 2 (i.e. 30 -> 32)
@@ -575,7 +579,7 @@ def init_project_dirs(args):
         if args.n:
             args.datasets_path = "/graphganvol/MPGAN/datasets/"
         else:
-            args.datasets_path = str(pathlib.Path(__file__).parent.parent.resolve()) + "/datasets/"
+            args.datasets_path = str(pathlib.Path(__file__).parent.resolve()) + "/datasets/"
 
     os.system(f"mkdir -p {args.datasets_path}")
 
@@ -587,9 +591,9 @@ def init_project_dirs(args):
         elif args.lx:
             args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs/"
         else:
-            args.dir_path = str(pathlib.Path(__file__).parent.parent.resolve()) + "/outputs/"
+            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/outputs/"
 
-    os.system(f"mkdir -p {args.datasets_path}")
+    os.system(f"mkdir -p {args.dir_path}")
 
     args = objectview(args_dict)
     return args
@@ -597,7 +601,7 @@ def init_project_dirs(args):
 
 def init_model_dirs(args):
     """create directories for this training's logs, models, losses, and figures"""
-    prev_models = [f[:-4] for f in listdir(args.args_path)]  # removing .txt
+    prev_models = [f[:-4] for f in listdir(args.dir_path)]  # removing .txt
 
     if args.name in prev_models:
         if args.name != "test" and not args.load_model and not args.override_load_check:
@@ -614,8 +618,8 @@ def init_model_dirs(args):
         args_dict[dir + "_path"] = f"{args.dir_path}/{args.name}/{dir}/"
         os.system(f'mkdir -p {args_dict[dir + "_path"]}')
 
-    args["outs_path"] = f"{args.dir_path}/{args.name}/"
-    args["args_path"] = f"{args.dir_path}/{args.name}/"
+    args_dict["outs_path"] = f"{args.dir_path}/{args.name}/"
+    args_dict["args_path"] = f"{args.dir_path}/{args.name}/"
 
     args = objectview(args_dict)
     return args
@@ -645,7 +649,7 @@ def load_args(args):
     """Either save the arguments or, if loading a model, load the arguments for that model"""
     if args.load_model:
         if args.start_epoch == -1:
-            prev_models = [int(f[:-3].split("_")[-1]) for f in listdir(args.models_path + args.name + "/")]
+            prev_models = [int(f[:-3].split("_")[-1]) for f in listdir(args.models_path)]
             if len(prev_models):
                 args.start_epoch = max(prev_models)
             else:
@@ -658,12 +662,12 @@ def load_args(args):
         args.start_epoch = 0
 
     if not args.load_model:
-        f = open(args.args_path + args.name + ".txt", "w+")
+        f = open(args.args_path + args.name + "_args.txt", "w+")
         f.write(str(vars(args)))
         f.close()
     elif not args.override_args:
         temp = args.start_epoch, args.num_epochs
-        f = open(args.args_path + args.name + ".txt", "r")
+        f = open(args.args_path + args.name + "_args.txt", "r")
         args_dict = vars(args)
         load_args_dict = eval(f.read())
         for key in load_args_dict:
@@ -732,11 +736,11 @@ def models(args):
 
     if args.load_model:
         try:
-            G.load_state_dict(torch.load(args.models_path + args.name + "/G_" + str(args.start_epoch) + ".pt", map_location=args.device))
-            D.load_state_dict(torch.load(args.models_path + args.name + "/D_" + str(args.start_epoch) + ".pt", map_location=args.device))
+            G.load_state_dict(torch.load(f"{args.models_path}/G_{args.start_epoch}.pt", map_location=args.device))
+            D.load_state_dict(torch.load(f"{args.models_path}/D_{args.start_epoch}.pt", map_location=args.device))
         except AttributeError:
-            G = torch.load(args.models_path + args.name + "/G_" + str(args.start_epoch) + ".pt", map_location=args.device)
-            D = torch.load(args.models_path + args.name + "/D_" + str(args.start_epoch) + ".pt", map_location=args.device)
+            G = torch.load(f"{args.models_path}/G_{args.start_epoch}.pt", map_location=args.device)
+            D = torch.load(f"{args.models_path}/D_{args.start_epoch}.pt", map_location=args.device)
 
     if args.multi_gpu:
         logging.info("Using", torch.cuda.device_count(), "GPUs")
@@ -751,13 +755,15 @@ def models(args):
 
 def pcgan_models(args):
     """Load pre-trained PCGAN models"""
+    import ext_models
     from ext_models import G_inv_Tanh, G
 
     G_inv = G_inv_Tanh(args.node_feat_size, args.pcgan_d_dim, args.pcgan_z1_dim, args.pcgan_pool)
     G_pc = G(args.node_feat_size, args.pcgan_z1_dim, args.pcgan_z2_dim)
 
-    G_inv.load_state_dict(torch.load(args.models_path + f"pcgan/pcgan_G_inv_{args.jets}.pt", map_location=args.device))
-    G_pc.load_state_dict(torch.load(args.models_path + f"pcgan/pcgan_G_pc_{args.jets}.pt", map_location=args.device))
+    pcgan_models_path = pathlib.Path(ext_models.__file__).parent.resolve() + '/pcgan_models/'
+    G_inv.load_state_dict(torch.load(f"{pcgan_models_path}/pcgan_G_inv_{args.jets}.pt", map_location=args.device))
+    G_pc.load_state_dict(torch.load(f"{pcgan_models_path}/pcgan_G_pc_{args.jets}.pt", map_location=args.device))
 
     if args.multi_gpu:
         logging.info("Using", torch.cuda.device_count(), "GPUs")
@@ -859,7 +865,7 @@ def losses(args):
     for key in keys:
         if args.load_model:
             try:
-                losses[key] = np.loadtxt(args.losses_path + args.name + "/" + key + ".txt")
+                losses[key] = np.loadtxt(f"{args.losses_path}/{key}.txt")
                 if losses[key].ndim == 1:
                     np.expand_dims(losses[key], 0)
                 losses[key] = losses[key].tolist()[: int(args.start_epoch / args.save_epochs) + 1]
@@ -877,8 +883,8 @@ def losses(args):
             best_epoch = best_epoch.tolist()
         except OSError:
             logging.info("best epoch file not found")
-            best_epoch = [[0, 1.0]]
+            best_epoch = [[0, 10.0]]
     else:
-        best_epoch = [[0, 1.0]]  # saves the best model [epoch, w1m score]
+        best_epoch = [[0, 10.0]]  # saves the best model [epoch, w1m score]
 
     return losses, best_epoch

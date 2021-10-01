@@ -64,7 +64,7 @@ def plot_part_feats(
         if const_ylim:
             plt.ylim(0, ylims[i])
         if losses is not None and "w1p" in losses:
-            plt.title(f'$W_1$ = {losses["w1p"][-1][i]:.2e} ± {losses["w1p"][-1][i + len(losses["w1p"][-1]) / 2]:.2e}', fontsize=12)
+            plt.title(f'$W_1$ = {losses["w1p"][-1][i]:.2e} ± {losses["w1p"][-1][i + len(losses["w1p"][-1]) // 2]:.2e}', fontsize=12)
         plt.legend(loc=1, prop={"size": 18})
 
     plt.tight_layout(2.0)
@@ -132,14 +132,14 @@ def plot_part_feats_jet_mass(
         plt.xlabel("Particle " + plabels[i])
         plt.ylabel("Number of Particles")
         if losses is not None and "w1p" in losses:
-            plt.title(f'$W_1$ = {losses["w1p"][-1][i]:.2e} ± {losses["w1p"][-1][i + len(losses["w1p"][-1]) / 2]:.2e}', fontsize=12)
+            plt.title(f'$W_1$ = {losses["w1p"][-1][i]:.2e} ± {losses["w1p"][-1][i + len(losses["w1p"][-1]) // 2]:.2e}', fontsize=12)
 
         plt.legend(loc=1, prop={"size": 18})
 
     fig.add_subplot(1, 4, 4)
     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-    _ = plt.hist(real_masses[:, 0], bins=mbins, histtype="step", label="Real", color="red")
-    _ = plt.hist(gen_masses[:, 0], bins=mbins, histtype="step", label="Generated", color="blue")
+    _ = plt.hist(real_masses, bins=mbins, histtype="step", label="Real", color="red")
+    _ = plt.hist(gen_masses, bins=mbins, histtype="step", label="Generated", color="blue")
     plt.xlabel("Jet $m/p_{T}$")
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
@@ -176,13 +176,13 @@ def plot_jet_feats(jet_type, real_masses, gen_masses, real_efps, gen_efps, name=
 
     fig.add_subplot(2, 3, 1)
     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-    _ = plt.hist(real_masses[:, 0], bins=mbins, histtype="step", label="Real", color="red")
-    _ = plt.hist(gen_masses[:, 0], bins=mbins, histtype="step", label="Generated", color="blue")
+    _ = plt.hist(real_masses, bins=mbins, histtype="step", label="Real", color="red")
+    _ = plt.hist(gen_masses, bins=mbins, histtype="step", label="Generated", color="blue")
     plt.xlabel("Jet $m/p_{T}$")
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
     if losses is not None and "w1m" in losses:
-        plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1efm"][-1][1]:.2e}', fontsize=12)
+        plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}', fontsize=12)
 
     for i in range(5):
         fig.add_subplot(2, 3, i + 2)
@@ -194,7 +194,7 @@ def plot_jet_feats(jet_type, real_masses, gen_masses, real_efps, gen_efps, name=
         plt.ylabel("Jets")
         plt.legend(loc=1, prop={"size": 18})
         if losses is not None and "w1efp" in losses:
-            plt.title(f'$W_1$ = {losses["w1efp"][-1][i]:.2e} ± {losses["w1efp"][-1][i + len(losses["w1efp"][-1]) / 2]:.2e}', fontsize=12)
+            plt.title(f'$W_1$ = {losses["w1efp"][-1][i]:.2e} ± {losses["w1efp"][-1][i + len(losses["w1efp"][-1]) // 2]:.2e}', fontsize=12)
 
     plt.tight_layout(pad=0.5)
     if figs_path is not None and name is not None:
@@ -288,7 +288,7 @@ def plot_eval(losses, epoch, save_epochs, coords="polarrel", name=None, losses_p
     # jlabels = ['Relative Mass', 'Relative $p_T$', 'EFP']
     colors = ["blue", "green", "orange", "red", "yellow"]
 
-    x = np.arange(0, epoch + 1, save_epochs)[-len(losses["w1pm"]) :]
+    x = np.arange(0, epoch + 1, save_epochs)[-len(losses["w1p"]) :]
 
     fig = plt.figure(figsize=(30, 24))
 
@@ -305,21 +305,19 @@ def plot_eval(losses, epoch, save_epochs, coords="polarrel", name=None, losses_p
     if "w1m" in losses:
         fig.add_subplot(3, 3, 4)
         plt.plot(x, np.array(losses["w1m"]))
-        plt.legend(loc=1)
         plt.xlabel("Epoch")
         plt.ylabel("Jet Relative mass $W_1$")
         plt.yscale("log")
 
     if "w1efp" in losses:
-        fig.add_subplot(3, 3, 6)
+        fig.add_subplot(3, 3, 5)
         for i in range(5):
             plt.plot(x, np.array(losses["w1p"])[:, i], label="EFP " + str(i + 1), color=colors[i])
-        plt.legend(loc=1)
         plt.xlabel("Epoch")
         plt.ylabel("Jet EFPs Log$W_1$")
         plt.yscale("log")
 
-    if "mmd" in losses and "cov" in losses:
+    if "mmd" in losses and "coverage" in losses:
         # x = x[-len(losses['mmd']):]
         metrics = {"mmd": (1, "MMD"), "coverage": (2, "Coverage")}
         for key, (i, label) in metrics.items():
@@ -330,11 +328,12 @@ def plot_eval(losses, epoch, save_epochs, coords="polarrel", name=None, losses_p
             if key == "mmd":
                 plt.yscale("log")
 
-    fig.add_subplot(3, 3, 9)
-    plt.plot(x, np.array(losses["fpnd"]))
-    plt.xlabel("Epoch")
-    plt.ylabel("FPND")
-    plt.yscale("log")
+    if "fpnd" in losses:
+        fig.add_subplot(3, 3, 9)
+        plt.plot(x, np.array(losses["fpnd"]))
+        plt.xlabel("Epoch")
+        plt.ylabel("FPND")
+        plt.yscale("log")
 
     if losses_path is not None and name is not None:
         plt.savefig(losses_path + name + ".pdf", bbox_inches="tight")

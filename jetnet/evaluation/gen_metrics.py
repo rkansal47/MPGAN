@@ -153,6 +153,8 @@ def fpnd(jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "Je
     if isinstance(jets, np.ndarray):
         jets = Tensor(jets)
 
+    jets = jets.clone()
+
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -262,10 +264,10 @@ def w1p(
 
     if exclude_zeros:
         zeros1 = np.linalg.norm(jets1[:, :, :num_particle_features], axis=2) == 0
-        mask1 = zeros1 if mask1 is None else mask1 * zeros1
+        mask1 = ~zeros1 if mask1 is None else mask1 * ~zeros1
 
         zeros2 = np.linalg.norm(jets2[:, :, :num_particle_features], axis=2) == 0
-        mask2 = zeros2 if mask2 is None else mask2 * zeros2
+        mask2 = ~zeros2 if mask2 is None else mask2 * ~zeros2
 
     w1s = []
 
@@ -286,7 +288,11 @@ def w1p(
         else:
             parts2 = rand_sample2[:, :, :num_particle_features].reshape(-1, num_particle_features)
 
-        w1 = [wasserstein_distance(parts1[:, i], parts2[:, i]) for i in range(num_particle_features)]
+        if parts1.shape[0] == 0 or parts2.shape[0] == 0:
+            w1 = [np.inf, np.inf, np.inf]
+        else:
+            w1 = [wasserstein_distance(parts1[:, i], parts2[:, i]) for i in range(num_particle_features)]
+
         w1s.append(w1)
 
     means = np.mean(w1s, axis=0)
