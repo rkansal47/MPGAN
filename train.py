@@ -188,11 +188,11 @@ def gen(
     return gen_data
 
 
-def optional_tqdm(total, use_tqdm):
+def optional_tqdm(iter_obj, use_tqdm, total=None, desc=None):
     if use_tqdm:
-        return tqdm(range(total))
+        return tqdm(iter_obj, total=total, desc=desc)
     else:
-        return range(total)
+        return iter_obj
 
 
 def gen_multi_batch(
@@ -218,7 +218,7 @@ def gen_multi_batch(
 
     gen_data = None
 
-    for i in optional_tqdm((num_samples // batch_size) + 1, use_tqdm):
+    for i in optional_tqdm(range((num_samples // batch_size) + 1), use_tqdm, desc="Generating jets"):
         num_samples_in_batch = min(batch_size, num_samples - (i * batch_size))
 
         if num_samples_in_batch > 0:
