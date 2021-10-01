@@ -593,7 +593,6 @@ def init_project_dirs(args):
 
     os.system(f"mkdir -p {args.dir_path}")
 
-
     return args
 
 
@@ -603,7 +602,7 @@ def init_model_dirs(args):
 
     if args.name in prev_models:
         if args.name != "test" and not args.load_model and not args.override_load_check:
-            raise RuntimeError("Name already used - either change the name or use the --override-load-check flag")
+            raise RuntimeError("A model directory of this name already exists - either change the name or use the --override-load-check flag")
 
     os.system(f"mkdir -p {args.dir_path}/{args.name}")
 
@@ -758,7 +757,7 @@ def pcgan_models(args):
     G_inv = G_inv_Tanh(args.node_feat_size, args.pcgan_d_dim, args.pcgan_z1_dim, args.pcgan_pool)
     G_pc = G(args.node_feat_size, args.pcgan_z1_dim, args.pcgan_z2_dim)
 
-    pcgan_models_path = pathlib.Path(ext_models.__file__).parent.resolve() + '/pcgan_models/'
+    pcgan_models_path = pathlib.Path(ext_models.__file__).parent.resolve() + "/pcgan_models/"
     G_inv.load_state_dict(torch.load(f"{pcgan_models_path}/pcgan_G_inv_{args.jets}.pt", map_location=args.device))
     G_pc.load_state_dict(torch.load(f"{pcgan_models_path}/pcgan_G_pc_{args.jets}.pt", map_location=args.device))
 
@@ -805,10 +804,7 @@ def get_model_args(args):
     model_train_args = model_args | pcgan_train_args
     model_eval_args = model_args | pcgan_eval_args
 
-    extra_args = {
-        'mask_manual': args.mask_manual,
-        'pt_cutoff': 0  # TODO: get right pT cutoff
-    }
+    extra_args = {"mask_manual": args.mask_manual, "pt_cutoff": 0}  # TODO: get right pT cutoff
 
     return model_train_args, model_eval_args, extra_args
 

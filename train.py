@@ -567,7 +567,7 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
         args.batch_size,
         args.eval_tot_samples,
         args.num_hits,
-        out_device='cpu',
+        out_device="cpu",
         model=args.model,
         detach=True,
         labels=X_test.jet_features[: args.eval_tot_samples],
@@ -625,7 +625,9 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
             torch.save(G.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
 
 
-def train_loop(args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_losses, D_loss_args, model_train_args, epoch, extra_args):
+def train_loop(
+    args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_losses, D_loss_args, model_train_args, epoch, extra_args
+):
     lenX = len(X_train_loaded)
 
     for batch_ndx, data in tqdm(enumerate(X_train_loaded), total=lenX, mininterval=0.1, desc=f"Epoch {epoch}"):
@@ -721,7 +723,9 @@ def train(
         for key in epoch_loss:
             epoch_loss[key] = 0
 
-        train_loop(args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_losses, D_loss_args, model_train_args, epoch, extra_args)
+        train_loop(
+            args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_losses, D_loss_args, model_train_args, epoch, extra_args
+        )
         logging.info(f"Epoch {epoch} Training Over")
 
         for key in D_losses:

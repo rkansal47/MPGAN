@@ -122,7 +122,9 @@ def _init_fpnd_dict(dataset_name: str, jet_type: str, num_particles: int, num_pa
     _eval_module.fpnd_dict[dataset_name][num_particles][jet_type]["sigma"] = np.loadtxt(f"{resources_path}/{jet_type}_sigma.txt")
 
 
-def fpnd(jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "JetNet", device: str = None, batch_size: int = 16, use_tqdm: bool = True) -> float:
+def fpnd(
+    jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "JetNet", device: str = None, batch_size: int = 16, use_tqdm: bool = True
+) -> float:
     """
     Calculates the Frechet ParticleNet Distance, as defined in https://arxiv.org/abs/2106.11535, for input ``jets`` of type ``jet_type``.
 
@@ -135,7 +137,8 @@ def fpnd(jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "Je
     but functionality for other datasets + ability for users to use their own version is in development.
 
     Args:
-        jets (Union[Tensor, np.ndarray]): Tensor or array of jets, of shape ``[num_jets, num_particles, num_features]`` with features in order ``[eta, phi, pt, (optional) mask]``
+        jets (Union[Tensor, np.ndarray]): Tensor or array of jets, of shape ``[num_jets, num_particles, num_features]``
+          with features in order ``[eta, phi, pt, (optional) mask]``
         jet_type (str): jet type, out of ``['g', 't', 'q']``.
         dataset_name (str): Dataset to use. Currently only JetNet is supported. Defaults to "JetNet".
         device (str): 'cpu' or 'cuda'. If not specified, defaults to cuda if available else cpu.
