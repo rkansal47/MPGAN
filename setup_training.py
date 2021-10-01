@@ -583,8 +583,6 @@ def init_project_dirs(args):
 
     os.system(f"mkdir -p {args.datasets_path}")
 
-    args_dict = vars(args)
-
     if args.dir_path == "":
         if args.n:
             args.dir_path = "/graphganvol/MPGAN/outputs/"
@@ -595,7 +593,7 @@ def init_project_dirs(args):
 
     os.system(f"mkdir -p {args.dir_path}")
 
-    args = objectview(args_dict)
+    args.outs_path = f"{args.dir_path}/{args.name}/"
     return args
 
 
@@ -618,7 +616,6 @@ def init_model_dirs(args):
         args_dict[dir + "_path"] = f"{args.dir_path}/{args.name}/{dir}/"
         os.system(f'mkdir -p {args_dict[dir + "_path"]}')
 
-    args_dict["outs_path"] = f"{args.dir_path}/{args.name}/"
     args_dict["args_path"] = f"{args.dir_path}/{args.name}/"
 
     args = objectview(args_dict)
