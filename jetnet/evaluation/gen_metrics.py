@@ -115,7 +115,6 @@ def _init_fpnd_dict(dataset_name: str, jet_type: str, num_particles: int, num_pa
     _eval_module.fpnd_dict[dataset_name][num_particles][jet_type]["sigma"] = np.loadtxt(f"{resources_path}/{jet_type}_sigma.txt")
 
 
-# TODO !!! check gen jets are not in place normalized !!!
 def fpnd(jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "JetNet", device: str = None, batch_size: int = 16) -> float:
     """
     Calculates the Frechet ParticleNet Distance, as defined in https://arxiv.org/abs/2106.11535, for input ``jets`` of type ``jet_type``.
@@ -427,7 +426,7 @@ def cov_mmd(
     real_jets: Union[Tensor, np.ndarray],
     gen_jets: Union[Tensor, np.ndarray],
     num_eval_samples: int = 100,
-    num_batches: int = 100,
+    num_batches: int = 10,
 ) -> Tuple[float, float]:
     """
     Calculate coverage and MMD between real and generated jets, using the Energy Mover's Distance as the distance metric.
@@ -463,7 +462,7 @@ def cov_mmd(
     covs = []
     mmds = []
 
-    for j in range(num_batches):
+    for j in tqdm(range(num_batches)):
         real_rand = rng.choice(len(real_jets), size=num_eval_samples)
         gen_rand = rng.choice(len(gen_jets), size=num_eval_samples)
 

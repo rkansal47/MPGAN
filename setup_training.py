@@ -746,7 +746,7 @@ def models(args):
 
     G = G.to(args.device)
     D = D.to(args.device)
-
+    
     return G, D
 
 

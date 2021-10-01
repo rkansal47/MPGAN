@@ -176,7 +176,7 @@ def gen(
     if noise is None:
         noise, point_noise = get_gen_noise(model_args, num_samples, num_particles, model, device, noise_std)
 
-    gen_data = G(noise, labels)
+    gen_data = G(noise, labels.to(device))
 
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
         gen_data = mask_manual(model_args, gen_data, extra_args["pt_cutoff"])  # add pt_cutoff to extra_args
@@ -237,7 +237,7 @@ def gen_multi_batch(
             if detach:
                 gen_temp = gen_temp.detach()
 
-            gen_temp.to(out_device)
+            gen_temp = gen_temp.to(out_device)
 
         gen_data = gen_temp if i == 0 else torch.cat((gen_data, gen_temp), axis=0)
 

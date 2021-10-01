@@ -33,12 +33,11 @@ class _ParticleNetEdgeNet(nn.Module):
 
 
 class _ParticleNet(nn.Module):
-    def __init__(self, num_hits, node_feat_size, num_classes=5, device=torch.device("cpu")):
+    def __init__(self, num_hits, node_feat_size, num_classes=5):
         super(_ParticleNet, self).__init__()
         self.num_hits = num_hits
         self.node_feat_size = node_feat_size
         self.num_classes = num_classes
-        self.device = device
 
         self.k = 16
         self.num_edge_convs = 3
@@ -69,7 +68,7 @@ class _ParticleNet(nn.Module):
     def forward(self, x, ret_activations=False, relu_activations=False):
         batch_size = x.size(0)
         x = x.reshape(batch_size * self.num_hits, self.node_feat_size)
-        zeros = torch.zeros(batch_size * self.num_hits, dtype=int).to(self.device)
+        zeros = torch.zeros(batch_size * self.num_hits, dtype=int).to(x.device)
         zeros[torch.arange(batch_size) * self.num_hits] = 1
         batch = torch.cumsum(zeros, 0) - 1
 
