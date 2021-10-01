@@ -10,6 +10,9 @@
 !jetnet/**
 !datasets
 !datasets/README.md
+!ext_models
+!ext_models/**
+
 !*.py
 !LICENSE
 !README.md
@@ -17,3 +20,4 @@
 !.gitignore
 **/__pycache__
 **/.DS_Store
+*test*
