@@ -32,6 +32,13 @@ rng = np.random.default_rng()
 # - Cartesian coordinates
 
 
+def _optional_tqdm(iter_obj, use_tqdm, total=None, desc=None):
+    if use_tqdm:
+        return tqdm(iter_obj, total=total, desc=desc)
+    else:
+        return iter_obj
+
+
 # from https://github.com/mseitzer/pytorch-fid
 def _calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
     """Numpy implementation of the Frechet Distance.
@@ -115,7 +122,7 @@ def _init_fpnd_dict(dataset_name: str, jet_type: str, num_particles: int, num_pa
     _eval_module.fpnd_dict[dataset_name][num_particles][jet_type]["sigma"] = np.loadtxt(f"{resources_path}/{jet_type}_sigma.txt")
 
 
-def fpnd(jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "JetNet", device: str = None, batch_size: int = 16) -> float:
+def fpnd(jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "JetNet", device: str = None, batch_size: int = 16, use_tqdm: bool = True) -> float:
     """
     Calculates the Frechet ParticleNet Distance, as defined in https://arxiv.org/abs/2106.11535, for input ``jets`` of type ``jet_type``.
 
@@ -133,6 +140,7 @@ def fpnd(jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "Je
         dataset_name (str): Dataset to use. Currently only JetNet is supported. Defaults to "JetNet".
         device (str): 'cpu' or 'cuda'. If not specified, defaults to cuda if available else cpu.
         batch_size (int): Batch size for ParticleNet inference. Defaults to 16.
+        use_tqdm (bool): use tqdm bar while getting ParticleNet activations. Defaults to True.
 
     Returns:
         float: the measured FPND.
@@ -185,9 +193,9 @@ def fpnd(jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "Je
     # run inference and store activations
     jets_loaded = DataLoader(jets[:, :, : _eval_module.fpnd_dict["NUM_SAMPLES"]], batch_size)
 
-    logging.info(f"Calculating ParticleNet inferences with {batch_size = }")
+    logging.info(f"Calculating ParticleNet activations with {batch_size = }")
     activations = []
-    for i, jets_batch in tqdm(enumerate(jets_loaded), total=len(jets_loaded)):
+    for i, jets_batch in _optional_tqdm(enumerate(jets_loaded), use_tqdm, total=len(jets_loaded), desc="Running ParticleNet"):
         activations.append(pnet(jets.to(device), ret_activations=True).cpu().detach().numpy())
 
     activations = np.array(activations)
@@ -427,6 +435,7 @@ def cov_mmd(
     gen_jets: Union[Tensor, np.ndarray],
     num_eval_samples: int = 100,
     num_batches: int = 10,
+    use_tqdm: bool = True,
 ) -> Tuple[float, float]:
     """
     Calculate coverage and MMD between real and generated jets, using the Energy Mover's Distance as the distance metric.
@@ -436,7 +445,7 @@ def cov_mmd(
         gen_jets (Union[Tensor, np.ndarray]): tensor or array of generated jets, same format as real_jets.
         num_eval_samples (int): number of jets out of the real and gen jets each between which to evaluate COV and MMD. Defaults to 100.
         num_batches (int): number of different batches to calculate COV and MMD and average over. Defaults to 100.
-        in_energyflow_format (bool): are the jets in energyflow or JetNet format. Defaults to False.
+        use_tqdm (bool): use tqdm bar while calculating over ``num_batches`` batches. Defaults to True.
 
     Returns:
         Tuple[float, float]:
@@ -462,7 +471,7 @@ def cov_mmd(
     covs = []
     mmds = []
 
-    for j in tqdm(range(num_batches)):
+    for j in _optional_tqdm(range(num_batches), use_tqdm, desc=f"Calculating cov and mmd over {num_batches} batches"):
         real_rand = rng.choice(len(real_jets), size=num_eval_samples)
         gen_rand = rng.choice(len(gen_jets), size=num_eval_samples)
 

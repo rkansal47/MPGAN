@@ -131,7 +131,7 @@ def parse_args():
 
     add_bool_arg(parser, "multi-gpu", "use multiple gpus if possible", default=False)
 
-    parser.add_argument("--log-file", type=str, default="", help='log file name - default is name of file in outs/ ; "stdout" prints to console')
+    parser.add_argument("--log-file", type=str, default="", help='path to log file ; "stdout" prints to console')
     parser.add_argument("--log", type=str, default="INFO", help="log level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
 
     parser.add_argument("--seed", type=int, default=4, help="torch seed")
@@ -593,7 +593,7 @@ def init_project_dirs(args):
 
     os.system(f"mkdir -p {args.dir_path}")
 
-    args.outs_path = f"{args.dir_path}/"
+
     return args
 
 
@@ -603,8 +603,7 @@ def init_model_dirs(args):
 
     if args.name in prev_models:
         if args.name != "test" and not args.load_model and not args.override_load_check:
-            logging.error("Name already used - exiting")
-            sys.exit()
+            raise RuntimeError("Name already used - either change the name or use the --override-load-check flag")
 
     os.system(f"mkdir -p {args.dir_path}/{args.name}")
 
@@ -617,6 +616,7 @@ def init_model_dirs(args):
         os.system(f'mkdir -p {args_dict[dir + "_path"]}')
 
     args_dict["args_path"] = f"{args.dir_path}/{args.name}/"
+    args_dict["outs_path"] = f"{args.dir_path}/{args.name}/"
 
     args = objectview(args_dict)
     return args
@@ -628,8 +628,8 @@ def init_logging(args):
         handler = logging.StreamHandler(sys.stdout)
     else:
         if args.log_file == "":
-            args.log_file = args.name + "_log.txt"
-        handler = logging.FileHandler(args.outs_path + args.log_file)
+            args.log_file = args.outs_path + args.name + "_log.txt"
+        handler = logging.FileHandler(args.log_file)
 
     level = getattr(logging, args.log.upper())
 
@@ -684,8 +684,8 @@ def init():
         args.log = "DEBUG"
         args.log_file = "stdout"
     args = init_project_dirs(args)
-    args = init_logging(args)
     args = init_model_dirs(args)
+    args = init_logging(args)
     args = process_args(args)
     args = load_args(args)
     return args
@@ -746,7 +746,7 @@ def models(args):
 
     G = G.to(args.device)
     D = D.to(args.device)
-    
+
     return G, D
 
 
