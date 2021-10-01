@@ -593,7 +593,7 @@ def init_project_dirs(args):
 
     os.system(f"mkdir -p {args.dir_path}")
 
-    args.outs_path = f"{args.dir_path}/{args.name}/"
+    args.outs_path = f"{args.dir_path}/"
     return args
 
 
