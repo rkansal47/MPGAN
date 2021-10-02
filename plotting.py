@@ -89,6 +89,7 @@ def plot_part_feats_jet_mass(
     coords="polarrel",
     name=None,
     figs_path=None,
+    dataset="jetnet",
     losses=None,
     show=False,
 ):
