@@ -306,7 +306,7 @@ def plot_eval(losses, epoch, save_epochs, coords="polarrel", name=None, losses_p
 
     if "w1m" in losses:
         fig.add_subplot(3, 3, 4)
-        plt.plot(x, np.array(losses["w1m"]))
+        plt.plot(x, np.array(losses["w1m"][:, 0]))
         plt.xlabel("Epoch")
         plt.ylabel("Jet Relative mass $W_1$")
         plt.yscale("log")
@@ -315,6 +315,7 @@ def plot_eval(losses, epoch, save_epochs, coords="polarrel", name=None, losses_p
         fig.add_subplot(3, 3, 5)
         for i in range(5):
             plt.plot(x, np.array(losses["w1p"])[:, i], label="EFP " + str(i + 1), color=colors[i])
+        plt.legend(loc=1)
         plt.xlabel("Epoch")
         plt.ylabel("Jet EFPs Log$W_1$")
         plt.yscale("log")
