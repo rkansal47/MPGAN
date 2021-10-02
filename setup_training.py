@@ -433,6 +433,9 @@ def process_args(args):
     if args.n:
         if not (args.no_save_zero_or or args.num_hits == 100):
             args.save_zero = True
+        args.efp_jobs = 1  # otherwise leads to a spike in memory usage on PRP
+    else:
+        args.efp_jobs = None
 
     if args.lx:
         if not args.no_save_zero_or:

@@ -440,7 +440,15 @@ def save_losses(losses, losses_path):
 
 
 def evaluate(
-    losses, real_jets, gen_jets, jet_type, num_w1_eval_samples=10000, num_cov_mmd_eval_samples=100, num_fpnd_eval_samples=50000, fpnd_batch_size=16
+    losses,
+    real_jets,
+    gen_jets,
+    jet_type,
+    num_w1_eval_samples=10000,
+    num_cov_mmd_eval_samples=100,
+    num_fpnd_eval_samples=50000,
+    fpnd_batch_size=16,
+    efp_jobs=None,
 ):
     """Calculate evaluation metrics using the JetNet library and add them to the losses dict"""
 
@@ -471,6 +479,7 @@ def evaluate(
             num_batches=real_jets.shape[0] // num_w1_eval_samples,
             average_over_efps=False,
             return_std=True,
+            efp_jobs=efp_jobs,
         )
         losses["w1efp"].append(np.concatenate((w1efpm, w1efpstd)))
 
@@ -590,6 +599,7 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
         num_w1_eval_samples=args.w1_num_samples[0],
         num_cov_mmd_eval_samples=args.cov_mmd_num_samples,
         fpnd_batch_size=args.fpnd_batch_size,
+        efp_jobs=args.efp_jobs if hasattr(args, 'efp_jobs') else None
     )
     save_losses(losses, args.losses_path)
 

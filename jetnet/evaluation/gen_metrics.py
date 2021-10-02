@@ -123,7 +123,7 @@ def _init_fpnd_dict(dataset_name: str, jet_type: str, num_particles: int, num_pa
 
 
 def fpnd(
-    jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "JetNet", device: str = None, batch_size: int = 16, use_tqdm: bool = True
+    jets: Union[Tensor, np.ndarray], jet_type: str, dataset_name: str = "jetnet", device: str = None, batch_size: int = 16, use_tqdm: bool = True
 ) -> float:
     """
     Calculates the Frechet ParticleNet Distance, as defined in https://arxiv.org/abs/2106.11535, for input ``jets`` of type ``jet_type``.
@@ -140,7 +140,7 @@ def fpnd(
         jets (Union[Tensor, np.ndarray]): Tensor or array of jets, of shape ``[num_jets, num_particles, num_features]``
           with features in order ``[eta, phi, pt, (optional) mask]``
         jet_type (str): jet type, out of ``['g', 't', 'q']``.
-        dataset_name (str): Dataset to use. Currently only JetNet is supported. Defaults to "JetNet".
+        dataset_name (str): Dataset to use. Currently only JetNet is supported. Defaults to "jetnet".
         device (str): 'cpu' or 'cuda'. If not specified, defaults to cuda if available else cpu.
         batch_size (int): Batch size for ParticleNet inference. Defaults to 16.
         use_tqdm (bool): use tqdm bar while getting ParticleNet activations. Defaults to True.
@@ -149,7 +149,7 @@ def fpnd(
         float: the measured FPND.
 
     """
-    assert dataset_name == "JetNet", "Only JetNet is currently supported with FPND"
+    assert dataset_name == "jetnet", "Only JetNet is currently supported with FPND"
 
     num_particles = jets.shape[1]
     num_particle_features = jets.shape[2]
@@ -170,7 +170,7 @@ def fpnd(
 
     assert device == "cuda" or device == "cpu", "Invalid device type"
 
-    if dataset_name == "JetNet":
+    if dataset_name == "jetnet":
         JetNet.normalize_features(jets, fpnd=True)
         # TODO other datasets
 
@@ -199,10 +199,9 @@ def fpnd(
     logging.info(f"Calculating ParticleNet activations with {batch_size = }")
     activations = []
     for i, jets_batch in _optional_tqdm(enumerate(jets_loaded), use_tqdm, total=len(jets_loaded), desc="Running ParticleNet"):
-        activations.append(pnet(jets.to(device), ret_activations=True).cpu().detach().numpy())
+        activations.append(pnet(jets_batch.to(device), ret_activations=True).cpu().detach().numpy())
 
-    activations = np.array(activations)
-    activations = activations.reshape(-1, activations.shape[-1])  # remove batch dimension
+    activations = np.concatenate(activations, axis=0)
 
     mu2 = np.mean(activations, axis=0)
     sigma2 = np.cov(activations, rowvar=False)
@@ -372,6 +371,7 @@ def w1efp(
     num_batches: int = 5,
     average_over_efps: bool = True,
     return_std: bool = True,
+    efp_jobs: int = None,
 ):
     """
     Get 1-Wasserstein distances between Energy Flow Polynomials (Komiske et al. 2017 https://arxiv.org/abs/1712.07124) of ``jets1`` and ``jets2``.
@@ -387,6 +387,7 @@ def w1efp(
         num_batches (int): Number of different batches to average W1 scores over. Defaults to 5.
         average_over_efps (bool): Average over the EFPs to return a single W1-EFP score. Defaults to True.
         return_std (bool): Return the standard deviation as well of the W1 scores over the ``num_batches`` batches. Defaults to True.
+        efp_jobs (int): number of jobs to use for energyflow's EFP batch computation. None means as many processes as there are CPUs.
 
     Returns:
         Tuple[Union[float, np.ndarray], Union[float, np.ndarray]]:
@@ -408,8 +409,8 @@ def w1efp(
         jets1.shape[2] - int(use_particle_masses) >= 3
     ), "particle feature format is incorrect"
 
-    efps1 = utils.efps(jets1, use_particle_masses=use_particle_masses, efpset_args=efpset_args)
-    efps2 = utils.efps(jets2, use_particle_masses=use_particle_masses, efpset_args=efpset_args)
+    efps1 = utils.efps(jets1, use_particle_masses=use_particle_masses, efpset_args=efpset_args, efp_jobs=efp_jobs)
+    efps2 = utils.efps(jets2, use_particle_masses=use_particle_masses, efpset_args=efpset_args, efp_jobs=efp_jobs)
     num_efps = efps1.shape[1]
 
     w1s = []

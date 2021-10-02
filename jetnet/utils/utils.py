@@ -64,6 +64,7 @@ def efps(
     jets: np.ndarray,
     use_particle_masses: bool = False,
     efpset_args: list = [("n==", 4), ("d==", 4), ("p==", 1)],
+    efp_jobs: int = None
 ) -> np.ndarray:
     """
     Utility for calculating EFPs for jets in JetNet format using the energyflow library.
@@ -73,6 +74,7 @@ def efps(
           with features in order ``[eta, phi, pt, (optional) mass]``. If no particle masses given, they are assumed to be 0.
         efpset_args (List): Args for the energyflow.efpset function to specify which EFPs to use, as defined here https://energyflow.network/docs/efp/#efpset.
           Defaults to the n=4, d=5, prime EFPs.
+        efp_jobs (int): number of jobs to use for energyflow's EFP batch computation. None means as many processes as there are CPUs.
 
     Returns:
         np.ndarray: 1D (if inputted single jet) or 2D array of shape [num_jets, num_efps] of EFPs per jet
@@ -89,7 +91,7 @@ def efps(
         efps = efpset.compute(jets)
     else:
         jets = jets[:, :, [2, 0, 1]] if not use_particle_masses else jets[:, :, [2, 0, 1, 3]]  # convert to energyflow format
-        efps = efpset.batch_compute(jets)
+        efps = efpset.batch_compute(jets, efp_jobs)
 
     return efps
 
