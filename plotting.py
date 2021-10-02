@@ -91,6 +91,7 @@ def plot_part_feats_jet_mass(
     figs_path=None,
     dataset="jetnet",
     losses=None,
+    const_ylim=False,
     show=False,
 ):
     """Plot histograms of particle feature + jet mass in one row"""
