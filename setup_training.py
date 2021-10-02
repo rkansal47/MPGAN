@@ -226,8 +226,15 @@ def parse_args():
     parser.add_argument("--optimizer", type=str, default="rmsprop", help="pick optimizer", choices=["adam", "rmsprop", "adadelta", "agcd"])
     parser.add_argument("--loss", type=str, default="ls", help="loss to use - options are og, ls, w, hinge", choices=["og", "ls", "w", "hinge"])
 
-    parser.add_argument("--lr-disc", type=float, default=0, help="learning rate for discriminator; defaults are 3e-5, 6e-5, and 1.5e-5 for gluon, top, and quark jet resp.")
-    parser.add_argument("--lr-gen", type=float, default=0, help="learning rate for generator; defaults are 1e-5, 2e-5, and 0.5e-5 for gluon, top, and quark jet resp.")
+    parser.add_argument(
+        "--lr-disc",
+        type=float,
+        default=0,
+        help="learning rate for discriminator; defaults are 3e-5, 6e-5, and 1.5e-5 for gluon, top, and quark jet resp.",
+    )
+    parser.add_argument(
+        "--lr-gen", type=float, default=0, help="learning rate for generator; defaults are 1e-5, 2e-5, and 0.5e-5 for gluon, top, and quark jet resp."
+    )
     parser.add_argument("--beta1", type=float, default=0.9, help="Adam optimizer beta1")
     parser.add_argument("--beta2", type=float, default=0.999, help="Adam optimizer beta2")
     parser.add_argument("--batch-size", type=int, default=0, help="batch size")
@@ -415,19 +422,19 @@ def process_args(args):
                             args.batch_size = 32
 
     if args.lr_disc == 0:
-        if args.jets == 'g':
+        if args.jets == "g":
             args.lr_disc = 3e-5
-        elif args.jets == 't':
+        elif args.jets == "t":
             args.lr_disc = 6e-5
-        elif args.jets == 'q':
+        elif args.jets == "q":
             args.lr_disc = 1.5e-5
 
     if args.lr_gen == 0:
-        if args.jets == 'g':
+        if args.jets == "g":
             args.lr_gen = 1e-5
-        elif args.jets == 't':
+        elif args.jets == "t":
             args.lr_gen = 2e-5
-        elif args.jets == 'q':
+        elif args.jets == "q":
             args.lr_gen = 0.5e-5
 
     if args.n:

@@ -17,6 +17,8 @@ from torch.distributions.normal import Normal
 
 import numpy as np
 
+from os import remove
+
 from tqdm import tqdm
 
 import logging
@@ -558,8 +560,18 @@ def make_plots(
     if len(losses["G"]) > 1:
         plotting.plot_losses(losses, loss=loss, name=name, losses_path=losses_path, show=False)
 
+        try:
+            remove(losses_path + "/" + str(epoch - save_epochs) + ".pdf")
+        except:
+            logging.info("Couldn't remove previous loss curves")
+
     if len(losses["w1p"]) > 1:
         plotting.plot_eval(losses, epoch, save_epochs, coords=coords, name=name + "_eval", losses_path=losses_path, show=False)
+
+        try:
+            remove(losses_path + "/" + str(epoch - save_epochs) + "_eval.pdf")
+        except:
+            logging.info("Couldn't remove previous eval curves")
 
 
 def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, losses, epoch, best_epoch, **extra_args):
@@ -599,7 +611,7 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
         num_w1_eval_samples=args.w1_num_samples[0],
         num_cov_mmd_eval_samples=args.cov_mmd_num_samples,
         fpnd_batch_size=args.fpnd_batch_size,
-        efp_jobs=args.efp_jobs if hasattr(args, 'efp_jobs') else None
+        efp_jobs=args.efp_jobs if hasattr(args, "efp_jobs") else None,
     )
     save_losses(losses, args.losses_path)
 
