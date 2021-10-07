@@ -726,30 +726,30 @@ def load_args(args):
 
 # # args for LinearNet layers
 # linear_args = {
-#     "leaky_relu_alpha": self.args.leaky_relu_alpha,
-#     "dropout_p": self.args.dropout_p,
-#     "batch_norm": self.args.batch_norm,
-#     "spectral_norm": self.args.spectral_norm,
+#     "leaky_relu_alpha": args.leaky_relu_alpha,
+#     "dropout_p": args.dropout_p,
+#     "batch_norm": args.batch_norm,
+#     "spectral_norm": args.spectral_norm,
 # }
 #
 # # args for MPLayers
 # mp_args = {
-#     "pos_diffs": self.args.pos_diffs,
-#     "all_ef": self.args.all_ef,
-#     "coords": self.args.coords,
-#     "delta_coords": self.args.deltacoords,
-#     "delta_r": self.args.deltar,
-#     "int_diffs": self.args.int_diffs,
-#     "clabels": self.args.clabels,
-#     "mask_fne_np": self.args.mask_fne_np,
-#     "fully_connected": self.args.fully_connected,
-#     "num_knn": self.args.num_knn,
-#     "self_loops": self.args.self_loops,
-#     "sum": self.args.sum,
+#     "pos_diffs": args.pos_diffs,
+#     "all_ef": args.all_ef,
+#     "coords": args.coords,
+#     "delta_coords": args.deltacoords,
+#     "delta_r": args.deltar,
+#     "int_diffs": args.int_diffs,
+#     "clabels": args.clabels,
+#     "mask_fne_np": args.mask_fne_np,
+#     "fully_connected": args.fully_connected,
+#     "num_knn": args.num_knn,
+#     "self_loops": args.self_loops,
+#     "sum": args.sum,
 # }
 #
-# mp_args_first_layer_gen = {"clabels": self.args.clabels_first_layer}
-# mp_args_first_layer_disc = {"clabels": self.args.clabels_first_layer, "all_ef": False}
+# mp_args_first_layer_gen = {"clabels": args.clabels_first_layer}
+# mp_args_first_layer_disc = {"clabels": args.clabels_first_layer, "all_ef": False}
 
 # generator
 # input_node_size = args.latent_node_size if args.latent_node_size else args.hidden_node_size
@@ -768,12 +768,101 @@ def init():
     return args
 
 
+def setup_mpgan(args, gen):
+    """Setup MPGAN models"""
+    from mpgan import MPGenerator, MPDiscriminator
+
+    # args for LinearNet layers
+    linear_args = {
+        "leaky_relu_alpha": args.leaky_relu_alpha,
+        "dropout_p": args.dropout_p,
+        "batch_norm": args.batch_norm,
+        "spectral_norm": args.spectral_norm,
+    }
+
+    # args for MPLayers
+    mp_args = {
+        "pos_diffs": args.pos_diffs,
+        "all_ef": args.all_ef,
+        "coords": args.coords,
+        "delta_coords": args.deltacoords,
+        "delta_r": args.deltar,
+        "int_diffs": args.int_diffs,
+        "clabels": args.clabels,
+        "mask_fne_np": args.mask_fne_np,
+        "fully_connected": args.fully_connected,
+        "num_knn": args.num_knn,
+        "self_loops": args.self_loops,
+        "sum": args.sum,
+    }
+
+    mp_args_first_layer_gen = {"clabels": args.clabels_first_layer}
+    mp_args_first_layer_disc = {"clabels": args.clabels_first_layer, "all_ef": False}
+
+    # args for MPNet common to generator and discriminator
+    common_mpnet_args = {
+        "num_particles": args.num_hits,
+        "hidden_node_size": args.hidden_node_size,
+        "fe_layers": args.fe,
+        "fn_layers": args.fn,
+        "fn1_layers": None,
+    }
+
+    # generator-specific args
+    gen_args = {
+        "mp_iters": args.mp_iters_gen,
+        "fe1_layers": args.fe1g if args.fe1g else None,
+        "final_activation": "tanh" if args.gtanh else "",
+        "output_node_size": args.node_feat_size,
+        "input_node_size": args.latent_node_size,
+        "lfc": args.lfc,
+        "lfc_latent_size": args.lfc_latent_size,
+    }
+
+    # discriminator-specific args
+    disc_args = {
+        "mp_iters": args.mp_iters_disc,
+        "fe1_layers": args.fe1d if args.fe1d else None,
+        "final_activation": "sigmoid" if (args.loss == "w" or args.loss == "hinge") else "",
+        "input_node_size": args.node_feat_size,
+        "dea": args.dea,
+        "dea_sum": args.sum,
+        "fnd": args.fnd,
+        "mask_fnd_np": args.mask_fnd_np,
+    }
+
+    # args for masking
+    mask_args = {
+        "mask_feat": args.mask_feat,
+        "mask_feat_bin": args.mask_feat_bin,
+        "mask_weights": args.mask_weights,
+        "mask_manual": args.mask_manual,
+        "mask_exp": args.mask_exp,
+        "mask_real_only": args.mask_real_only,
+        "mask_learn": args.mask_learn,
+        "mask_learn_bin": args.mask_learn_bin,
+        "mask_learn_sep": args.mask_learn_sep,
+        "fmg": args.fmg,
+        "mask_disc_sep": args.mask_disc_sep,
+        "mask_fnd_np": args.mask_fnd_np,
+        "mask_c": args.mask_c,
+        "mask_fne_np": args.mask_fne_np,
+    }
+
+    if gen:
+        return MPGenerator(
+            **gen_args, **common_mpnet_args, mp_args=mp_args, mp_args_first_layer=mp_args_first_layer_gen, linear_args=linear_args, **mask_args
+        )
+    else:
+        return MPDiscriminator(
+            **disc_args, **common_mpnet_args, mp_args=mp_args, mp_args_first_layer=mp_args_first_layer_disc, linear_args=linear_args, **mask_args
+        )
+
+
 def models(args):
     """Set up generator and discriminator models, either new or loaded from a state dict"""
     if args.model == "mpgan":
-        from mpgan import Graph_GAN
-
-        G = Graph_GAN(gen=True, args=deepcopy(args))
+        G = setup_mpgan(args, gen=True)
     elif args.model == "rgan":
         from ext_models import rGANG
 
@@ -792,9 +881,7 @@ def models(args):
         G = latent_G(args.pcgan_latent_dim, args.pcgan_z1_dim)
 
     if args.model_D == "mpgan":
-        from mpgan import Graph_GAN
-
-        D = Graph_GAN(gen=False, args=deepcopy(args))
+        D = setup_mpgan(args, gen=False)
     elif args.model_D == "rgan":
         from ext_models import rGAND
 
