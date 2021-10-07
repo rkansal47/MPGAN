@@ -32,15 +32,31 @@ def plot_part_feats(
             plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T^{rel}$"]
             if jet_type == "g" or jet_type == "q" or jet_type == "w" or jet_type == "z":
                 if num_particles == 100:
-                    pbins = [np.arange(-0.5, 0.5, 0.005), np.arange(-0.5, 0.5, 0.005), np.arange(0, 0.1, 0.001)]
+                    pbins = [
+                        np.arange(-0.5, 0.5, 0.005),
+                        np.arange(-0.5, 0.5, 0.005),
+                        np.arange(0, 0.1, 0.001),
+                    ]
                 else:
-                    pbins = [np.linspace(-0.3, 0.3, 100), np.linspace(-0.3, 0.3, 100), np.linspace(0, 0.2, 100)]
+                    pbins = [
+                        np.linspace(-0.3, 0.3, 100),
+                        np.linspace(-0.3, 0.3, 100),
+                        np.linspace(0, 0.2, 100),
+                    ]
                     ylims = [3e5, 3e5, 3e5]
             elif jet_type == "t":
-                pbins = [np.linspace(-0.5, 0.5, 100), np.linspace(-0.5, 0.5, 100), np.linspace(0, 0.2, 100)]
+                pbins = [
+                    np.linspace(-0.5, 0.5, 100),
+                    np.linspace(-0.5, 0.5, 100),
+                    np.linspace(0, 0.2, 100),
+                ]
         elif dataset == "jets-lagan":
             plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T^{rel}$"]
-            pbins = [np.linspace(-1.25, 1.25, 25 + 1), np.linspace(-1.25, 1.25, 25 + 1), np.linspace(0, 1, 51)]
+            pbins = [
+                np.linspace(-1.25, 1.25, 25 + 1),
+                np.linspace(-1.25, 1.25, 25 + 1),
+                np.linspace(0, 1, 51),
+            ]
     elif coords == "polarrelabspt":
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
         pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
@@ -64,7 +80,10 @@ def plot_part_feats(
         if const_ylim:
             plt.ylim(0, ylims[i])
         if losses is not None and "w1p" in losses:
-            plt.title(f'$W_1$ = {losses["w1p"][-1][i]:.2e} ± {losses["w1p"][-1][i + len(losses["w1p"][-1]) // 2]:.2e}', fontsize=12)
+            plt.title(
+                f'$W_1$ = {losses["w1p"][-1][i]:.2e} ± {losses["w1p"][-1][i + len(losses["w1p"][-1]) // 2]:.2e}',
+                fontsize=12,
+            )
         plt.legend(loc=1, prop={"size": 18})
 
     plt.tight_layout(2.0)
@@ -103,11 +122,23 @@ def plot_part_feats_jet_mass(
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T^{rel}$"]
         if jet_type == "g" or jet_type == "q" or jet_type == "w" or jet_type == "z":
             if num_particles == 100:
-                pbins = [np.arange(-0.5, 0.5, 0.005), np.arange(-0.5, 0.5, 0.005), np.arange(0, 0.1, 0.001)]
+                pbins = [
+                    np.arange(-0.5, 0.5, 0.005),
+                    np.arange(-0.5, 0.5, 0.005),
+                    np.arange(0, 0.1, 0.001),
+                ]
             else:
-                pbins = [np.linspace(-0.3, 0.3, 100), np.linspace(-0.3, 0.3, 100), np.linspace(0, 0.2, 100)]
+                pbins = [
+                    np.linspace(-0.3, 0.3, 100),
+                    np.linspace(-0.3, 0.3, 100),
+                    np.linspace(0, 0.2, 100),
+                ]
         elif jet_type == "t":
-            pbins = [np.linspace(-0.5, 0.5, 100), np.linspace(-0.5, 0.5, 100), np.linspace(0, 0.2, 100)]
+            pbins = [
+                np.linspace(-0.5, 0.5, 100),
+                np.linspace(-0.5, 0.5, 100),
+                np.linspace(0, 0.2, 100),
+            ]
     elif coords == "polarrelabspt":
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
         pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
@@ -134,7 +165,10 @@ def plot_part_feats_jet_mass(
         plt.xlabel("Particle " + plabels[i])
         plt.ylabel("Number of Particles")
         if losses is not None and "w1p" in losses:
-            plt.title(f'$W_1$ = {losses["w1p"][-1][i]:.2e} ± {losses["w1p"][-1][i + len(losses["w1p"][-1]) // 2]:.2e}', fontsize=12)
+            plt.title(
+                f'$W_1$ = {losses["w1p"][-1][i]:.2e} ± {losses["w1p"][-1][i + len(losses["w1p"][-1]) // 2]:.2e}',
+                fontsize=12,
+            )
 
         plt.legend(loc=1, prop={"size": 18})
 
@@ -158,7 +192,17 @@ def plot_part_feats_jet_mass(
         plt.close()
 
 
-def plot_jet_feats(jet_type, real_masses, gen_masses, real_efps, gen_efps, name=None, figs_path=None, losses=None, show=False):
+def plot_jet_feats(
+    jet_type,
+    real_masses,
+    gen_masses,
+    real_efps,
+    gen_efps,
+    name=None,
+    figs_path=None,
+    losses=None,
+    show=False,
+):
     """Plot 5 EFPs and jet mass histograms"""
     if jet_type == "g":
         binranges = [0.0013, 0.0004, 0.0004, 0.0004, 0.0004]
@@ -196,7 +240,10 @@ def plot_jet_feats(jet_type, real_masses, gen_masses, real_efps, gen_efps, name=
         plt.ylabel("Jets")
         plt.legend(loc=1, prop={"size": 18})
         if losses is not None and "w1efp" in losses:
-            plt.title(f'$W_1$ = {losses["w1efp"][-1][i]:.2e} ± {losses["w1efp"][-1][i + len(losses["w1efp"][-1]) // 2]:.2e}', fontsize=12)
+            plt.title(
+                f'$W_1$ = {losses["w1efp"][-1][i]:.2e} ± {losses["w1efp"][-1][i + len(losses["w1efp"][-1]) // 2]:.2e}',
+                fontsize=12,
+            )
 
     plt.tight_layout(pad=0.5)
     if figs_path is not None and name is not None:
@@ -279,7 +326,9 @@ def plot_losses(losses, loss="lg", name=None, losses_path=None, show=False):
         plt.close()
 
 
-def plot_eval(losses, epoch, save_epochs, coords="polarrel", name=None, losses_path=None, show=False):
+def plot_eval(
+    losses, epoch, save_epochs, coords="polarrel", name=None, losses_path=None, show=False
+):
     """Evaluation metric plots per epoch"""
     if coords == "cartesian":
         plabels = ["$p_x$ (GeV)", "$p_y$ (GeV)", "$p_z$ (GeV)"]
@@ -306,7 +355,7 @@ def plot_eval(losses, epoch, save_epochs, coords="polarrel", name=None, losses_p
 
     if "w1m" in losses:
         fig.add_subplot(3, 3, 4)
-        plt.plot(x, np.array(losses["w1m"][:, 0]))
+        plt.plot(x, np.array(losses["w1m"])[:, 0])
         plt.xlabel("Epoch")
         plt.ylabel("Jet Relative mass $W_1$")
         plt.yscale("log")
