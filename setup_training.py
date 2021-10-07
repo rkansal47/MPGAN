@@ -1006,37 +1006,6 @@ def load_args(args):
     return args
 
 
-# # args for LinearNet layers
-# linear_args = {
-#     "leaky_relu_alpha": args.leaky_relu_alpha,
-#     "dropout_p": args.dropout_p,
-#     "batch_norm": args.batch_norm,
-#     "spectral_norm": args.spectral_norm,
-# }
-#
-# # args for MPLayers
-# mp_args = {
-#     "pos_diffs": args.pos_diffs,
-#     "all_ef": args.all_ef,
-#     "coords": args.coords,
-#     "delta_coords": args.deltacoords,
-#     "delta_r": args.deltar,
-#     "int_diffs": args.int_diffs,
-#     "clabels": args.clabels,
-#     "mask_fne_np": args.mask_fne_np,
-#     "fully_connected": args.fully_connected,
-#     "num_knn": args.num_knn,
-#     "self_loops": args.self_loops,
-#     "sum": args.sum,
-# }
-#
-# mp_args_first_layer_gen = {"clabels": args.clabels_first_layer}
-# mp_args_first_layer_disc = {"clabels": args.clabels_first_layer, "all_ef": False}
-
-# generator
-# input_node_size = args.latent_node_size if args.latent_node_size else args.hidden_node_size
-
-
 def init():
     args = parse_args()
     if args.debug:
