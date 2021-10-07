@@ -1155,7 +1155,7 @@ def models(args):
     """Set up generator and discriminator models, either new or loaded from a state dict"""
     if args.model == "mpgan":
         G = setup_mpgan(args, gen=True)
-        print(G)
+        logging.info(G)
     elif args.model == "rgan":
         from ext_models import rGANG
 
@@ -1175,7 +1175,7 @@ def models(args):
 
     if args.model_D == "mpgan":
         D = setup_mpgan(args, gen=False)
-        print(D)
+        logging.info(D)
     elif args.model_D == "rgan":
         from ext_models import rGAND
 
