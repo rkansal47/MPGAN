@@ -202,6 +202,8 @@ def parse_args():
     add_bool_arg(parser, "gtanh", "use tanh for g output", default=True)
     # add_bool_arg(parser, "dearlysigmoid", "use early sigmoid in d", default=False)
 
+    # Masking args
+
     add_bool_arg(parser, "mask-feat", "add mask as fourth feature", default=False)
     add_bool_arg(parser, "mask-feat-bin", "binary fourth feature", default=False)
     add_bool_arg(parser, "mask-weights", "weight D nodes by mask", default=False)
