@@ -1105,7 +1105,7 @@ def setup_mpgan(args, gen):
     disc_args = {
         "mp_iters": args.mp_iters_disc,
         "fe1_layers": args.fe1d if args.fe1d else None,
-        "final_activation": "sigmoid" if (args.loss == "w" or args.loss == "hinge") else "",
+        "final_activation": "" if (args.loss == "w" or args.loss == "hinge") else "sigmoid",
         "input_node_size": args.node_feat_size,
         "dea": args.dea,
         "dea_sum": args.sum,
