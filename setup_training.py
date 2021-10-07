@@ -202,10 +202,12 @@ def parse_args():
     add_bool_arg(parser, "gtanh", "use tanh for g output", default=True)
     # add_bool_arg(parser, "dearlysigmoid", "use early sigmoid in d", default=False)
 
-    # Masking args
+    ##########################################################
+    # Masking
+    ##########################################################
 
-    add_bool_arg(parser, "mask-feat", "add mask as fourth feature", default=False)
-    add_bool_arg(parser, "mask-feat-bin", "binary fourth feature", default=False)
+    add_bool_arg(parser, "mask-feat", "add mask as continuous fourth feature", default=False)
+    add_bool_arg(parser, "mask-feat-bin", "add mask as binary fourth feature", default=False)
     add_bool_arg(parser, "mask-weights", "weight D nodes by mask", default=False)
     add_bool_arg(parser, "mask-manual", "manually mask generated nodes with pT less than cutoff", default=False)
     add_bool_arg(parser, "mask-exp", "exponentially decaying or binary mask; relevant only if mask-manual is true", default=False)
@@ -345,21 +347,10 @@ def parse_args():
     return args
 
 
-def process_args(args):
+def check_args_errors(args):
     if args.real_only and (not args.jets == "t" or not args.num_hits == 30):
         logging.error("real only arg works only with 30p jets - exiting")
         sys.exit()
-
-    if args.aug_t or args.aug_f or args.aug_r90 or args.aug_s:
-        args.augment = True
-    else:
-        args.augment = False
-
-    # if not args.coords == 'polarrelabspt':
-    #     logging.info("Can't have jet level features for this coordinate system")
-    #     args.jf = False
-    # elif len(args.jet_features):
-    #     args.jf = True
 
     if args.int_diffs:
         logging.error("int_diffs not supported yet - exiting")
@@ -384,20 +375,105 @@ def process_args(args):
         logging.error("all ef + delta coords not supported yet - exiting")
         sys.exit()
 
+    if args.multi_gpu and args.loss != "ls":
+        logging.warning("multi gpu not implemented for non-mse loss")
+        args.multi_gpu = False
+
+
+def process_args(args):
+    check_args_errors(args)
+
+    ##########################################################
+    # Meta
+    ##########################################################
+
     if args.debug:
         args.save_zero = True
         args.low_samples = True
         args.break_zero = True
-
-    if args.multi_gpu and args.loss != "ls":
-        logging.warning("multi gpu not implemented for non-mse loss")
-        args.multi_gpu = False
 
     if torch.cuda.device_count() <= 1:
         args.multi_gpu = False
 
     if args.bottleneck:
         args.save_zero = False
+
+    if args.n:
+        if not (args.no_save_zero_or or args.num_hits == 100):
+            args.save_zero = True
+        args.efp_jobs = 1  # otherwise leads to a spike in memory usage on PRP
+    else:
+        args.efp_jobs = None
+
+    if args.lx:
+        if not args.no_save_zero_or:
+            args.save_zero = True
+
+    if args.save_epochs == 0:
+        if args.num_hits <= 30:
+            args.save_epochs = 5
+        else:
+            args.save_epochs = 1
+
+    if args.save_model_epochs == 0:
+        if args.num_hits <= 30:
+            args.save_model_epochs = 5
+        else:
+            args.save_model_epochs = 1
+
+    if args.low_samples:
+        args.eval_tot_samples = 1000
+        args.w1_num_samples = [100]
+        args.num_samples = 1000
+
+    if args.dataset == "jets-lagan" and args.jets == "g":
+        args.jets = "sig"
+
+    ##########################################################
+    # Architecture
+    ##########################################################
+
+    if not args.mp_iters_gen:
+        args.mp_iters_gen = args.mp_iters
+    if not args.mp_iters_disc:
+        args.mp_iters_disc = args.mp_iters
+
+    args.clabels_first_layer = args.clabels if args.clabels_fl else 0
+    args.clabels_hidden_layers = args.clabels if args.clabels_hl else 0
+
+    if args.latent_node_size == 0:
+        args.latent_node_size = args.hidden_node_size
+
+    ##########################################################
+    # Masking
+    ##########################################################
+
+    if args.model == "mpgan" and (args.mask_feat or args.mask_manual or args.mask_learn or args.mask_real_only or args.mask_c or args.mask_learn_sep):
+        args.mask = True
+    else:
+        args.mask = False
+
+    if args.dataset == "jets-lagan":
+        args.mask_c = True
+
+    if args.mask_fnd_np:
+        logging.info("setting dea true due to mask-fnd-np arg")
+        args.dea = True
+
+    if args.noise_padding and not args.mask:
+        logging.error("noise padding only works with masking - exiting")
+        sys.exit()
+
+    if args.mask_feat:
+        args.node_feat_size += 1
+
+    if args.mask_learn:
+        if args.fmg == [0]:
+            args.fmg = []
+
+    ##########################################################
+    # Optimization
+    ##########################################################
 
     if args.batch_size == 0:
         if args.model == "mpgan" or args.model_D == "mpgan":
@@ -439,70 +515,14 @@ def process_args(args):
         elif args.jets == "q":
             args.lr_gen = 0.5e-5
 
-    if args.n:
-        if not (args.no_save_zero_or or args.num_hits == 100):
-            args.save_zero = True
-        args.efp_jobs = 1  # otherwise leads to a spike in memory usage on PRP
+    if args.aug_t or args.aug_f or args.aug_r90 or args.aug_s:
+        args.augment = True
     else:
-        args.efp_jobs = None
+        args.augment = False
 
-    if args.lx:
-        if not args.no_save_zero_or:
-            args.save_zero = True
-
-    if args.save_epochs == 0:
-        if args.num_hits <= 30:
-            args.save_epochs = 5
-        else:
-            args.save_epochs = 1
-
-    if args.save_model_epochs == 0:
-        if args.num_hits <= 30:
-            args.save_model_epochs = 5
-        else:
-            args.save_model_epochs = 1
-
-    if args.dataset == "jets-lagan":
-        args.mask_c = True
-
-    if args.mask_fnd_np:
-        logging.info("setting dea true due to mask-fnd-np arg")
-        args.dea = True
-
-    if not args.mp_iters_gen:
-        args.mp_iters_gen = args.mp_iters
-    if not args.mp_iters_disc:
-        args.mp_iters_disc = args.mp_iters
-
-    args.clabels_first_layer = args.clabels if args.clabels_fl else 0
-    args.clabels_hidden_layers = args.clabels if args.clabels_hl else 0
-
-    if args.latent_node_size == 0:
-        args.latent_node_size = args.hidden_node_size
-
-    if args.model == "mpgan" and (args.mask_feat or args.mask_manual or args.mask_learn or args.mask_real_only or args.mask_c or args.mask_learn_sep):
-        args.mask = True
-    else:
-        args.mask = False
-
-    if args.noise_padding and not args.mask:
-        logging.error("noise padding only works with masking - exiting")
-        sys.exit()
-
-    if args.mask_feat:
-        args.node_feat_size += 1
-
-    if args.mask_learn:
-        if args.fmg == [0]:
-            args.fmg = []
-
-    if args.low_samples:
-        args.eval_tot_samples = 1000
-        args.w1_num_samples = [100]
-        args.num_samples = 1000
-
-    if args.dataset == "jets-lagan" and args.jets == "g":
-        args.jets = "sig"
+    ##########################################################
+    # External models
+    ##########################################################
 
     if args.model_D == "":
         if args.model == "mpgan":
@@ -553,7 +573,6 @@ def process_args(args):
 
     args.pad_hits = 0
     if args.model == "treegan":
-
         # for treegan pad num hits to the next power of 2 (i.e. 30 -> 32)
         import math
 
@@ -703,6 +722,37 @@ def load_args(args):
         args.start_epoch, args.num_epochs = temp
 
     return args
+
+
+# # args for LinearNet layers
+# linear_args = {
+#     "leaky_relu_alpha": self.args.leaky_relu_alpha,
+#     "dropout_p": self.args.dropout_p,
+#     "batch_norm": self.args.batch_norm,
+#     "spectral_norm": self.args.spectral_norm,
+# }
+#
+# # args for MPLayers
+# mp_args = {
+#     "pos_diffs": self.args.pos_diffs,
+#     "all_ef": self.args.all_ef,
+#     "coords": self.args.coords,
+#     "delta_coords": self.args.deltacoords,
+#     "delta_r": self.args.deltar,
+#     "int_diffs": self.args.int_diffs,
+#     "clabels": self.args.clabels,
+#     "mask_fne_np": self.args.mask_fne_np,
+#     "fully_connected": self.args.fully_connected,
+#     "num_knn": self.args.num_knn,
+#     "self_loops": self.args.self_loops,
+#     "sum": self.args.sum,
+# }
+#
+# mp_args_first_layer_gen = {"clabels": self.args.clabels_first_layer}
+# mp_args_first_layer_disc = {"clabels": self.args.clabels_first_layer, "all_ef": False}
+
+# generator
+# input_node_size = args.latent_node_size if args.latent_node_size else args.hidden_node_size
 
 
 def init():
