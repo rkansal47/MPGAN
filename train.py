@@ -85,7 +85,14 @@ def main():
     )
 
 
-def get_gen_noise(model_args, num_samples: int, num_particles: int, model: str = "mpgan", device: str = None, noise_std: float = 0.2):
+def get_gen_noise(
+    model_args,
+    num_samples: int,
+    num_particles: int,
+    model: str = "mpgan",
+    device: str = None,
+    noise_std: float = 0.2,
+):
     """Gets noise needed for generator, arguments are defined in ``gen`` function below"""
 
     if device is None:
@@ -132,7 +139,8 @@ def gen(
     **extra_args,
 ) -> Tensor:
     """
-    Generates ``num_samples`` jets in one go. Can optionally pass pre-specified ``noise``, else will randomly sample from a normal distribution.
+    Generates ``num_samples`` jets in one go. Can optionally pass pre-specified ``noise``,
+    else will randomly sample from a normal distribution.
 
     Needs an dict ``model_args`` containing the following model-specific args.
 
@@ -176,12 +184,16 @@ def gen(
         assert labels.shape[0] == num_samples, "number of labels doesn't match num_samples"
 
     if noise is None:
-        noise, point_noise = get_gen_noise(model_args, num_samples, num_particles, model, device, noise_std)
+        noise, point_noise = get_gen_noise(
+            model_args, num_samples, num_particles, model, device, noise_std
+        )
 
     gen_data = G(noise, labels.to(device))
 
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
-        gen_data = mask_manual(model_args, gen_data, extra_args["pt_cutoff"])  # add pt_cutoff to extra_args
+        gen_data = mask_manual(
+            model_args, gen_data, extra_args["pt_cutoff"]
+        )  # add pt_cutoff to extra_args
 
     if model == "pcgan" and model_args["sample_points"]:
         gen_data = model_args["G_pc"](gen_data.unsqueeze(1), point_noise)
@@ -220,7 +232,9 @@ def gen_multi_batch(
 
     gen_data = None
 
-    for i in optional_tqdm(range((num_samples // batch_size) + 1), use_tqdm, desc="Generating jets"):
+    for i in optional_tqdm(
+        range((num_samples // batch_size) + 1), use_tqdm, desc="Generating jets"
+    ):
         num_samples_in_batch = min(batch_size, num_samples - (i * batch_size))
 
         if num_samples_in_batch > 0:
@@ -231,7 +245,9 @@ def gen_multi_batch(
                 num_particles=num_particles,
                 model=model,
                 noise=noise,
-                labels=None if labels is None else labels[(i * batch_size) : (i * batch_size) + num_samples_in_batch],
+                labels=None
+                if labels is None
+                else labels[(i * batch_size) : (i * batch_size) + num_samples_in_batch],
                 noise_std=noise_std,
                 **extra_args,
             )
@@ -249,7 +265,11 @@ def gen_multi_batch(
 # from https://github.com/EmilienDupont/wgan-gp
 def gradient_penalty(gp_lambda, D, real_data, generated_data, batch_size, device, model="mpgan"):
     # Calculate interpolation
-    alpha = torch.rand(batch_size, 1, 1).to(device) if not model == "pcgan" else torch.rand(batch_size, 1).to(device)
+    alpha = (
+        torch.rand(batch_size, 1, 1).to(device)
+        if not model == "pcgan"
+        else torch.rand(batch_size, 1).to(device)
+    )
     alpha = alpha.expand_as(real_data)
     interpolated = alpha * real_data + (1 - alpha) * generated_data
     interpolated = Variable(interpolated, requires_grad=True).to(device)
@@ -289,10 +309,22 @@ mse = torch.nn.MSELoss()
 
 
 def calc_D_loss(
-    loss, D, data, gen_data, real_outputs, fake_outputs, run_batch_size, model="mpgan", gp_lambda=0, label_smoothing=False, label_noise=False
+    loss,
+    D,
+    data,
+    gen_data,
+    real_outputs,
+    fake_outputs,
+    run_batch_size,
+    model="mpgan",
+    gp_lambda=0,
+    label_smoothing=False,
+    label_noise=False,
 ):
     """
-    calculates discriminator loss for the different possible loss functions + optionally applying label smoothing, label flipping, or a gradient penalty
+    calculates discriminator loss for the different possible loss functions
+    + optionally applying label smoothing, label flipping, or a gradient penalty
+
     returns individual loss contributions as well for evaluation and plotting
     """
     device = data.device
@@ -332,7 +364,15 @@ def calc_D_loss(
     else:
         gpitem = None
 
-    return (D_loss, {"Dr": D_real_loss.item(), "Df": D_fake_loss.item(), "gp": gpitem, "D": D_real_loss.item() + D_fake_loss.item()})
+    return (
+        D_loss,
+        {
+            "Dr": D_real_loss.item(),
+            "Df": D_fake_loss.item(),
+            "gp": gpitem,
+            "D": D_real_loss.item() + D_fake_loss.item(),
+        },
+    )
 
 
 def train_D(
@@ -362,11 +402,19 @@ def train_D(
 
     run_batch_size = data.shape[0]
 
-    D_real_output = D(data.clone(), labels, epoch=epoch)
+    D_real_output = D(data.clone(), labels)
     log(f"D real output: \n {D_real_output[:10]}")
 
     if gen_data is None:
-        gen_data = gen(model_args, G, num_samples=run_batch_size, model=model, labels=labels, **gen_args, **extra_args)
+        gen_data = gen(
+            model_args,
+            G,
+            num_samples=run_batch_size,
+            model=model,
+            labels=labels,
+            **gen_args,
+            **extra_args,
+        )
 
     if augment_args is not None and augment_args.augment:
         p = augment_args.aug_prob if not augment_args.adaptive_prob else augment_args.augment_p[-1]
@@ -375,10 +423,20 @@ def train_D(
 
     log(f"G output: \n {gen_data[:2, :10]}")
 
-    D_fake_output = D(gen_data, labels, epoch=epoch)
+    D_fake_output = D(gen_data, labels)
     log(f"D fake output: \n {D_fake_output[:10]}")
 
-    D_loss, D_loss_items = calc_D_loss(loss, D, data, gen_data, D_real_output, D_fake_output, run_batch_size, model=model, **loss_args)
+    D_loss, D_loss_items = calc_D_loss(
+        loss,
+        D,
+        data,
+        gen_data,
+        D_real_output,
+        D_fake_output,
+        run_batch_size,
+        model=model,
+        **loss_args,
+    )
     D_loss.backward()
     D_optimizer.step()
     return D_loss_items
@@ -398,20 +456,41 @@ def calc_G_loss(loss, fake_outputs):
     return G_loss
 
 
-def train_G(model_args, D, G, G_optimizer, loss, batch_size, gen_args={}, augment_args=None, labels=None, model="mpgan", epoch=0, **extra_args):
+def train_G(
+    model_args,
+    D,
+    G,
+    G_optimizer,
+    loss,
+    batch_size,
+    gen_args={},
+    augment_args=None,
+    labels=None,
+    model="mpgan",
+    epoch=0,
+    **extra_args,
+):
     logging.debug("gtrain")
     G.train()
     G_optimizer.zero_grad()
 
     run_batch_size = labels.shape[0] if labels is not None else batch_size
 
-    gen_data = gen(model_args, G, num_samples=run_batch_size, model=model, labels=labels, **gen_args, **extra_args)
+    gen_data = gen(
+        model_args,
+        G,
+        num_samples=run_batch_size,
+        model=model,
+        labels=labels,
+        **gen_args,
+        **extra_args,
+    )
 
     if augment_args is not None and augment_args.augment:
         p = augment_args.aug_prob if not augment_args.adaptive_prob else augment_args.augment_p[-1]
         gen_data = augment.augment(augment_args, gen_data, p)
 
-    D_fake_output = D(gen_data, labels, epoch=epoch)
+    D_fake_output = D(gen_data, labels)
 
     logging.debug("D fake output:")
     logging.debug(D_fake_output[:10])
@@ -468,7 +547,11 @@ def evaluate(
 
     if "w1m" in losses:
         w1mm, w1mstd = evaluation.w1m(
-            real_jets, gen_jets, num_eval_samples=num_w1_eval_samples, num_batches=real_jets.shape[0] // num_w1_eval_samples, return_std=True
+            real_jets,
+            gen_jets,
+            num_eval_samples=num_w1_eval_samples,
+            num_batches=real_jets.shape[0] // num_w1_eval_samples,
+            return_std=True,
         )
         losses["w1m"].append(np.array([w1mm, w1mstd]))
 
@@ -486,7 +569,9 @@ def evaluate(
         losses["w1efp"].append(np.concatenate((w1efpm, w1efpstd)))
 
     if "fpnd" in losses:
-        losses["fpnd"].append(evaluation.fpnd(gen_jets[:num_fpnd_eval_samples], jet_type, batch_size=fpnd_batch_size))
+        losses["fpnd"].append(
+            evaluation.fpnd(gen_jets[:num_fpnd_eval_samples], jet_type, batch_size=fpnd_batch_size)
+        )
 
     if "coverage" in losses and "mmd" in losses:
         cov, mmd = evaluation.cov_mmd(real_jets, gen_jets, num_cov_mmd_eval_samples)
@@ -536,7 +621,15 @@ def make_plots(
             show=False,
         )
         plotting.plot_jet_feats(
-            jet_type, real_masses, gen_masses, real_efps, gen_efps, name=name + "j", figs_path=figs_path, losses=losses, show=False
+            jet_type,
+            real_masses,
+            gen_masses,
+            real_efps,
+            gen_efps,
+            name=name + "j",
+            figs_path=figs_path,
+            losses=losses,
+            show=False,
         )
     else:
         plotting.plot_part_feats_jet_mass(
@@ -566,7 +659,15 @@ def make_plots(
             logging.info("Couldn't remove previous loss curves")
 
     if len(losses["w1p"]) > 1:
-        plotting.plot_eval(losses, epoch, save_epochs, coords=coords, name=name + "_eval", losses_path=losses_path, show=False)
+        plotting.plot_eval(
+            losses,
+            epoch,
+            save_epochs,
+            coords=coords,
+            name=name + "_eval",
+            losses_path=losses_path,
+            show=False,
+        )
 
         try:
             remove(losses_path + "/" + str(epoch - save_epochs) + "_eval.pdf")
@@ -574,13 +675,29 @@ def make_plots(
             logging.info("Couldn't remove previous eval curves")
 
 
-def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, losses, epoch, best_epoch, **extra_args):
+def eval_save_plot(
+    args,
+    X_test,
+    D,
+    G,
+    D_optimizer,
+    G_optimizer,
+    model_args,
+    losses,
+    epoch,
+    best_epoch,
+    **extra_args,
+):
     G.eval()
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
 
     real_jets, real_mask = X_test.unnormalize_features(
-        X_test.data[: args.eval_tot_samples].clone(), ret_mask_separate=True, is_real_data=True, zero_mask_particles=True, zero_neg_pt=True
+        X_test.data[: args.eval_tot_samples].clone(),
+        ret_mask_separate=True,
+        is_real_data=True,
+        zero_mask_particles=True,
+        zero_neg_pt=True,
     )
     gen_output = gen_multi_batch(
         model_args,
@@ -595,7 +712,11 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
         **extra_args,
     )
     gen_jets, gen_mask = X_test.unnormalize_features(
-        gen_output, ret_mask_separate=True, is_real_data=False, zero_mask_particles=True, zero_neg_pt=True
+        gen_output,
+        ret_mask_separate=True,
+        is_real_data=False,
+        zero_mask_particles=True,
+        zero_neg_pt=True,
     )
 
     real_jets = real_jets.detach().cpu().numpy()
@@ -648,11 +769,25 @@ def eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_args, los
 
 
 def train_loop(
-    args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_losses, D_loss_args, model_train_args, epoch, extra_args
+    args,
+    X_train_loaded,
+    epoch_loss,
+    D,
+    G,
+    D_optimizer,
+    G_optimizer,
+    gen_args,
+    D_losses,
+    D_loss_args,
+    model_train_args,
+    epoch,
+    extra_args,
 ):
     lenX = len(X_train_loaded)
 
-    for batch_ndx, data in tqdm(enumerate(X_train_loaded), total=lenX, mininterval=0.1, desc=f"Epoch {epoch}"):
+    for batch_ndx, data in tqdm(
+        enumerate(X_train_loaded), total=lenX, mininterval=0.1, desc=f"Epoch {epoch}"
+    ):
         labels = data[1].to(args.device) if (args.clabels or args.mask_c) else None
         data = data[0].to(args.device)
 
@@ -675,7 +810,9 @@ def train_loop(
                 labels=labels,
                 model=args.model,
                 epoch=epoch - 1,
-                print_output=(batch_ndx == lenX - 1),  # print outputs for the last iteration of each epoch
+                print_output=(
+                    batch_ndx == lenX - 1
+                ),  # print outputs for the last iteration of each epoch
                 **extra_args,
             )
 
@@ -724,7 +861,19 @@ def train(
     extra_args,
 ):
     if args.start_epoch == 0 and args.save_zero:
-        eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_eval_args, losses, 0, best_epoch, **extra_args)
+        eval_save_plot(
+            args,
+            X_test,
+            D,
+            G,
+            D_optimizer,
+            G_optimizer,
+            model_eval_args,
+            losses,
+            0,
+            best_epoch,
+            **extra_args,
+        )
 
     D_losses = ["Dr", "Df", "D"]
     if args.gp:
@@ -735,7 +884,11 @@ def train(
         epoch_loss[key] = 0
 
     gen_args = {"num_particles": args.num_hits, "noise_std": args.sd}
-    D_loss_args = {"gp_lambda": args.gp, "label_smoothing": args.label_smoothing, "label_noise": args.label_noise}
+    D_loss_args = {
+        "gp_lambda": args.gp,
+        "label_smoothing": args.label_smoothing,
+        "label_noise": args.label_noise,
+    }
     lenX = len(X_train_loaded)
 
     for i in range(args.start_epoch, args.num_epochs):
@@ -746,7 +899,19 @@ def train(
             epoch_loss[key] = 0
 
         train_loop(
-            args, X_train_loaded, epoch_loss, D, G, D_optimizer, G_optimizer, gen_args, D_losses, D_loss_args, model_train_args, epoch, extra_args
+            args,
+            X_train_loaded,
+            epoch_loss,
+            D,
+            G,
+            D_optimizer,
+            G_optimizer,
+            gen_args,
+            D_losses,
+            D_loss_args,
+            model_train_args,
+            epoch,
+            extra_args,
         )
         logging.info(f"Epoch {epoch} Training Over")
 
@@ -758,9 +923,23 @@ def train(
             logging.info("{} loss: {:.3f}".format(key, losses[key][-1]))
 
         if (epoch) % args.save_epochs == 0:
-            eval_save_plot(args, X_test, D, G, D_optimizer, G_optimizer, model_eval_args, losses, epoch, best_epoch, **extra_args)
+            eval_save_plot(
+                args,
+                X_test,
+                D,
+                G,
+                D_optimizer,
+                G_optimizer,
+                model_eval_args,
+                losses,
+                epoch,
+                best_epoch,
+                **extra_args,
+            )
         elif (epoch) % args.save_model_epochs == 0:
-            save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
+            save_models(
+                D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu
+            )
 
 
 if __name__ == "__main__":
