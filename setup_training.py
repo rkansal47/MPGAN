@@ -80,12 +80,25 @@ def parse_args():
     # Meta
     ##########################################################
 
-    parser.add_argument("--name", type=str, default="test", help="name or tag for model; will be appended with other info")
-    parser.add_argument("--dataset", type=str, default="jets", help="dataset to use", choices=["jets", "jets-lagan"])
+    parser.add_argument(
+        "--name",
+        type=str,
+        default="test",
+        help="name or tag for model; will be appended with other info",
+    )
+    parser.add_argument(
+        "--dataset", type=str, default="jets", help="dataset to use", choices=["jets", "jets-lagan"]
+    )
 
     parser.add_argument("--ttsplit", type=float, default=0.7, help="ratio of train/test split")
 
-    parser.add_argument("--model", type=str, default="mpgan", help="model to run", choices=["mpgan", "rgan", "graphcnngan", "treegan", "pcgan"])
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="mpgan",
+        help="model to run",
+        choices=["mpgan", "rgan", "graphcnngan", "treegan", "pcgan"],
+    )
     parser.add_argument(
         "--model-D",
         type=str,
@@ -95,8 +108,18 @@ def parse_args():
     )
 
     add_bool_arg(parser, "load-model", "load a pretrained model", default=True)
-    add_bool_arg(parser, "override-load-check", "override check for whether name has already been used", default=False)
-    add_bool_arg(parser, "override-args", "override original model args when loading with new args", default=False)
+    add_bool_arg(
+        parser,
+        "override-load-check",
+        "override check for whether name has already been used",
+        default=False,
+    )
+    add_bool_arg(
+        parser,
+        "override-args",
+        "override original model args when loading with new args",
+        default=False,
+    )
     parser.add_argument(
         "--start-epoch",
         type=int,
@@ -108,7 +131,9 @@ def parse_args():
     parser.add_argument("--dir-path", type=str, default="", help="path where output will be stored")
     parser.add_argument("--datasets-path", type=str, default="", help="path to datasets")
 
-    parser.add_argument("--num-samples", type=int, default=50000, help="num samples to evaluate every 5 epochs")
+    parser.add_argument(
+        "--num-samples", type=int, default=50000, help="num samples to evaluate every 5 epochs"
+    )
 
     add_bool_arg(parser, "n", "run on nautilus cluster", default=False)
     add_bool_arg(parser, "bottleneck", "use torch.utils.bottleneck settings", default=False)
@@ -116,8 +141,12 @@ def parse_args():
 
     add_bool_arg(parser, "save-zero", "save the initial figure", default=False)
     add_bool_arg(parser, "no-save-zero-or", "override --n save-zero default", default=False)
-    parser.add_argument("--save-epochs", type=int, default=0, help="save outputs per how many epochs")
-    parser.add_argument("--save-model-epochs", type=int, default=0, help="save models per how many epochs")
+    parser.add_argument(
+        "--save-epochs", type=int, default=0, help="save outputs per how many epochs"
+    )
+    parser.add_argument(
+        "--save-model-epochs", type=int, default=0, help="save models per how many epochs"
+    )
 
     add_bool_arg(parser, "debug", "debug mode", default=False)
     add_bool_arg(parser, "break-zero", "break after 1 iteration", default=False)
@@ -125,14 +154,28 @@ def parse_args():
 
     add_bool_arg(parser, "const-ylim", "const ylim in plots", default=False)
 
-    parser.add_argument("--jets", type=str, default="g", help="jet type", choices=["g", "t", "w", "z", "q", "sig", "bg"])
+    parser.add_argument(
+        "--jets",
+        type=str,
+        default="g",
+        help="jet type",
+        choices=["g", "t", "w", "z", "q", "sig", "bg"],
+    )
 
     add_bool_arg(parser, "real-only", "use jets with ony real particles", default=False)
 
     add_bool_arg(parser, "multi-gpu", "use multiple gpus if possible", default=False)
 
-    parser.add_argument("--log-file", type=str, default="", help='path to log file ; "stdout" prints to console')
-    parser.add_argument("--log", type=str, default="INFO", help="log level", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+    parser.add_argument(
+        "--log-file", type=str, default="", help='path to log file ; "stdout" prints to console'
+    )
+    parser.add_argument(
+        "--log",
+        type=str,
+        default="INFO",
+        help="log level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+    )
 
     parser.add_argument("--seed", type=int, default=4, help="torch seed")
 
@@ -142,34 +185,86 @@ def parse_args():
 
     parser.add_argument("--num-hits", type=int, default=30, help="number of hits")
     parser.add_argument(
-        "--coords", type=str, default="polarrel", help="cartesian, polarrel or polarrelabspt", choices=["cartesian, polarrel, polarrelabspt"]
+        "--coords",
+        type=str,
+        default="polarrel",
+        help="cartesian, polarrel or polarrelabspt",
+        choices=["cartesian, polarrel, polarrelabspt"],
     )
 
-    parser.add_argument("--norm", type=float, default=1, help="normalizing max value of features to this value")
+    parser.add_argument(
+        "--norm", type=float, default=1, help="normalizing max value of features to this value"
+    )
 
     parser.add_argument("--sd", type=float, default=0.2, help="standard deviation of noise")
 
     parser.add_argument("--node-feat-size", type=int, default=3, help="node feature size")
-    parser.add_argument("--hidden-node-size", type=int, default=32, help="hidden vector size of each node (incl node feature size)")
-    parser.add_argument("--latent-node-size", type=int, default=0, help="latent vector size of each node - 0 means same as hidden node size")
+    parser.add_argument(
+        "--hidden-node-size",
+        type=int,
+        default=32,
+        help="hidden vector size of each node (incl node feature size)",
+    )
+    parser.add_argument(
+        "--latent-node-size",
+        type=int,
+        default=0,
+        help="latent vector size of each node - 0 means same as hidden node size",
+    )
 
     parser.add_argument(
-        "--clabels", type=int, default=0, help="0 - no clabels, 1 - clabels with pt only, 2 - clabels with pt and eta", choices=[0, 1, 2]
+        "--clabels",
+        type=int,
+        default=0,
+        help="0 - no clabels, 1 - clabels with pt only, 2 - clabels with pt and eta",
+        choices=[0, 1, 2],
     )
     add_bool_arg(parser, "clabels-fl", "use conditional labels in first layer", default=True)
     add_bool_arg(parser, "clabels-hl", "use conditional labels in hidden layers", default=True)
 
-    parser.add_argument("--fn", type=int, nargs="*", default=[256, 256], help="hidden fn layers e.g. 256 256")
     parser.add_argument(
-        "--fe1g", type=int, nargs="*", default=0, help="hidden and output gen fe layers e.g. 64 128 in the first iteration - 0 means same as fe"
+        "--fn", type=int, nargs="*", default=[256, 256], help="hidden fn layers e.g. 256 256"
     )
     parser.add_argument(
-        "--fe1d", type=int, nargs="*", default=0, help="hidden and output disc fe layers e.g. 64 128 in the first iteration - 0 means same as fe"
+        "--fe1g",
+        type=int,
+        nargs="*",
+        default=0,
+        help="hidden and output gen fe layers e.g. 64 128 in the first iteration - 0 means same as fe",
     )
-    parser.add_argument("--fe", type=int, nargs="+", default=[96, 160, 192], help="hidden and output fe layers e.g. 64 128")
-    parser.add_argument("--fmg", type=int, nargs="*", default=[64], help="mask network layers e.g. 64; input 0 for no intermediate layers")
-    parser.add_argument("--mp-iters-gen", type=int, default=0, help="number of message passing iterations in the generator")
-    parser.add_argument("--mp-iters-disc", type=int, default=0, help="number of message passing iterations in the discriminator (if applicable)")
+    parser.add_argument(
+        "--fe1d",
+        type=int,
+        nargs="*",
+        default=0,
+        help="hidden and output disc fe layers e.g. 64 128 in the first iteration - 0 means same as fe",
+    )
+    parser.add_argument(
+        "--fe",
+        type=int,
+        nargs="+",
+        default=[96, 160, 192],
+        help="hidden and output fe layers e.g. 64 128",
+    )
+    parser.add_argument(
+        "--fmg",
+        type=int,
+        nargs="*",
+        default=[64],
+        help="mask network layers e.g. 64; input 0 for no intermediate layers",
+    )
+    parser.add_argument(
+        "--mp-iters-gen",
+        type=int,
+        default=0,
+        help="number of message passing iterations in the generator",
+    )
+    parser.add_argument(
+        "--mp-iters-disc",
+        type=int,
+        default=0,
+        help="number of message passing iterations in the discriminator (if applicable)",
+    )
     parser.add_argument(
         "--mp-iters",
         type=int,
@@ -188,16 +283,37 @@ def parse_args():
     parser.add_argument("--leaky-relu-alpha", type=float, default=0.2, help="leaky relu alpha")
 
     add_bool_arg(parser, "dea", "use early averaging discriminator", default=True)
-    parser.add_argument("--fnd", type=int, nargs="*", default=[], help="hidden disc output layers e.g. 128 64")
+    parser.add_argument(
+        "--fnd", type=int, nargs="*", default=[], help="hidden disc output layers e.g. 128 64"
+    )
 
-    add_bool_arg(parser, "lfc", "use a fully connected network to go from noise vector to initial graph", default=False)
-    parser.add_argument("--lfc-latent-size", type=int, default=128, help="size of lfc latent vector")
+    add_bool_arg(
+        parser,
+        "lfc",
+        "use a fully connected network to go from noise vector to initial graph",
+        default=False,
+    )
+    parser.add_argument(
+        "--lfc-latent-size", type=int, default=128, help="size of lfc latent vector"
+    )
 
     add_bool_arg(parser, "fully-connected", "use a fully connected graph", default=True)
-    parser.add_argument("--num-knn", type=int, default=10, help="# of nearest nodes to connect to (if not fully connected)")
-    add_bool_arg(parser, "self-loops", "use self loops in graph - always true for fully connected", default=True)
+    parser.add_argument(
+        "--num-knn",
+        type=int,
+        default=10,
+        help="# of nearest nodes to connect to (if not fully connected)",
+    )
+    add_bool_arg(
+        parser,
+        "self-loops",
+        "use self loops in graph - always true for fully connected",
+        default=True,
+    )
 
-    parser.add_argument("--glorot", type=float, default=0, help="gain of glorot - if zero then glorot not used")
+    parser.add_argument(
+        "--glorot", type=float, default=0, help="gain of glorot - if zero then glorot not used"
+    )
 
     add_bool_arg(parser, "gtanh", "use tanh for g output", default=True)
     # add_bool_arg(parser, "dearlysigmoid", "use early sigmoid in d", default=False)
@@ -209,26 +325,64 @@ def parse_args():
     add_bool_arg(parser, "mask-feat", "add mask as continuous fourth feature", default=False)
     add_bool_arg(parser, "mask-feat-bin", "add mask as binary fourth feature", default=False)
     add_bool_arg(parser, "mask-weights", "weight D nodes by mask", default=False)
-    add_bool_arg(parser, "mask-manual", "manually mask generated nodes with pT less than cutoff", default=False)
-    add_bool_arg(parser, "mask-exp", "exponentially decaying or binary mask; relevant only if mask-manual is true", default=False)
+    add_bool_arg(
+        parser,
+        "mask-manual",
+        "manually mask generated nodes with pT less than cutoff",
+        default=False,
+    )
+    add_bool_arg(
+        parser,
+        "mask-exp",
+        "exponentially decaying or binary mask; relevant only if mask-manual is true",
+        default=False,
+    )
     add_bool_arg(parser, "mask-real-only", "only use masking for real jets", default=False)
-    add_bool_arg(parser, "mask-learn", "learn mask from latent vars only use during gen", default=False)
+    add_bool_arg(
+        parser, "mask-learn", "learn mask from latent vars only use during gen", default=False
+    )
     add_bool_arg(parser, "mask-learn-bin", "binary or continuous learnt mask", default=True)
     add_bool_arg(parser, "mask-learn-sep", "learn mask from separate noise vector", default=False)
     add_bool_arg(parser, "mask-disc-sep", "separate disc network for # particles", default=False)
-    add_bool_arg(parser, "mask-fnd-np", "use num masked particles as an additional arg in D (dea will automatically be set true)", default=False)
+    add_bool_arg(
+        parser,
+        "mask-fnd-np",
+        "use num masked particles as an additional arg in D (dea will automatically be set true)",
+        default=False,
+    )
     add_bool_arg(parser, "mask-c", "conditional mask", default=True)
-    add_bool_arg(parser, "mask-fne-np", "pass num particles as features into fn and fe", default=False)
-    parser.add_argument("--mask-epoch", type=int, default=0, help="# of epochs after which to start masking")
+    add_bool_arg(
+        parser, "mask-fne-np", "pass num particles as features into fn and fe", default=False
+    )
+    parser.add_argument(
+        "--mask-epoch", type=int, default=0, help="# of epochs after which to start masking"
+    )
 
-    add_bool_arg(parser, "noise-padding", "use Gaussian noise instead of zero-padding for fake particles", default=False)
+    add_bool_arg(
+        parser,
+        "noise-padding",
+        "use Gaussian noise instead of zero-padding for fake particles",
+        default=False,
+    )
 
     ##########################################################
     # Optimization
     ##########################################################
 
-    parser.add_argument("--optimizer", type=str, default="rmsprop", help="pick optimizer", choices=["adam", "rmsprop", "adadelta", "agcd"])
-    parser.add_argument("--loss", type=str, default="ls", help="loss to use - options are og, ls, w, hinge", choices=["og", "ls", "w", "hinge"])
+    parser.add_argument(
+        "--optimizer",
+        type=str,
+        default="rmsprop",
+        help="pick optimizer",
+        choices=["adam", "rmsprop", "adadelta", "agcd"],
+    )
+    parser.add_argument(
+        "--loss",
+        type=str,
+        default="ls",
+        help="loss to use - options are og, ls, w, hinge",
+        choices=["og", "ls", "w", "hinge"],
+    )
 
     parser.add_argument(
         "--lr-disc",
@@ -237,15 +391,26 @@ def parse_args():
         help="learning rate for discriminator; defaults are 3e-5, 6e-5, and 1.5e-5 for gluon, top, and quark jet resp.",
     )
     parser.add_argument(
-        "--lr-gen", type=float, default=0, help="learning rate for generator; defaults are 1e-5, 2e-5, and 0.5e-5 for gluon, top, and quark jet resp."
+        "--lr-gen",
+        type=float,
+        default=0,
+        help="learning rate for generator; defaults are 1e-5, 2e-5, and 0.5e-5 for gluon, top, and quark jet resp.",
     )
     parser.add_argument("--beta1", type=float, default=0.9, help="Adam optimizer beta1")
     parser.add_argument("--beta2", type=float, default=0.999, help="Adam optimizer beta2")
     parser.add_argument("--batch-size", type=int, default=0, help="batch size")
 
-    parser.add_argument("--num-critic", type=int, default=1, help="number of critic updates for each generator update")
     parser.add_argument(
-        "--num-gen", type=int, default=1, help="number of generator updates for each critic update (num-critic must be 1 for this to apply)"
+        "--num-critic",
+        type=int,
+        default=1,
+        help="number of critic updates for each generator update",
+    )
+    parser.add_argument(
+        "--num-gen",
+        type=int,
+        default=1,
+        help="number of generator updates for each critic update (num-critic must be 1 for this to apply)",
     )
 
     ##########################################################
@@ -254,16 +419,28 @@ def parse_args():
 
     add_bool_arg(parser, "batch-norm-disc", "use batch normalization", default=False)
     add_bool_arg(parser, "batch-norm-gen", "use batch normalization", default=False)
-    add_bool_arg(parser, "spectral-norm-disc", "use spectral normalization in discriminator", default=False)
-    add_bool_arg(parser, "spectral-norm-gen", "use spectral normalization in generator", default=False)
+    add_bool_arg(
+        parser, "spectral-norm-disc", "use spectral normalization in discriminator", default=False
+    )
+    add_bool_arg(
+        parser, "spectral-norm-gen", "use spectral normalization in generator", default=False
+    )
 
-    parser.add_argument("--disc-dropout", type=float, default=0.5, help="fraction of discriminator dropout")
-    parser.add_argument("--gen-dropout", type=float, default=0, help="fraction of generator dropout")
+    parser.add_argument(
+        "--disc-dropout", type=float, default=0.5, help="fraction of discriminator dropout"
+    )
+    parser.add_argument(
+        "--gen-dropout", type=float, default=0, help="fraction of generator dropout"
+    )
 
     add_bool_arg(parser, "label-smoothing", "use label smoothing with discriminator", default=False)
-    parser.add_argument("--label-noise", type=float, default=0, help="discriminator label noise (between 0 and 1)")
+    parser.add_argument(
+        "--label-noise", type=float, default=0, help="discriminator label noise (between 0 and 1)"
+    )
 
-    parser.add_argument("--gp", type=float, default=0, help="WGAN generator penalty weight - 0 means not used")
+    parser.add_argument(
+        "--gp", type=float, default=0, help="WGAN generator penalty weight - 0 means not used"
+    )
 
     ##########################################################
     # Augmentation
@@ -274,12 +451,20 @@ def parse_args():
     add_bool_arg(parser, "aug-f", "augment with flips", default=False)
     add_bool_arg(parser, "aug-r90", "augment with 90 deg rotations", default=False)
     add_bool_arg(parser, "aug-s", "augment with scalings", default=False)
-    parser.add_argument("--translate-ratio", type=float, default=0.125, help="random translate ratio")
-    parser.add_argument("--scale-sd", type=float, default=0.125, help="random scale lognormal standard deviation")
-    parser.add_argument("--translate-pn-ratio", type=float, default=0.05, help="random translate per node ratio")
+    parser.add_argument(
+        "--translate-ratio", type=float, default=0.125, help="random translate ratio"
+    )
+    parser.add_argument(
+        "--scale-sd", type=float, default=0.125, help="random scale lognormal standard deviation"
+    )
+    parser.add_argument(
+        "--translate-pn-ratio", type=float, default=0.05, help="random translate per node ratio"
+    )
 
     add_bool_arg(parser, "adaptive-prob", "adaptive augment probability", default=False)
-    parser.add_argument("--aug-prob", type=float, default=1.0, help="probability of being augmented")
+    parser.add_argument(
+        "--aug-prob", type=float, default=1.0, help="probability of being augmented"
+    )
 
     ##########################################################
     # Evaluation
@@ -288,18 +473,48 @@ def parse_args():
     add_bool_arg(parser, "fpnd", "calc fpnd", default=True)
     add_bool_arg(parser, "efp", "calc w1efp", default=True)
     # parser.add_argument("--fid-eval-size", type=int, default=8192, help="number of samples generated for evaluating fid")
-    parser.add_argument("--fpnd-batch-size", type=int, default=256, help="batch size when generating samples for fpnd eval")
+    parser.add_argument(
+        "--fpnd-batch-size",
+        type=int,
+        default=256,
+        help="batch size when generating samples for fpnd eval",
+    )
     parser.add_argument("--gpu-batch", type=int, default=50, help="")
 
-    add_bool_arg(parser, "eval", "calculate the evaluation metrics: W1, FNPD, coverage, mmd", default=True)
-    parser.add_argument("--eval-tot-samples", type=int, default=50000, help="tot # of jets to generate to sample from")
+    add_bool_arg(
+        parser, "eval", "calculate the evaluation metrics: W1, FNPD, coverage, mmd", default=True
+    )
+    parser.add_argument(
+        "--eval-tot-samples",
+        type=int,
+        default=50000,
+        help="tot # of jets to generate to sample from",
+    )
 
-    parser.add_argument("--w1-num-samples", type=int, nargs="+", default=[10000], help="array of # of jet samples to test")
+    parser.add_argument(
+        "--w1-num-samples",
+        type=int,
+        nargs="+",
+        default=[10000],
+        help="array of # of jet samples to test",
+    )
 
-    parser.add_argument("--cov-mmd-num-samples", type=int, default=100, help="size of samples to use for calculating coverage and MMD")
-    parser.add_argument("--cov-mmd-num-batches", type=int, default=10, help="# of batches to average coverage and MMD over")
+    parser.add_argument(
+        "--cov-mmd-num-samples",
+        type=int,
+        default=100,
+        help="size of samples to use for calculating coverage and MMD",
+    )
+    parser.add_argument(
+        "--cov-mmd-num-batches",
+        type=int,
+        default=10,
+        help="# of batches to average coverage and MMD over",
+    )
 
-    parser.add_argument("--jf", type=str, nargs="*", default=["mass", "pt"], help="jet level features to evaluate")
+    parser.add_argument(
+        "--jf", type=str, nargs="*", default=["mass", "pt"], help="jet level features to evaluate"
+    )
 
     ##########################################################
     # External models
@@ -307,23 +522,73 @@ def parse_args():
 
     parser.add_argument("--latent-dim", type=int, default=128, help="")
 
-    parser.add_argument("--rgang-fc", type=int, nargs="+", default=[64, 128], help="rGAN generator layer node sizes")
-    parser.add_argument("--rgand-sfc", type=int, nargs="*", default=0, help="rGAN discriminator convolutional layer node sizes")
-    parser.add_argument("--rgand-fc", type=int, nargs="*", default=0, help="rGAN discriminator layer node sizes")
-
-    parser.add_argument("--pointnetd-pointfc", type=int, nargs="*", default=[64, 128, 1024], help="pointnet discriminator point layer node sizes")
-    parser.add_argument("--pointnetd-fc", type=int, nargs="*", default=[512], help="pointnet discriminator final layer node sizes")
-
-    parser.add_argument("--graphcnng-layers", type=int, nargs="+", default=[32, 24], help="GraphCNN-GAN generator layer node sizes")
-    add_bool_arg(parser, "graphcnng-tanh", "use tanh activation for final graphcnn generator output", default=False)
-
-    parser.add_argument("--treegang-degrees", type=int, nargs="+", default=[2, 2, 2, 2, 2], help="TreeGAN generator upsampling per layer")
     parser.add_argument(
-        "--treegang-features", type=int, nargs="+", default=[96, 64, 64, 64, 64, 3], help="TreeGAN generator features per node per layer"
+        "--rgang-fc", type=int, nargs="+", default=[64, 128], help="rGAN generator layer node sizes"
     )
-    parser.add_argument("--treegang-support", type=int, default=10, help="Support value for TreeGCN loop term.")
+    parser.add_argument(
+        "--rgand-sfc",
+        type=int,
+        nargs="*",
+        default=0,
+        help="rGAN discriminator convolutional layer node sizes",
+    )
+    parser.add_argument(
+        "--rgand-fc", type=int, nargs="*", default=0, help="rGAN discriminator layer node sizes"
+    )
 
-    parser.add_argument("--pcgan-latent-dim", type=int, default=128, help="Latent dim for object representatio sampling")
+    parser.add_argument(
+        "--pointnetd-pointfc",
+        type=int,
+        nargs="*",
+        default=[64, 128, 1024],
+        help="pointnet discriminator point layer node sizes",
+    )
+    parser.add_argument(
+        "--pointnetd-fc",
+        type=int,
+        nargs="*",
+        default=[512],
+        help="pointnet discriminator final layer node sizes",
+    )
+
+    parser.add_argument(
+        "--graphcnng-layers",
+        type=int,
+        nargs="+",
+        default=[32, 24],
+        help="GraphCNN-GAN generator layer node sizes",
+    )
+    add_bool_arg(
+        parser,
+        "graphcnng-tanh",
+        "use tanh activation for final graphcnn generator output",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--treegang-degrees",
+        type=int,
+        nargs="+",
+        default=[2, 2, 2, 2, 2],
+        help="TreeGAN generator upsampling per layer",
+    )
+    parser.add_argument(
+        "--treegang-features",
+        type=int,
+        nargs="+",
+        default=[96, 64, 64, 64, 64, 3],
+        help="TreeGAN generator features per node per layer",
+    )
+    parser.add_argument(
+        "--treegang-support", type=int, default=10, help="Support value for TreeGCN loop term."
+    )
+
+    parser.add_argument(
+        "--pcgan-latent-dim",
+        type=int,
+        default=128,
+        help="Latent dim for object representatio sampling",
+    )
     parser.add_argument(
         "--pcgan-z1-dim",
         type=int,
@@ -331,9 +596,17 @@ def parse_args():
         help="Object representation latent dim - has to be the same as the pre-trained point sampling network",
     )
     parser.add_argument(
-        "--pcgan-z2-dim", type=int, default=10, help="Point latent dim - has to be the same as the pre-trained point sampling network"
+        "--pcgan-z2-dim",
+        type=int,
+        default=10,
+        help="Point latent dim - has to be the same as the pre-trained point sampling network",
     )
-    parser.add_argument("--pcgan-d-dim", type=int, default=256, help="PCGAN hidden dim - has to be the same as the pre-trained network")
+    parser.add_argument(
+        "--pcgan-d-dim",
+        type=int,
+        default=256,
+        help="PCGAN hidden dim - has to be the same as the pre-trained network",
+    )
     parser.add_argument(
         "--pcgan-pool",
         type=str,
@@ -355,9 +628,6 @@ def check_args_errors(args):
     if args.int_diffs:
         logging.error("int_diffs not supported yet - exiting")
         sys.exit()
-
-    if args.augment:
-        logging.warning("augmentation is very experimental - try at your own risk")
 
     if args.optimizer == "acgd" and (args.num_critic != 1 or args.num_gen != 1):
         logging.error("acgd can't have num critic or num gen > 1 - exiting")
@@ -448,7 +718,14 @@ def process_args(args):
     # Masking
     ##########################################################
 
-    if args.model == "mpgan" and (args.mask_feat or args.mask_manual or args.mask_learn or args.mask_real_only or args.mask_c or args.mask_learn_sep):
+    if args.model == "mpgan" and (
+        args.mask_feat
+        or args.mask_manual
+        or args.mask_learn
+        or args.mask_real_only
+        or args.mask_c
+        or args.mask_learn_sep
+    ):
         args.mask = True
     else:
         args.mask = False
@@ -519,6 +796,9 @@ def process_args(args):
         args.augment = True
     else:
         args.augment = False
+
+    if args.augment:
+        logging.warning("augmentation is very experimental - try at your own risk")
 
     ##########################################################
     # External models
@@ -649,7 +929,9 @@ def init_model_dirs(args):
 
     if args.name in prev_models:
         if args.name != "test" and not args.load_model and not args.override_load_check:
-            raise RuntimeError("A model directory of this name already exists - either change the name or use the --override-load-check flag")
+            raise RuntimeError(
+                "A model directory of this name already exists - either change the name or use the --override-load-check flag"
+            )
 
     os.system(f"mkdir -p {args.dir_path}/{args.name}")
 
@@ -775,9 +1057,9 @@ def setup_mpgan(args, gen):
     # args for LinearNet layers
     linear_args = {
         "leaky_relu_alpha": args.leaky_relu_alpha,
-        "dropout_p": args.dropout_p,
-        "batch_norm": args.batch_norm,
-        "spectral_norm": args.spectral_norm,
+        "dropout_p": args.gen_dropout if gen else args.disc_dropout,
+        "batch_norm": args.batch_norm_gen if gen else args.batch_norm_disc,
+        "spectral_norm": args.spectral_norm_gen if gen else args.spectral_norm_disc,
     }
 
     # args for MPLayers
@@ -851,11 +1133,21 @@ def setup_mpgan(args, gen):
 
     if gen:
         return MPGenerator(
-            **gen_args, **common_mpnet_args, mp_args=mp_args, mp_args_first_layer=mp_args_first_layer_gen, linear_args=linear_args, **mask_args
+            **gen_args,
+            **common_mpnet_args,
+            mp_args=mp_args,
+            mp_args_first_layer=mp_args_first_layer_gen,
+            linear_args=linear_args,
+            mask_args=mask_args,
         )
     else:
         return MPDiscriminator(
-            **disc_args, **common_mpnet_args, mp_args=mp_args, mp_args_first_layer=mp_args_first_layer_disc, linear_args=linear_args, **mask_args
+            **disc_args,
+            **common_mpnet_args,
+            mp_args=mp_args,
+            mp_args_first_layer=mp_args_first_layer_disc,
+            linear_args=linear_args,
+            mask_args=mask_args,
         )
 
 
@@ -863,6 +1155,7 @@ def models(args):
     """Set up generator and discriminator models, either new or loaded from a state dict"""
     if args.model == "mpgan":
         G = setup_mpgan(args, gen=True)
+        print(G)
     elif args.model == "rgan":
         from ext_models import rGANG
 
@@ -882,6 +1175,7 @@ def models(args):
 
     if args.model_D == "mpgan":
         D = setup_mpgan(args, gen=False)
+        print(D)
     elif args.model_D == "rgan":
         from ext_models import rGAND
 
@@ -897,8 +1191,12 @@ def models(args):
 
     if args.load_model:
         try:
-            G.load_state_dict(torch.load(f"{args.models_path}/G_{args.start_epoch}.pt", map_location=args.device))
-            D.load_state_dict(torch.load(f"{args.models_path}/D_{args.start_epoch}.pt", map_location=args.device))
+            G.load_state_dict(
+                torch.load(f"{args.models_path}/G_{args.start_epoch}.pt", map_location=args.device)
+            )
+            D.load_state_dict(
+                torch.load(f"{args.models_path}/D_{args.start_epoch}.pt", map_location=args.device)
+            )
         except AttributeError:
             G = torch.load(f"{args.models_path}/G_{args.start_epoch}.pt", map_location=args.device)
             D = torch.load(f"{args.models_path}/D_{args.start_epoch}.pt", map_location=args.device)
@@ -923,8 +1221,12 @@ def pcgan_models(args):
     G_pc = G(args.node_feat_size, args.pcgan_z1_dim, args.pcgan_z2_dim)
 
     pcgan_models_path = pathlib.Path(ext_models.__file__).parent.resolve() + "/pcgan_models/"
-    G_inv.load_state_dict(torch.load(f"{pcgan_models_path}/pcgan_G_inv_{args.jets}.pt", map_location=args.device))
-    G_pc.load_state_dict(torch.load(f"{pcgan_models_path}/pcgan_G_pc_{args.jets}.pt", map_location=args.device))
+    G_inv.load_state_dict(
+        torch.load(f"{pcgan_models_path}/pcgan_G_inv_{args.jets}.pt", map_location=args.device)
+    )
+    G_pc.load_state_dict(
+        torch.load(f"{pcgan_models_path}/pcgan_G_pc_{args.jets}.pt", map_location=args.device)
+    )
 
     if args.multi_gpu:
         logging.info("Using", torch.cuda.device_count(), "GPUs")
@@ -944,7 +1246,10 @@ def get_model_args(args):
     """Set up model specific arguments for generation and training"""
     if args.model == "pcgan":
         G_inv, G_pc = pcgan_models(args)
-        pcgan_train_args = {"sample_points": False, "G_inv": G_inv}  # no need to sample points while training latent GAN
+        pcgan_train_args = {
+            "sample_points": False,
+            "G_inv": G_inv,
+        }  # no need to sample points while training latent GAN
         pcgan_eval_args = {"sample_points": True, "G_pc": G_pc}
     else:
         pcgan_train_args = {}
@@ -992,12 +1297,26 @@ def optimizers(args, G, D):
         G_optimizer = optim.Adadelta(G_params, lr=args.lr_gen)
         D_optimizer = optim.Adadelta(D_params, lr=args.lr_disc)
     elif args.optimizer == "adam" or args.optimizer == "None":
-        G_optimizer = optim.Adam(G_params, lr=args.lr_gen, weight_decay=5e-4, betas=(args.beta1, args.beta2))
-        D_optimizer = optim.Adam(D_params, lr=args.lr_disc, weight_decay=5e-4, betas=(args.beta1, args.beta2))
+        G_optimizer = optim.Adam(
+            G_params, lr=args.lr_gen, weight_decay=5e-4, betas=(args.beta1, args.beta2)
+        )
+        D_optimizer = optim.Adam(
+            D_params, lr=args.lr_disc, weight_decay=5e-4, betas=(args.beta1, args.beta2)
+        )
 
     if args.load_model:
-        G_optimizer.load_state_dict(torch.load(args.models_path + args.name + "/G_optim_" + str(args.start_epoch) + ".pt", map_location=args.device))
-        D_optimizer.load_state_dict(torch.load(args.models_path + args.name + "/D_optim_" + str(args.start_epoch) + ".pt", map_location=args.device))
+        G_optimizer.load_state_dict(
+            torch.load(
+                args.models_path + args.name + "/G_optim_" + str(args.start_epoch) + ".pt",
+                map_location=args.device,
+            )
+        )
+        D_optimizer.load_state_dict(
+            torch.load(
+                args.models_path + args.name + "/D_optim_" + str(args.start_epoch) + ".pt",
+                map_location=args.device,
+            )
+        )
 
     return G_optimizer, D_optimizer
 
