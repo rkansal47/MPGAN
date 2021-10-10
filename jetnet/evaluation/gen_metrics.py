@@ -97,6 +97,56 @@ _eval_module = sys.modules[__name__]
 _eval_module.fpnd_dict = {"NUM_SAMPLES": 50000}
 
 
+def _get_real_mu_sigma(
+    dataset_name: str,
+    jet_type: str,
+    num_particles: int,
+    num_particle_features: int,
+    data_dir: str,
+    device: str = "cpu",
+    batch_size: int = 16,
+    use_tqdm: bool = True,
+):
+    """
+    Get and save the statistics of ParticleNet activations on real jets.
+    These should already come with the library so this method should not need to be run by the user.
+    """
+    from .particlenet import _ParticleNet
+
+    _eval_module_path = str(pathlib.Path(__file__).parent.resolve())
+    resources_path = f"{_eval_module_path}/fpnd_resources/{dataset_name}/{num_particles}_particles"
+
+    pnet = _ParticleNet(num_particles, num_particle_features).to(device)
+    pnet.load_state_dict(torch.load(f"{resources_path}/pnet_state_dict.pt", map_location=device))
+
+    if dataset_name == "jetnet":
+        jets = JetNet(jet_type, data_dir, normalize=False, train=False).data[
+            : _eval_module.fpnd_dict["NUM_SAMPLES"]
+        ]
+        JetNet.normalize_features(jets, fpnd=True)
+        # TODO other datasets
+    else:
+        raise RuntimeError("Only jetnet dataset implemented currently")
+
+    # run inference and store activations
+    jets_loaded = DataLoader(jets, batch_size)
+
+    logging.info(f"Calculating ParticleNet activations on real jets with {batch_size = }")
+    activations = []
+    for i, jets_batch in _optional_tqdm(
+        enumerate(jets_loaded), use_tqdm, total=len(jets_loaded), desc="Running ParticleNet"
+    ):
+        activations.append(pnet(jets_batch.to(device), ret_activations=True).cpu().detach().numpy())
+
+    activations = np.concatenate(activations, axis=0)
+
+    mu = np.mean(activations, axis=0)
+    sigma = np.cov(activations, rowvar=False)
+
+    np.savetxt(mu, f"{resources_path}/{jet_type}_mu.txt")
+    np.savetxt(sigma, f"{resources_path}/{jet_type}_sigma.txt")
+
+
 def _init_fpnd_dict(
     dataset_name: str,
     jet_type: str,
@@ -104,6 +154,7 @@ def _init_fpnd_dict(
     num_particle_features: int,
     device: str = "cpu",
 ):
+    """Load the ParticleNet model and pre-saved statistics for real jets"""
     try:
         from .particlenet import _ParticleNet
     except ModuleNotFoundError:
@@ -197,11 +248,6 @@ def fpnd(
     if dataset_name == "jetnet":
         JetNet.normalize_features(jets, fpnd=True)
         # TODO other datasets
-
-    # if use_mask:
-    #     # features for all masked paricles are set to 0 and mask feature is removed
-    #     mask = jets[:, :, -1:] > 0
-    #     jets = (jets * mask)[:, :, :-1]
 
     # ParticleNet module and the real mu's and sigma's are only loaded once
     if (
