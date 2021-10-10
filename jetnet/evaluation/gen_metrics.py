@@ -97,7 +97,7 @@ _eval_module = sys.modules[__name__]
 _eval_module.fpnd_dict = {"NUM_SAMPLES": 50000}
 
 
-def _get_real_mu_sigma(
+def _get_fpnd_real_mu_sigma(
     dataset_name: str,
     jet_type: str,
     num_particles: int,
@@ -118,9 +118,10 @@ def _get_real_mu_sigma(
 
     pnet = _ParticleNet(num_particles, num_particle_features).to(device)
     pnet.load_state_dict(torch.load(f"{resources_path}/pnet_state_dict.pt", map_location=device))
+    pnet.eval()
 
     if dataset_name == "jetnet":
-        jets = JetNet(jet_type, data_dir, normalize=False, train=False).data[
+        jets = JetNet(jet_type, data_dir, normalize=False, train=False, use_mask=False).data[
             : _eval_module.fpnd_dict["NUM_SAMPLES"]
         ]
         JetNet.normalize_features(jets, fpnd=True)
@@ -143,8 +144,8 @@ def _get_real_mu_sigma(
     mu = np.mean(activations, axis=0)
     sigma = np.cov(activations, rowvar=False)
 
-    np.savetxt(mu, f"{resources_path}/{jet_type}_mu.txt")
-    np.savetxt(sigma, f"{resources_path}/{jet_type}_sigma.txt")
+    np.savetxt(f"{resources_path}/{jet_type}_mu.txt", mu)
+    np.savetxt(f"{resources_path}/{jet_type}_sigma.txt", sigma)
 
 
 def _init_fpnd_dict(
