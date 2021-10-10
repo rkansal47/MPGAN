@@ -103,6 +103,9 @@ class JetNet(torch.utils.data.Dataset):
             jet_type (str): jet type to download, out of ``['g', 't', 'q']``.
 
         """
+        import os
+
+        os.system(f"mkdir -p {data_dir}")
         csv_file = f"{data_dir}/{jet_type}_jets.csv"
 
         if not exists(csv_file):
@@ -255,6 +258,7 @@ class JetNet(torch.utils.data.Dataset):
             feature_maxes = JetNet._fpnd_feature_maxes
             feature_norms = JetNet._fpnd_feature_norms
             feature_shifts = JetNet._fpnd_feature_shifts
+            masks = (torch.norm(dataset[:, :, :3], dim=2, keepdim=True) > 0).int()
 
         if isinstance(feature_norms, float):
             feature_norms = np.full(num_features, feature_norms)
@@ -274,6 +278,8 @@ class JetNet(torch.utils.data.Dataset):
 
         if not fpnd:
             return feature_maxes
+        else:
+            dataset *= masks
 
     def unnormalize_features(
         self,

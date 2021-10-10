@@ -762,6 +762,9 @@ def eval_save_plot(
         np.save(f"{args.outs_path}/best_epoch_gen_jets", gen_jets)
         np.save(f"{args.outs_path}/best_epoch_gen_mask", gen_mask)
 
+        with open(f"{args.outs_path}/best_epoch_losses.txt", "w") as f:
+            f.write(str({key: losses[key][-1] for key in losses}))
+
         if args.multi_gpu:
             torch.save(G.module.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
         else:
