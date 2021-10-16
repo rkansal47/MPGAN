@@ -29,6 +29,8 @@ Additionally, we release the standalone [JetNet](https://github.com/rkansal47/Je
  - `torch`
  - `torch_geometric`
 
+### TODO: add JetNet to Docker image.
+
 A Docker image containing all necessary libraries can be found [here](https://gitlab-registry.nautilus.optiputer.net/raghsthebest/mnist-graph-gan:latest) ([Dockerfile](Dockerfile)).
 
 
