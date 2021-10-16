@@ -357,7 +357,7 @@ def plot_eval(
         fig.add_subplot(3, 3, 4)
         plt.plot(x, np.array(losses["w1m"])[:, 0])
         plt.xlabel("Epoch")
-        plt.ylabel("Jet Relative mass $W_1$")
+        plt.ylabel("Jet Relative Mass $W_1$")
         plt.yscale("log")
 
     if "w1efp" in losses:
@@ -366,7 +366,7 @@ def plot_eval(
             plt.plot(x, np.array(losses["w1p"])[:, i], label="EFP " + str(i + 1), color=colors[i])
         plt.legend(loc=1)
         plt.xlabel("Epoch")
-        plt.ylabel("Jet EFPs Log$W_1$")
+        plt.ylabel("Jet EFPs $W_1$")
         plt.yscale("log")
 
     if "mmd" in losses and "coverage" in losses:
