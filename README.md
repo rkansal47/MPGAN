@@ -44,7 +44,7 @@ Some notes:
  - Run `python train.py --help` or look at [setup_training.py](setup_training.py) for a full list of arguments.
 
 
-## Generation
+## Generation (Not finalized!)
 
 Pre-trained models can be used for data generation using the [gen_samples.py](gen_samples.py) script. 
 By default it generates samples for all the models listed in the [final_models](final_models) directory and saves them in numpy format as `final_models/[model name]/samples.npy`. 
