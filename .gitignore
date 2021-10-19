@@ -2,6 +2,7 @@
 */**
 !final_models
 !final_models/**
+final_models/*/samples*.npy
 !evaluation
 !evaluation/**
 !mpgan
