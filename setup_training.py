@@ -901,7 +901,10 @@ def process_args(args):
 
 
 def init_project_dirs(args):
-    """Create directories needed for the project"""
+    """
+    Create 'datasets' and 'outputs' directories needed for the project.
+    If not specified by the --datasets-path and --outputs-path args, defaults to creating them inside the working directory.
+    """
     if args.datasets_path == "":
         if args.n:
             args.datasets_path = "/graphganvol/MPGAN/datasets/"
@@ -924,13 +927,13 @@ def init_project_dirs(args):
 
 
 def init_model_dirs(args):
-    """create directories for this training's logs, models, losses, and figures"""
+    """create directories for this training's logs, models, loss curves, and figures"""
     prev_models = [f[:-4] for f in listdir(args.dir_path)]  # removing .txt
 
     if args.name in prev_models:
         if args.name != "test" and not args.load_model and not args.override_load_check:
             raise RuntimeError(
-                "A model directory of this name already exists - either change the name or use the --override-load-check flag"
+                "A model directory of this name already exists, either change the name or use the --override-load-check flag"
             )
 
     os.system(f"mkdir -p {args.dir_path}/{args.name}")
@@ -972,34 +975,40 @@ def init_logging(args):
 
 def load_args(args):
     """Either save the arguments or, if loading a model, load the arguments for that model"""
+
     if args.load_model:
         if args.start_epoch == -1:
+            # find the last saved model and start from there
             prev_models = [int(f[:-3].split("_")[-1]) for f in listdir(args.models_path)]
+
             if len(prev_models):
                 args.start_epoch = max(prev_models)
             else:
                 logging.debug("No model to load from")
                 args.start_epoch = 0
-                args.load_model = False
+
         if args.start_epoch == 0:
             args.load_model = False
     else:
         args.start_epoch = 0
 
     if not args.load_model:
+        # save args for posterity
         f = open(args.args_path + args.name + "_args.txt", "w+")
         f.write(str(vars(args)))
         f.close()
     elif not args.override_args:
-        temp = args.start_epoch, args.num_epochs
+        # load arguments from previous training
+        temp = args.start_epoch, args.num_epochs  # don't load these
+
         f = open(args.args_path + args.name + "_args.txt", "r")
         args_dict = vars(args)
         load_args_dict = eval(f.read())
         for key in load_args_dict:
             args_dict[key] = load_args_dict[key]
-
         args = objectview(args_dict)
         f.close()
+
         args.load_model = True
         args.start_epoch, args.num_epochs = temp
 
@@ -1276,13 +1285,13 @@ def optimizers(args, G, D):
     if args.load_model:
         G_optimizer.load_state_dict(
             torch.load(
-                args.models_path + args.name + "/G_optim_" + str(args.start_epoch) + ".pt",
+                args.models_path + "/G_optim_" + str(args.start_epoch) + ".pt",
                 map_location=args.device,
             )
         )
         D_optimizer.load_state_dict(
             torch.load(
-                args.models_path + args.name + "/D_optim_" + str(args.start_epoch) + ".pt",
+                args.models_path + "/D_optim_" + str(args.start_epoch) + ".pt",
                 map_location=args.device,
             )
         )

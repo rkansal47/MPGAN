@@ -566,9 +566,7 @@ class MPGenerator(MPNet):
     def _pre_mp(self, x, labels):
         """Pre-message-passing operations"""
         if self.lfc:
-            x = self.lfc_layer(x).reshape(
-                x.shape[0], self.num_particles, self.input_layer_node_size
-            )
+            x = self.lfc_layer(x).reshape(x.shape[0], self.num_particles, self.input_node_size)
 
         return x
 
