@@ -1249,8 +1249,8 @@ def get_model_args(args):
     elif args.model == "pcgan":
         model_args = {"pcgan_latent_dim": args.treegang_features, "pcgan_z2_dim": args.pcgan_z2_dim}
 
-    model_train_args = model_args | pcgan_train_args
-    model_eval_args = model_args | pcgan_eval_args
+    model_train_args = {**model_args, **pcgan_train_args}
+    model_eval_args = {**model_args, **pcgan_eval_args}
 
     extra_args = {"mask_manual": args.mask_manual, "pt_cutoff": 0}  # TODO: get right pT cutoff
 
