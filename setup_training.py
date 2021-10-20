@@ -1323,7 +1323,11 @@ def losses(args):
                 losses[key] = np.loadtxt(f"{args.losses_path}/{key}.txt")
                 if losses[key].ndim == 1:
                     np.expand_dims(losses[key], 0)
-                losses[key] = losses[key].tolist()[: int(args.start_epoch / args.save_epochs) + 1]
+                losses[key] = losses[key].tolist()
+                if key in eval_keys:
+                    losses[key] = losses[key][: int(args.start_epoch / args.save_epochs) + 1]
+                else:
+                    losses[key] = losses[key][: args.start_epoch + 1]
             except OSError:
                 logging.info(f"{key} loss file not found")
                 losses[key] = []
