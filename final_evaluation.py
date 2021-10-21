@@ -85,7 +85,7 @@ for key in order:
         evals["w1m"] = evaluation.w1m(gen_jets, real_jets)
         evals["w1p"] = evaluation.w1p(gen_jets, real_jets, average_over_features=False)
         evals["w1efp"] = evaluation.w1efp(gen_jets, real_jets, average_over_efps=False)
-        evals["fpnd"] = evaluation.fpnd(gen_jets, dataset, device="cuda", batch_size=256)
+        evals["fpnd"] = evaluation.fpnd(gen_jets[:30], dataset, device="cuda", batch_size=256)
         cov, mmd = evaluation.cov_mmd(real_jets, gen_jets)
         evals["cov"] = cov
         evals["mmd"] = mmd
