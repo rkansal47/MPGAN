@@ -1147,6 +1147,7 @@ def models(args):
         from ext_models import TreeGANG
 
         G = TreeGANG(args.treegang_features, args.treegang_degrees, args.treegang_support)
+        logging.info(G)
     elif args.model == "pcgan":
         from ext_models import latent_G
 
