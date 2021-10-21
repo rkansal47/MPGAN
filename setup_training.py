@@ -729,6 +729,7 @@ def process_args(args):
         args.mask = True
     else:
         args.mask = False
+        args.mask_c = False
 
     if args.dataset == "jets-lagan":
         args.mask_c = True

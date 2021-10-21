@@ -2,98 +2,76 @@ import os
 from copy import copy
 from tqdm import tqdm
 
-import plotting
+from jetnet import utils
 from jetnet.datasets import JetNet
-from jetnet import evaluation
 
 import numpy as np
 import matplotlib.pyplot as plt
 import mplhep as hep
-from matplotlib.colors import LogNorm
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-plt.rcParams.update({"font.size": 16})
-plt.style.use(hep.style.CMS)
 
 
-dirs = os.listdir("final_models")
-
+datasets = ["g", "q", "t"]
+samples_dict = {key: {} for key in datasets}
 num_samples = 50000
 
-samples_dict = {"g": {}, "t": {}, "q": {}}
+model_name_map = {
+    "fcpnet": "FC",
+    "graphcnnpnet": "GraphCNN",
+    "treeganpnet": "TreeGAN",
+    "mp": "MP",
+    # 'mppnet': 'MPPNet'
+}
 
-for dir in dirs:
-    print(dir)
+models_dir = "trained_models/"
+plot_dir = "plots/"
+
+for dir in os.listdir(models_dir):
     if dir == ".DS_Store" or dir == "README.md":
         continue
 
     model_name = dir.split("_")[0]
 
-    if not (
-        model_name == "fcpnet"
-        or model_name == "graphcnnpnet"
-        or model_name == "mp"
-        or model_name == "treeganpnet"
-        or model_name == "mppnet"
-    ):
-        continue
+    if model_name in model_name_map:
+        dataset = dir.split("_")[1]
+        samples = np.load(f"{models_dir}/{dir}/gen_jets.npy")[:num_samples, :, :3]
+        samples_dict[dataset][model_name_map[model_name]] = samples
 
-    samples = np.load("final_models/" + dir + "/samples_unnorm.npy")[:num_samples]
+for dataset in samples_dict:
+    samples_dict[dataset]["Real"] = (
+        JetNet(dataset, "./datasets/", normalize=False, train=False, use_mask=False)
+        .data[:num_samples]
+        .numpy()
+    )
 
-    dataset = dir.split("_")[1]
-
-    if model_name == "fcpnet":
-        samples_dict[dataset]["FC"] = samples
-    elif model_name == "graphcnnpnet":
-        samples_dict[dataset]["GraphCNN"] = samples
-    elif model_name == "treeganpnet":
-        samples_dict[dataset]["TreeGAN"] = samples
-    # elif model_name == 'pcgan':
-    #     samples_dict[dataset]['PCGAN'] = samples
-    elif model_name == "mp":
-        samples_dict[dataset]["MP"] = samples
-    elif model_name == "mppnet":
-        samples_dict[dataset]["MPPNET"] = samples
-
-
-for dataset in samples_dict.keys():
-    samples_dict[dataset]["Real"] = JetNet(dataset, "./datasets/", mormalize=False, train=False)
-
-samples_dict["g"].keys()
-
-
-plt.rcParams.update({"font.size": 16})
-plt.style.use(hep.style.CMS)
+# for key in samples_dict[dataset]:
+#     fpnd = evaluation.fpnd(torch.tensor(samples_dict[dataset][key]).to('cuda'), dataset, batch_size=512)
+#     print(f"{key}: {fpnd}")
 
 line_opts = {
     "Real": {"color": "red", "linewidth": 3, "linestyle": "solid"},
+    "MP": {"color": "blue", "linewidth": 3, "linestyle": "dashed"},
     "FC": {"color": "green", "linewidth": 3, "linestyle": "dashdot"},
     "GraphCNN": {"color": "brown", "linewidth": 3, "linestyle": "dashed"},
     "TreeGAN": {"color": "orange", "linewidth": 3, "linestyle": "dashdot"},
     # 'PCGAN': {'color': 'purple', 'linewidth': 3, 'linestyle': (0, (5, 10))},
-    "MP": {"color": "blue", "linewidth": 3, "linestyle": "dashed"},
     # 'MPPNET': {'color': 'purple', 'linewidth': 2, 'linestyle': (0, (5, 10))},
 }
 
+print("Getting EFPs")
 efps = {}
-for dataset in samples_dict.keys():
+for dataset in samples_dict:
     efps[dataset] = {}
-    for key in line_opts.keys():
-        samples, mask = samples_dict[dataset][key]
-        efps[dataset][key] = utils.efp(
-            utils.objectview({"mask": key == "Real" or key == "MP", "num_hits": 30}),
-            samples,
-            mask,
-            key == "Real",
-        )[:, 0]
+    for key in line_opts:
+        print(key)
+        efps[dataset][key] = utils.efps(samples_dict[dataset][key])[:, 0]
 
+plt.rcParams.update({"font.size": 28})
+plt.style.use(hep.style.CMS)
 
-# %matplotlib inline
-
-
+print("Plotting feature distributions")
 fig = plt.figure(figsize=(36, 24))
-i = 0
-for dataset in samples_dict.keys():
+for i in range(len(datasets)):
+    dataset = datasets[i]
     if dataset == "g":
         efpbins = np.linspace(0, 0.0013, 51)
         pbins = [np.linspace(-0.3, 0.3, 101), np.linspace(0, 0.1, 101)]
@@ -101,11 +79,11 @@ for dataset in samples_dict.keys():
     elif dataset == "t":
         efpbins = np.linspace(0, 0.0045, 51)
         pbins = [np.arange(-0.5, 0.5, 0.005), np.arange(0, 0.1, 0.001)]
-        ylims = [0.35e5, 0.8e5, 3.6e3, 0.35e4]
+        ylims = [0.35e5, 0.8e5, 3.6e3, 0.37e4]
     else:
         efpbins = np.linspace(0, 0.002, 51)
         pbins = [np.linspace(-0.3, 0.3, 101), np.linspace(0, 0.15, 101)]
-        ylims = [2e5, 2.2e5, 6.5e3, 2.5e4]
+        ylims = [2e5, 2.2e5, 6.5e3, 2.2e4]
 
     mbins = np.linspace(0, 0.225, 51)
 
@@ -115,11 +93,11 @@ for dataset in samples_dict.keys():
     plt.ylabel("Number of Particles")
 
     for key in line_opts.keys():
-        samples, mask = samples_dict[dataset][key]
-        if key == "MP" or key == "Real":
-            parts = samples[mask]
-        else:
-            parts = samples.reshape(-1, 3)
+        samples = samples_dict[dataset][key]
+
+        # remove zero-padded particles
+        mask = np.linalg.norm(samples, axis=2) != 0
+        parts = samples[mask]
 
         _ = plt.hist(parts[:, 0], pbins[0], histtype="step", label=key, **line_opts[key])
 
@@ -132,11 +110,11 @@ for dataset in samples_dict.keys():
     plt.ylabel("Number of Particles")
 
     for key in line_opts.keys():
-        samples, mask = samples_dict[dataset][key]
-        if key == "MP" or key == "Real":
-            parts = samples[mask]
-        else:
-            parts = samples.reshape(-1, 3)
+        samples = samples_dict[dataset][key]
+
+        # remove zero-padded particles
+        mask = np.linalg.norm(samples, axis=2) != 0
+        parts = samples[mask]
 
         _ = plt.hist(parts[:, 2], pbins[1], histtype="step", label=key, **line_opts[key])
 
@@ -149,9 +127,7 @@ for dataset in samples_dict.keys():
     plt.ylabel("Number of Jets")
 
     for key in line_opts.keys():
-        samples, mask = samples_dict[dataset][key]
-        masses = utils.jet_features(samples, mask=mask_real)[:, 0]
-
+        masses = utils.jet_features(samples_dict[dataset][key])["mass"]
         _ = plt.hist(masses, mbins, histtype="step", label=key, **line_opts[key])
 
     plt.legend(loc=1, prop={"size": 18}, fancybox=True)
@@ -169,39 +145,18 @@ for dataset in samples_dict.keys():
     plt.legend(loc=1, prop={"size": 18}, fancybox=True)
     plt.ylim(0, ylims[3])
 
-    i += 1
 
 plt.tight_layout(pad=0.5)
-plt.savefig("final_figure_update.pdf", bbox_inches="tight")
+plt.savefig(f"{plot_dir}/feature_distributions.pdf", bbox_inches="tight")
 plt.show()
 
+print("Plotting jet images")
+average_images = {key: {} for key in datasets}
 
-def pixelate(jet, mask, im_size, maxR):
-    bins = np.linspace(-maxR, maxR, im_size + 1)
-    binned_eta = np.digitize(jet[:, 0], bins) - 1
-    binned_phi = np.digitize(jet[:, 1], bins) - 1
-    pt = jet[:, 2]
-    if mask is not None:
-        pt *= mask
-
-    jet_image = np.zeros((im_size, im_size))
-
-    for eta, phi, pt in zip(binned_eta, binned_phi, pt):
-        if eta >= 0 and eta < im_size and phi >= 0 and phi < im_size:
-            jet_image[phi, eta] += pt
-
-    return jet_image
+# from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
-average_images = {"g": {}, "t": {}, "q": {}}
-
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
-plt.rcParams.update({"font.size": 16})
-plt.style.use(hep.style.CMS)
-
-order = ["Real", "MP", "FC", "GraphCNN", "TreeGAN", "PCGAN"]
-
+order = ["Real", "MP", "FC", "GraphCNN", "TreeGAN"]  # , "PCGAN"]
 
 num_images = 4
 np.random.seed(2021)
@@ -214,7 +169,10 @@ ave_maxR = 0.5
 cm = copy(plt.cm.jet)
 cm.set_under(color="white")
 
-for dataset in ["g", "t", "q"]:
+plt.rcParams.update({"font.size": 16})
+plt.style.use(hep.style.CMS)
+
+for dataset in datasets:
     fig, axes = plt.subplots(
         nrows=len(order),
         ncols=num_images + 1,
@@ -234,20 +192,12 @@ for dataset in ["g", "t", "q"]:
             va="center",
         )
 
-        samples, mask = samples_dict[dataset][key]
-
+        samples = samples_dict[dataset][key]
         rand_samples = samples[rand_sample]
-        if mask is not None:
-            rand_mask = mask[rand_sample]
 
         for i in range(num_images):
             im = axes[j][i].imshow(
-                pixelate(
-                    np.flip(rand_samples[i], axis=0),
-                    None if mask is None else rand_mask[i],
-                    im_size,
-                    maxR,
-                ),
+                utils.to_image(rand_samples[i], im_size, maxR=maxR),
                 cmap=cm,
                 interpolation="nearest",
                 vmin=1e-8,
@@ -257,16 +207,13 @@ for dataset in ["g", "t", "q"]:
             axes[j][i].tick_params(which="both", bottom=False, top=False, left=False, right=False)
             axes[j][i].set_xlabel("$\phi^{rel}$")
             axes[j][i].set_ylabel("$\eta^{rel}$")
-            # if i == num_images - 1:
-            # divider = make_axes_locatable(axes[j][i])
-            # cax = divider.append_axes("right", size="5%", pad=0.3)
 
         # average jet image
 
         if key not in average_images[dataset]:
             ave_im = np.zeros((im_size, im_size))
             for i in tqdm(range(10000)):
-                ave_im += pixelate(samples[i], None if mask is None else mask[i], im_size, ave_maxR)
+                ave_im += utils.to_image(samples[i], im_size, maxR=ave_maxR)
             ave_im /= 10000
             average_images[dataset][key] = ave_im
 
@@ -287,5 +234,5 @@ for dataset in ["g", "t", "q"]:
         cbar.set_label("$p_T^{rel}$")
 
     fig.tight_layout()
-    plt.savefig(f"jet_images_{dataset}.pdf", bbox_inches="tight")
+    plt.savefig(f"{plot_dir}/jet_images_{dataset}.pdf", bbox_inches="tight")
     plt.show()
