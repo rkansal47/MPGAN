@@ -20,6 +20,7 @@ model_name_map = {
     "treeganpnet": "TreeGAN",
     "mp": "MP",
     # 'mppnet': 'MPPNet'
+    # "pcgan": "PCGAN"
 }
 
 models_dir = "trained_models/"
@@ -43,17 +44,13 @@ for dataset in samples_dict:
         .numpy()
     )
 
-# for key in samples_dict[dataset]:
-#     fpnd = evaluation.fpnd(torch.tensor(samples_dict[dataset][key]).to('cuda'), dataset, batch_size=512)
-#     print(f"{key}: {fpnd}")
-
 line_opts = {
     "Real": {"color": "red", "linewidth": 3, "linestyle": "solid"},
     "MP": {"color": "blue", "linewidth": 3, "linestyle": "dashed"},
     "FC": {"color": "green", "linewidth": 3, "linestyle": "dashdot"},
     "GraphCNN": {"color": "brown", "linewidth": 3, "linestyle": "dashed"},
     "TreeGAN": {"color": "orange", "linewidth": 3, "linestyle": "dashdot"},
-    # 'PCGAN': {'color': 'purple', 'linewidth': 3, 'linestyle': (0, (5, 10))},
+    # "PCGAN": {"color": "purple", "linewidth": 3, "linestyle": "dashed"},
     # 'MPPNET': {'color': 'purple', 'linewidth': 2, 'linestyle': (0, (5, 10))},
 }
 
@@ -75,15 +72,15 @@ for i in range(len(datasets)):
     if dataset == "g":
         efpbins = np.linspace(0, 0.0013, 51)
         pbins = [np.linspace(-0.3, 0.3, 101), np.linspace(0, 0.1, 101)]
-        ylims = [1.3e5, 0.7e5, 4.2e3, 1.75e4]
+        ylims = [2e5, 1e5, 1e4, 3e4]
+    elif dataset == "q":
+        efpbins = np.linspace(0, 0.002, 51)
+        pbins = [np.linspace(-0.3, 0.3, 101), np.linspace(0, 0.15, 101)]
+        ylims = [1e5, 0.3e6, 0.125e5, 0.3e5]
     elif dataset == "t":
         efpbins = np.linspace(0, 0.0045, 51)
         pbins = [np.arange(-0.5, 0.5, 0.005), np.arange(0, 0.1, 0.001)]
-        ylims = [0.35e5, 0.8e5, 3.6e3, 0.37e4]
-    else:
-        efpbins = np.linspace(0, 0.002, 51)
-        pbins = [np.linspace(-0.3, 0.3, 101), np.linspace(0, 0.15, 101)]
-        ylims = [2e5, 2.2e5, 6.5e3, 2.2e4]
+        ylims = [1e5, 1e5, 0.5e4, 0.6e4]
 
     mbins = np.linspace(0, 0.225, 51)
 
@@ -147,7 +144,7 @@ for i in range(len(datasets)):
 
 
 plt.tight_layout(pad=0.5)
-plt.savefig(f"{plot_dir}/feature_distributions.pdf", bbox_inches="tight")
+plt.savefig(f"{plot_dir}/pcgan_feature_distributions.pdf", bbox_inches="tight")
 plt.show()
 
 print("Plotting jet images")

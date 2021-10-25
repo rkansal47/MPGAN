@@ -587,7 +587,7 @@ def parse_args():
         "--pcgan-latent-dim",
         type=int,
         default=128,
-        help="Latent dim for object representatio sampling",
+        help="Latent dim for object representation sampling",
     )
     parser.add_argument(
         "--pcgan-z1-dim",
@@ -904,7 +904,8 @@ def process_args(args):
 def init_project_dirs(args):
     """
     Create 'datasets' and 'outputs' directories needed for the project.
-    If not specified by the --datasets-path and --outputs-path args, defaults to creating them inside the working directory.
+    If not specified by the --datasets-path and --outputs-path args,
+    defaults to creating them inside the working directory.
     """
     if args.datasets_path == "":
         if args.n:
@@ -955,7 +956,8 @@ def init_model_dirs(args):
 
 
 def init_logging(args):
-    """logging outputs to a file at ``args.log_file``; if ``args.log_file`` is stdout then it outputs to stdout"""
+    """logging outputs to a file at ``args.log_file``;
+    if ``args.log_file`` is stdout then it outputs to stdout"""
     if args.log_file == "stdout":
         handler = logging.StreamHandler(sys.stdout)
     else:

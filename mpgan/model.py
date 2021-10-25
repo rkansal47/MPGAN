@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch import Tensor
 
 from .spectral_normalization import SpectralNorm
+
 import logging
 
 
@@ -13,11 +14,14 @@ class LinearNet(nn.Module):
 
     Args:
         layers (list): list with layers of the fully connected network,
-          optionally containing the input and output sizes inside e.g. [input_size, ... hidden layers ..., output_size]
-        input_size (list): size of input, if 0 or unspecified, first element of `layers` will be treated as the input size
-        output_size (list): size of output, if 0 or unspecified, last element of `layers` will be treated as the output size
-        final_linear (bool): keep the final layer operation linear i.e. no normalization, no nonlinear activation.
-          Defaults to False.
+          optionally containing the input and output sizes inside
+          e.g. ``[input_size, ... hidden layers ..., output_size]``
+        input_size (list): size of input, if 0 or unspecified, first element of `layers` will be
+          treated as the input size
+        output_size (list): size of output, if 0 or unspecified, last element of `layers` will be
+          treated as the output size
+        final_linear (bool): keep the final layer operation linear i.e. no normalization,
+          no nonlinear activation.Defaults to False.
         leaky_relu_alpha (float): negative slope of leaky relu. Defaults to 0.2.
         dropout_p (float): dropout fraction after each layer. Defaults to 0.
         batch_norm (bool): use batch norm or not. Defaults to False.
@@ -86,7 +90,8 @@ class LinearNet(nn.Module):
 
 class MPLayer(nn.Module):
     """
-    MPLayer as described in Kansal et. al. *Particle Cloud Generation with Message Passing Generative Adversarial Networks*
+    MPLayer as described in Kansal et. al.
+    *Particle Cloud Generation with Message Passing Generative Adversarial Networks*
     (https://arxiv.org/abs/2106.11535).
 
     TODO: mathematical formulation
@@ -96,19 +101,26 @@ class MPLayer(nn.Module):
         fe_layers (list): list of edge network intermediate and output layer sizes.
         fn_layers (list): list of node network intermediate layer output sizes.
         output_node_size (int): output node feature size.
-        pos_diffs (bool): use some measure of the distance between nodes as the edge features between them. Defaults to False.
+        pos_diffs (bool): use some measure of the distance between nodes as the edge features
+          between them. Defaults to False.
         all_ef (bool): use the euclidean distance between all the node features as an edge feature,
           only active is ``pos_diffs`` is True. Defaults to True.
-        coords (str): the coordinate system used for node features ('polarrel', 'polar', or 'cartesian'),
-          only active if ``delta_coords`` or ``delta_r`` is True. Defaults to "polarrel".
-        delta_coords (bool): use the vector difference between the two nodes as edge features. Defaults to False.
+        coords (str): the coordinate system used for node features
+          ('polarrel', 'polar', or 'cartesian'), only active if ``delta_coords`` or ``delta_r`` is
+          True. Defaults to "polarrel".
+        delta_coords (bool): use the vector difference between the two nodes as edge features.
+          Defaults to False.
         delta_r (bool): use the delta R between two nodes as edge features. Defaults to True.
-        int_diffs (bool): **Not implemented yet!** use the difference between pT as an edge feature. Defaults to False.
+        int_diffs (bool): **Not implemented yet!** use the difference between pT as an edge feature.
+          Defaults to False.
         clabels (int): number of conditioning labels to use. Defaults to 0.
-        mask_fne_np (bool): use number of particles per jet as conditional label. Defaults to False.
+        mask_fne_np (bool): use number of particles per jet as conditional label.
+          Defaults to False.
         fully_connected (bool): use fully connected graph for message passing. Defaults to True.
-        num_knn (int): if not fully connected, number of nodes to use for knn for message passing. Defaults to 20.
-        self_loops (bool): if not fully connected, allow for self loops in message passing. Defaults to True.
+        num_knn (int): if not fully connected, number of nodes to use for knn for message passing.
+          Defaults to 20.
+        self_loops (bool): if not fully connected, allow for self loops in message passing.
+          Defaults to True.
         sum (bool): sum as the message aggregation operation, as opposed to mean. Defaults to True.
         **linear_args: additional arguments for linear layers, given to LinearNet modules.
 
@@ -156,7 +168,8 @@ class MPLayer(nn.Module):
         self.self_loops = self_loops
         self.sum = sum
 
-        # number of edge features to pass into edge network (e.g. node distances, pT difference etc.)
+        # number of edge features to pass into edge network
+        # (e.g. node distances, pT difference etc.)
         num_ef = 0
         if pos_diffs:
             if delta_coords:
@@ -167,16 +180,21 @@ class MPLayer(nn.Module):
         num_ef += int(int_diffs)
         self.num_ef = num_ef
 
-        # edge network input is node 1 features + node 2 features + edge features (optional) + conditional labels (optional) + # particles (optional)
+        # edge network input is:
+        # node 1 features + node 2 features + edge features (optional)
+        # + conditional labels (optional) + # particles (optional)
         fe_in_size = 2 * input_node_size + num_ef + clabels + mask_fne_np
         self.fe = LinearNet(
             self.fe_layers, input_size=fe_in_size, final_linear=False, **linear_args
         )
 
-        # node network input is edge network output + node features + conditional labels (optional) + # particles (optional)
+        # node network input is:
+        # edge network output + node features
+        # + conditional labels (optional) + # particles (optional)
         fe_out_size = self.fe_layers[-1]
         fn_in_size = fe_out_size + input_node_size + clabels + mask_fne_np
-        # node network output is 'linear' i.e. final layer does not apply normalization or nonlinear activations
+        # node network output is 'linear'
+        # i.e. final layer does not apply normalization or nonlinear activations
         self.fn = LinearNet(
             self.fn_layers,
             input_size=fn_in_size,
@@ -198,12 +216,14 @@ class MPLayer(nn.Module):
 
         Args:
             x (Tensor): input tensor of shape ``[batch size, # nodes, # node features]``
-            use_mask (bool, optional): use mask to ignore zero-masked particles during message passing.
-            mask (Tensor, optional): if using masking, tensor of masks for each node of shape ``[batch size, # nodes, 1 (mask)]``
+            use_mask (bool, optional): use mask to ignore zero-masked particles during
+              message passing.
+            mask (Tensor, optional): if using masking, tensor of masks for each node of shape
+              ``[batch size, # nodes, 1 (mask)]``
             labels (Tensor, optional): if using conditioning labels during message passing,
               tensor of labels for each jet of shape [batch size, # labels]
-            num_jet_particles (Tensor, optional): if using # of particles as an extra conditioning label,
-              tensor of num particles for each jet of shape [batch size, 1]
+            num_jet_particles (Tensor, optional): if using # of particles as an extra conditioning
+              label, tensor of num particles for each jet of shape [batch size, 1]
         """
         batch_size = x.size(0)
         num_nodes = x.size(1)
@@ -298,7 +318,8 @@ class MPLayer(nn.Module):
 
     def _getA_knn(self, x, batch_size, num_nodes, use_mask, mask):
         """
-        returns tensor of inputs to the edge networks by finding the k-nearest-neighbours for each node
+        returns tensor of inputs to the edge networks by finding the k-nearest-neighbours
+        for each node
         """
         num_coords = 3 if self.coords == "cartesian" else 2
         node_size = x.shape[2]
@@ -324,10 +345,12 @@ class MPLayer(nn.Module):
 
         # sort the distances to find the k-nearest neighbours
         sorted = torch.sort(dists, dim=2)
-        # if self_loops is True then 0 else 1 so that we skip the node itself in the line below if no self loops
+        # if ``self_loops`` is True then 0
+        # else 1 so that we skip the node itself in the line below if no self loops
         self_loops_idx = int(self.self_loops is False)
 
-        # ``dists`` contains the sorted distances between pair of nodes, ``sorted`` the indices of the nodes
+        # ``dists`` contains the sorted distances between pair of nodes,
+        # ``sorted`` the indices of the nodes
         dists = sorted[0][:, :, self_loops_idx : self.num_knn + self_loops_idx].reshape(
             batch_size, num_nodes * self.num_knn, 1
         )
@@ -348,7 +371,8 @@ class MPLayer(nn.Module):
         else:
             x2_knn = torch.gather(x, 1, sorted.repeat(1, 1, node_size))
 
-        # finally get A tensor containing each node and its nearest neighbour + optionally the distance between them
+        # finally get A tensor containing each node and its nearest neighbour
+        # + optionally the distance between them
         if self.pos_diffs:
             A = torch.cat((x1_knn, x2_knn, dists), dim=2)
         else:
@@ -362,10 +386,12 @@ class MPLayer(nn.Module):
 
 class MPNet(nn.Module):
     """
-    Generic base class for a message passing network, inherited by MPGenerator and MPDiscriminator networks.
+    Generic base class for a message passing network, inherited by ``MPGenerator`` and
+    ``MPDiscriminator`` networks.
 
     Performs ``mp_iters`` iterations of message passing using the ``MPLayer`` module.
-    Arguments for the ``MPLayer`` and ``LinearNet`` modules are inputed separately via the ``mp_args`` and ``linear_args`` dict.
+    Arguments for the ``MPLayer`` and ``LinearNet`` modules are inputed separately via the
+    ``mp_args`` and ``linear_args`` dict.
 
     Args:
         num_particles (int): max number of particles per jet.
@@ -373,15 +399,22 @@ class MPNet(nn.Module):
         mp_iters (int): number of message passing iterations. Defaults to 2.
         fe_layers (list): ``MPLayer``s edge network layer sizes. Defaults to [96, 160, 192].
         fn_layers (list): ``MPLayer``s node network layer sizes. Defaults to [256, 256].
-        fe1_layers (list): edge network layer sizes for the first MPLayer, if different from the rest (i.e. ``fe_layers``).
-        fn1_layers (list): node network layer sizes for the first MPLayer, if different from the rest (``fm_layers``).
-        hidden_node_size (int): intermediate number of node features during message passing. Defaults to 32.
-        output_node_size (int): number of desired output features per particle. If not specified, same as ``hidden_node_size``.
-        final_activation (str): final activation function to use. Options are 'sigmoid', 'tanh' or nothing (''). Defaults to "".
+        fe1_layers (list): edge network layer sizes for the first MPLayer, if different from the
+           rest (i.e. ``fe_layers``).
+        fn1_layers (list): node network layer sizes for the first MPLayer, if different from the
+          rest (``fm_layers``).
+        hidden_node_size (int): intermediate number of node features during message passing.
+          Defaults to 32.
+        output_node_size (int): number of desired output features per particle. If not specified,
+          same as ``hidden_node_size``.
+        final_activation (str): final activation function to use. Options are 'sigmoid', 'tanh' or
+          nothing (''). Defaults to "".
         linear_args (dict): dict of args for ``LinearNet`` module.
         mp_args (dict): dict of args for ``MPLayer`` module.
-        mp_args_first_layer (dict): dict of args for the first ``MPLayer`` layer, if different from the rest.
-        mask_args (dict): dict of mask-related args. Defined in the mask functions for the individual networks below.
+        mp_args_first_layer (dict): dict of args for the first ``MPLayer`` layer, if different from
+          the rest.
+        mask_args (dict): dict of mask-related args. Defined in the mask functions for the
+          individual networks below.
     """
 
     def __init__(
@@ -466,8 +499,9 @@ class MPNet(nn.Module):
         """Forward pass of MPNet including optional pre and post processing and optional masking.
 
         Args:
-            x (Tensor): input data tensor of shape ``[batch_size, ...]`` where size depends on the particular implementation.
-            labels (Tensor): optional ensor of jet level features for a conditioning and/or masking
+            x (Tensor): input data tensor of shape ``[batch_size, num_particles, input_node_size]``
+            where size depends on the particular implementation.
+            labels (Tensor): optional tensor of jet level features for a conditioning and/or masking
               of shape ``[batch_size, num_jet_features]``.
 
         Returns:
@@ -489,11 +523,11 @@ class MPNet(nn.Module):
         return x
 
     def _pre_mp(self, x, labels):
-        """Pre-message-passing operations"""
+        """Optional pre-message-passing operations"""
         return x
 
     def _post_mp(self, x, labels, use_mask, mask, num_jet_particles):
-        """Post-message-passing operations"""
+        """Optional post-message-passing operations"""
         return x
 
     def _final_activation(self, x):
@@ -507,20 +541,21 @@ class MPNet(nn.Module):
 
     def _init_mask(self, **mask_args):
         """
-        Intialize potential mask networks and variables.
+        Initialize potential mask networks and variables if needed.
         """
         return
 
     def _get_mask(self, x: Tensor, labels: Tensor, **mask_args):
         """
-        Develops mask for input tensor ``x`` depending on the chosen masking strategy.
+        Optionally, develops mask for input tensor ``x`` depending on the chosen masking strategy.
 
         Returns:
             x (Tensor): modified input tensor
             use_mask (bool): is masking being used in message passing layers
-            mask (Tensor): if ``use_mask`` then tensor of masks of shape ``[batch size, # nodes, 1 (mask)]``, else None.
-            num_jet_particles (Tensor): if ``use_mask`` then tensor of # of particles per jet of shape
-              ``[batch size, 1 (num particles)]``, else None.
+            mask (Tensor): if ``use_mask`` then tensor of masks of shape
+              ``[batch size, # nodes, 1 (mask)]``, else None.
+            num_jet_particles (Tensor): if ``use_mask`` then tensor of # of particles per jet of
+              shape ``[batch size, 1 (num particles)]``, else None.
         """
         return x, False, None, None
 
@@ -537,20 +572,20 @@ class MPNet(nn.Module):
 class MPGenerator(MPNet):
     """
     Message passing generator.
-    Goes through an optional latent fully connected layer then ``mp_iters`` iterations of message passing to
-    output a tensor of shape ``[batch_size, num_particles, output_node_size]``.
+    Goes through an optional latent fully connected layer then ``mp_iters`` iterations of message
+    passing to output a tensor of shape ``[batch_size, num_particles, output_node_size]``.
 
     A number of options for masking are implemented, as described in the appendix of
     Kansal et. al. *Particle Cloud Generation with Message Passing Generative Adversarial Networks*
     (https://arxiv.org/abs/2106.11535).
     Args for masking are described in the masking functions below.
 
-    Input ``x`` tensor to the forward pass must be of shape ``[batch_size, lfc_latent_size]`` if using ``lfc``
-    else ``[batch_size, num_particles, input_node_size]``.
+    Input ``x`` tensor to the forward pass must be of shape ``[batch_size, lfc_latent_size]`` if
+    using ``lfc`` else ``[batch_size, num_particles, input_node_size]``.
 
     Args:
-        lfc (bool): use a fully connected network to go from a vector latent space to a graph structure of ``num_particles``
-          nodes with ``node_input_size`` features. Defaults to False.
+        lfc (bool): use a fully connected network to go from a vector latent space to a graph
+          structure of ``num_particles`` nodes with ``node_input_size`` features. Defaults to False.
         lfc_latent_size (int): if using ``lfc``, size of the vector latent space. Defaults to 128.
         **mpnet_args: args for ``MPNet`` base class.
     """
@@ -577,8 +612,10 @@ class MPGenerator(MPNet):
         Intialize potential mask networks and variables.
 
         Args:
-            mask_learn (bool): learning a mask per particle using each particle's initial noise. Defaults to False.
-            mask_learn_sep (bool): predicting an overall number of particles per jet using separate jet noise. Defaults to False.
+            mask_learn (bool): learning a mask per particle using each particle's initial noise.
+              Defaults to False.
+            mask_learn_sep (bool): predicting an overall number of particles per jet using separate
+              jet noise. Defaults to False.
             fmg (list): list of mask network intermediate layer sizes. Defaults to [64].
             **mask_args: extra mask args not needed for this function.
         """
@@ -608,21 +645,26 @@ class MPGenerator(MPNet):
 
         Args:
             x (Tensor): input tensor.
-            labels (Tensor): input jet level features - last feature should be # of particles in jet if ``mask_c``.
-              Defaults to None.
-            mask_learn (bool): learning a mask per particle using each particle's initial noise. Defaults to False.
+            labels (Tensor): input jet level features - last feature should be # of particles in jet
+              if ``mask_c``.Defaults to None.
+            mask_learn (bool): learning a mask per particle using each particle's initial noise.
+              Defaults to False.
             mask_learn_bin (bool): learn a binary mask as opposed to continuous. Defaults to True.
-            mask_learn_sep (bool): predicting an overall number of particles per jet using separate jet noise. Defaults to False.
-            mask_c (bool): using input # of particles per jet to automatically choose masks for particles. Defaults to True.
-            mask_fne_np (bool): feed # of particle per jet as an input to the node and edge networks. Defaults to False.
+            mask_learn_sep (bool): predicting an overall number of particles per jet using separate
+              jet noise. Defaults to False.
+            mask_c (bool): using input # of particles per jet to automatically choose masks for
+              particles. Defaults to True.
+            mask_fne_np (bool): feed # of particle per jet as an input to the node and edge
+              networks. Defaults to False.
             **mask_args: extra mask args not needed for this function.
 
         Returns:
             x (Tensor): modified input tensor
             use_mask (bool): is masking being used in message passing layers
-            mask (Tensor): if ``use_mask`` then tensor of masks of shape ``[batch size, # nodes, 1 (mask)]``, else None.
-            num_jet_particles (Tensor): if ``use_mask`` then tensor of # of particles per jet of shape
-              ``[batch size, 1 (num particles)]``, else None.
+            mask (Tensor): if ``use_mask`` then tensor of masks of shape
+              ``[batch size, # nodes, 1 (mask)]``, else None.
+            num_jet_particles (Tensor): if ``use_mask`` then tensor of # of particles per jet of
+              shape ``[batch size, 1 (num particles)]``, else None.
 
         """
 
@@ -645,9 +687,11 @@ class MPGenerator(MPNet):
                 logging.debug("num_jet_particles \n {}".format(num_jet_particles[:2]))
 
         elif mask_c:
-            # unnormalize the last jet label - the normalized # of particles per jet (between 1/``num_particles`` and 1) - to between 0 and ``num_particles`` - 1
+            # unnormalize the last jet label - the normalized # of particles per jet
+            # (between 1/``num_particles`` and 1) - to between 0 and ``num_particles`` - 1
             num_jet_particles = (labels[:, -1] * self.num_particles).int() - 1
-            # sort the particles bythe first noise feature per particle, and the first ``num_jet_particles`` particles receive a 1-mask, the rest 0.
+            # sort the particles bythe first noise feature per particle, and the first
+            # ``num_jet_particles`` particles receive a 1-mask, the rest 0.
             mask = (
                 (x[:, :, 0].argsort(1).argsort(1) <= num_jet_particles.unsqueeze(1))
                 .unsqueeze(2)
@@ -666,7 +710,8 @@ class MPGenerator(MPNet):
 
             num_jet_particles = self.fmg_layer(num_jet_particles_input)
             num_jet_particles = torch.argmax(num_jet_particles, dim=1)
-            # sort the particles by the first noise feature per particle, and the first ``num_jet_particles`` particles receive a 1-mask, the rest 0.
+            # sort the particles by the first noise feature per particle, and the first
+            # ``num_jet_particles`` particles receive a 1-mask, the rest 0.
             mask = (
                 (x[:, :, 0].argsort(1).argsort(1) <= num_jet_particles.unsqueeze(1))
                 .unsqueeze(2)
@@ -715,20 +760,25 @@ class MPGenerator(MPNet):
 class MPDiscriminator(MPNet):
     """
     Message passing discriminator.
-    Goes through ``mp_iters`` iterations of message passing and then an optional final fully connected network to output a scalar prediction.
+    Goes through ``mp_iters`` iterations of message passing and then an optional final fully
+    connected network to output a scalar prediction.
 
     A number of options for masking are implemented, as described in the appendix of
-    Kansal et. al. *Particle Cloud Generation with Message Passing Generative Adversarial Networks* (https://arxiv.org/abs/2106.11535).
+    Kansal et. al. *Particle Cloud Generation with Message Passing Generative Adversarial Networks*
+    (https://arxiv.org/abs/2106.11535).
     Args for masking are described in the masking functions below.
 
-    Input ``x`` tensor to the forward pass must be of shape ``[batch_size, num_particles, input_node_size]``.
+    Input ``x`` tensor to the forward pass must be of shape
+    ``[batch_size, num_particles, input_node_size]``.
 
     Args:
-        dea (bool): 'discriminator early aggregation' i.e. aggregate the final graph and pass through a
-          final fully connected network ``fnd``. Defaults to True.
-        dea_sum (bool): if using ``dea``, use 'sum' as the aggregation operation as opposed to 'mean'. Defaults to True.
+        dea (bool): 'discriminator early aggregation' i.e. aggregate the final graph and pass
+          through a final fully connected network ``fnd``. Defaults to True.
+        dea_sum (bool): if using ``dea``, use 'sum' as the aggregation operation as opposed to
+          'mean'. Defaults to True.
         fnd (list): list of final FC network intermediate layer sizes. Defaults to [].
-        mask_fnd_np (bool): pass number of particles as an extra feature into the final FC network. Defaults to False.
+        mask_fnd_np (bool): pass number of particles as an extra feature into the final FC network.
+          Defaults to False.
         **mpnet_args: args for ``MPNet`` base class.
     """
 
@@ -797,19 +847,27 @@ class MPDiscriminator(MPNet):
 
         Args:
             x (Tensor): input tensor.
-            mask_manual (bool): applying a manual mask after generation per particle based on a pT cutoff.
-            mask_learn (bool): learning a mask per particle using each particle's initial noise. Defaults to False.
-            mask_learn_sep (bool): predicting an overall number of particles per jet using separate jet noise. Defaults to False.
-            mask_c (bool): using input # of particles per jet to automatically choose masks for particles. Defaults to True.
-            mask_fne_np (bool): feed # of particle per jet as an input to the node and edge networks. Defaults to False.
-            mask_fnd_np (bool): feed # of particle per jet as an input to final discriminator FC network. Defaults to False.
+            mask_manual (bool): applying a manual mask after generation per particle based on a pT
+              cutoff.
+            mask_learn (bool): learning a mask per particle using each particle's initial noise.
+              Defaults to False.
+            mask_learn_sep (bool): predicting an overall number of particles per jet using separate
+              jet noise. Defaults to False.
+            mask_c (bool): using input # of particles per jet to automatically choose masks for
+              particles. Defaults to True.
+            mask_fne_np (bool): feed # of particle per jet as an input to the node and edge
+              networks. Defaults to False.
+            mask_fnd_np (bool): feed # of particle per jet as an input to final discriminator FC
+              network. Defaults to False.
             **mask_args: extra mask args not needed for this function.
 
         Returns:
             x (Tensor): modified data tensor
             use_mask (bool): is masking being used
-            mask (Tensor): if ``use_mask`` then tensor of masks of shape ``[batch size, # nodes, 1 (mask)]``, else None
-            num_jet_particles (Tensor): if ``use_mask`` then tensor of # of particles per jet of shape ``[batch size, 1 (num particles)]``, else None.
+            mask (Tensor): if ``use_mask`` then tensor of masks of shape
+              ``[batch size, # nodes, 1 (mask)]``, else None
+            num_jet_particles (Tensor): if ``use_mask`` then tensor of # of particles per jet of
+              shape ``[batch size, 1 (num particles)]``, else None.
 
         """
 
