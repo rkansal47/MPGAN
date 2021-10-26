@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from spectral_normalization import SpectralNorm
+from .spectral_normalization import SpectralNorm
 import logging
 
 

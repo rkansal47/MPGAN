@@ -1154,6 +1154,10 @@ def models(args, gen_only=False):
         from ext_models import latent_G
 
         G = latent_G(args.pcgan_latent_dim, args.pcgan_z1_dim)
+    elif args.model == "old_mpgan":
+        from mpgan import Graph_GAN
+
+        G = Graph_GAN(gen=True, args=deepcopy(args))
 
     if gen_only:
         return G
@@ -1173,6 +1177,10 @@ def models(args, gen_only=False):
         from ext_models import latent_D
 
         D = latent_D(args.pcgan_z1_dim)
+    elif args.model_D == "old_mpgan":
+        from mpgan import Graph_GAN
+
+        G = Graph_GAN(gen=False, args=deepcopy(args))
 
     if args.load_model:
         try:
@@ -1242,12 +1250,14 @@ def get_model_args(args):
 
     model_args = {}
 
-    if args.model == "mpgan":
+    if args.model == "mpgan" or args.model == "old_mpgan":
         model_args = {
             "lfc": args.lfc,
             "lfc_latent_size": args.lfc_latent_size,
             "mask_learn_sep": args.mask_learn_sep,
-            "latent_node_size": args.latent_node_size,
+            "latent_node_size": args.latent_node_size
+            if args.latent_node_size
+            else args.hidden_node_size,
         }
     elif args.model == "rgan" or args.model == "graphcnngan":
         model_args = {"latent_dim": args.latent_dim}

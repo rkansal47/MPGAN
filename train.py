@@ -101,7 +101,7 @@ def get_gen_noise(
     dist = Normal(torch.tensor(0.0).to(device), torch.tensor(noise_std).to(device))
     point_noise = None
 
-    if model == "mpgan":
+    if model == "mpgan" or model == "old_mpgan":
         if model_args["lfc"]:
             noise = dist.sample((num_samples, model_args["lfc_latent_size"]))
         else:
