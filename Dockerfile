@@ -17,5 +17,7 @@ RUN pip install qpth cvxpy
 
 RUN pip install torch-scatter torch-sparse torch-cluster torch-spline-conv torch-geometric -f https://data.pyg.org/whl/torch-1.9.0+cu102.html
 
+RUN pip install jetnet
+
 # Set the default command to python3.
 CMD ["python3"]
