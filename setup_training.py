@@ -1132,7 +1132,7 @@ def setup_mpgan(args, gen):
         )
 
 
-def models(args):
+def models(args, gen_only=False):
     """Set up generator and discriminator models, either new or loaded from a state dict"""
     if args.model == "mpgan":
         G = setup_mpgan(args, gen=True)
@@ -1154,6 +1154,9 @@ def models(args):
         from ext_models import latent_G
 
         G = latent_G(args.pcgan_latent_dim, args.pcgan_z1_dim)
+
+    if gen_only:
+        return G
 
     if args.model_D == "mpgan":
         D = setup_mpgan(args, gen=False)
