@@ -1,5 +1,8 @@
 # MPGAN
 
+[![DOI](https://zenodo.org/badge/382939833.svg)](https://zenodo.org/badge/latestdoi/382939833)
+[![Codestyle](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 Code for Kansal et. al., *Particle Cloud Generation with Message Passing Generative Adversarial Networks*, NeurIPS 2021 [`arXiv:2106.11535`](https://arxiv.org/abs/2106.11535).
 
 
