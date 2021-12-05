@@ -246,3 +246,82 @@ for dataset in datasets:
 
     with open(f"evaluation_results/{dataset}.tex", "w") as f:
         f.writelines(table_dict[dataset])
+
+
+# For presentations
+
+order = ["fcpnet", "graphcnnpnet", "treeganpnet", "mp", "mppnet"]
+
+
+def format_mean_sd_pres(mean, sd):
+    """round mean and standard deviation to most significant digit of sd and apply latex formatting"""
+    decimals = -int(np.floor(np.log10(sd)))
+    decimals -= int((sd * 10 ** decimals) >= 9.5)
+
+    if decimals < 0:
+        ten_to = 10 ** (-decimals)
+        if mean > ten_to:
+            mean = ten_to * (mean // ten_to)
+        else:
+            mean_ten_to = 10 ** np.floor(np.log10(mean))
+            mean = mean_ten_to * (mean // mean_ten_to)
+        sd = ten_to * (sd // ten_to)
+        decimals = 0
+
+    if mean >= 1e3 and sd >= 1e3:
+        mean = np.round(mean * 1e-3)
+        sd = np.round(sd * 1e-3)
+        return f"{mean:.{decimals}f}k ± {sd:.{decimals}f}k"
+    else:
+        return f"{mean:.{decimals}f} ± {sd:.{decimals}f}"
+
+
+def format_fpnd_pres(fpnd):
+    if fpnd >= 1e6:
+        fpnd = np.round(fpnd * 1e-6)
+        return f"{fpnd:.0f}M"
+    elif fpnd >= 1e3:
+        fpnd = np.round(fpnd * 1e-3)
+        return f"{fpnd:.0f}k"
+    elif fpnd >= 10:
+        fpnd = np.round(fpnd)
+        return f"{fpnd:.0f}"
+    elif fpnd >= 1:
+        return f"{fpnd:.1f}"
+    else:
+        return f"{fpnd:.2f}"
+
+
+table_dict_pres = {key: {} for key in datasets}
+
+for dataset in datasets:
+    lines = []
+
+    for key in order:
+        line = f"{model_name_map[key][0]},{model_name_map[key][1]}"
+        evals = evals_dict[dataset][key]
+
+        line += "," + format_mean_sd_pres(
+            np.mean(evals["w1p"][0]) * 1e3, np.linalg.norm(evals["w1p"][1]) * 1e3
+        )
+
+        line += "," + format_mean_sd_pres(evals["w1m"][0] * 1e3, evals["w1m"][1] * 1e3)
+
+        line += "," + format_mean_sd_pres(
+            np.mean(evals["w1efp"][0]) * 1e5, np.linalg.norm(evals["w1efp"][1]) * 1e5
+        )
+
+        line += "," + format_fpnd_pres(evals["fpnd"])
+
+        line += "," + f"{evals['coverage']:.2f}"
+
+        line += "," + f"{evals['mmd']:.3f}"
+
+        line += "\n"
+
+        lines.append(line)
+
+    table_dict_pres[dataset] = lines
+
+    with open(f"evaluation_results/{dataset}.csv", "w") as f:
+        f.writelines(table_dict_pres[dataset])
