@@ -7,6 +7,98 @@ plt.rcParams.update({"font.size": 16})
 plt.style.use(hep.style.CMS)
 
 
+def plot_hit_feats(
+    real_showers,
+    gen_showers,
+    real_mask=None,
+    gen_mask=None,
+    name=None,
+    figs_path=None,
+    num_particles=30,
+    show=False,
+):
+    LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
+
+    real_hits = real_showers[real_mask]
+    gen_hits = gen_showers[gen_mask]
+
+    real_layer_etas = []
+    real_layer_phis = []
+    real_layer_Es = []
+
+    gen_layer_etas = []
+    gen_layer_phis = []
+    gen_layer_Es = []
+
+    for i in range(3):
+        real_layer_hits = real_hits[
+            (real_hits[:, 2] > i * 0.33) * (real_hits[:, 2] < (i + 1) * 0.33)
+        ]
+        real_layer_etas.append(((real_layer_hits[:, 0] * LAYER_SPECS[i][1]) - 0.5).astype(int))
+        real_layer_phis.append(((real_layer_hits[:, 1] * LAYER_SPECS[i][0]) - 0.5).astype(int))
+        real_layer_Es.append(real_layer_hits[:, 3])
+
+        gen_layer_hits = gen_hits[(gen_hits[:, 2] > i * 0.33) * (gen_hits[:, 2] < (i + 1) * 0.33)]
+        gen_layer_etas.append(((gen_layer_hits[:, 0] * LAYER_SPECS[i][1]) - 0.5).astype(int))
+        gen_layer_phis.append(((gen_layer_hits[:, 1] * LAYER_SPECS[i][0]) - 0.5).astype(int))
+        gen_layer_Es.append(gen_layer_hits[:, 3])
+
+    fig = plt.figure(figsize=(22, 22), constrained_layout=True)
+    fig.suptitle(" ")
+
+    subfigs = fig.subfigures(nrows=3, ncols=1)
+
+    for i, subfig in enumerate(subfigs):
+        subfig.suptitle(f"Layer {i + 1}")
+
+        # create 1x3 subplots per subfig
+        axs = subfig.subplots(nrows=1, ncols=3)
+        axs[0].hist(
+            real_layer_etas[i], bins=np.arange(LAYER_SPECS[i][1] + 1), histtype="step", label="Real"
+        )
+        axs[0].hist(
+            gen_layer_etas[i],
+            bins=np.arange(LAYER_SPECS[i][1] + 1),
+            histtype="step",
+            label="Generated",
+        )
+        axs[0].ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
+        axs[0].set_xlabel(r"Hit $\eta$s")
+        axs[0].set_ylabel("Number of Hits")
+        axs[0].legend()
+
+        axs[1].hist(
+            real_layer_phis[i], bins=np.arange(LAYER_SPECS[i][0] + 1), histtype="step", label="Real"
+        )
+        axs[1].hist(
+            gen_layer_phis[i],
+            bins=np.arange(LAYER_SPECS[i][0] + 1),
+            histtype="step",
+            label="Generated",
+        )
+        axs[1].ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
+        axs[1].set_xlabel(r"Hit $\varphi$s")
+        axs[1].set_ylabel("Number of Hits")
+        axs[1].legend()
+
+        bins = np.linspace(0, 50, 51) if i < 2 else np.linspace(0, 4, 51)
+        axs[2].hist(real_layer_Es[i] / 1000, bins=bins, histtype="step", label="Real")
+        axs[2].hist(gen_layer_Es[i] / 1000, bins=bins, histtype="step", label="Generated")
+        axs[2].set_xlabel("Hit Energies (GeV)")
+        axs[2].set_ylabel("Number of Hits")
+        axs[2].set_yscale("log")
+        axs[2].legend()
+
+    # plt.tight_layout(2.0)
+    if figs_path is not None and name is not None:
+        plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
 def plot_part_feats(
     jet_type,
     real_jets,

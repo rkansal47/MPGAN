@@ -125,14 +125,46 @@ mask.shape
 
 hits = final_dataset[mask[:, :, 0].astype(bool)]
 
-plt.hist(hits[:, 3])
-plt.yscale("log")
-
-
-fig = plt.figure(figsize=(22, 8))
+# layer_hits = []
+layer_etas = []
+layer_phis = []
+layer_Es = []
 
 for i in range(3):
-    fig.add_subplot(1, 3, i + 1)
-    plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-    _ = plt.hist(parts_real[:, i], pbins[i], histtype="step", label="Real", color="red")
-    _ = plt.hist(parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue")
+    layer_hits = hits[(hits[:, 2] > i * 0.33) * (hits[:, 2] < (i + 1) * 0.33)]
+    layer_etas.append(((layer_hits[:, 0] * LAYER_SPECS[i][1]) - 0.5).astype(int))
+    layer_phis.append(((layer_hits[:, 1] * LAYER_SPECS[i][0]) - 0.5).astype(int))
+    layer_Es.append(layer_hits[:, 3])
+
+
+import mplhep as hep
+
+plt.switch_backend("agg")
+plt.rcParams.update({"font.size": 12})
+plt.style.use(hep.style.CMS)
+
+fig = plt.figure(figsize=(22, 22), constrained_layout=True)
+fig.suptitle(" ")
+
+subfigs = fig.subfigures(nrows=3, ncols=1)
+
+for i, subfig in enumerate(subfigs):
+    subfig.suptitle(f"Layer {i + 1}")
+
+    # create 1x3 subplots per subfig
+    axs = subfig.subplots(nrows=1, ncols=3)
+    axs[0].hist(layer_etas[i], bins=np.arange(LAYER_SPECS[i][1] + 1), histtype="step")
+    axs[0].ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
+    axs[0].set_xlabel(r"Hit $\eta$s")
+    axs[0].set_ylabel("Number of Hits")
+
+    axs[1].hist(layer_phis[i], bins=np.arange(LAYER_SPECS[i][0] + 1), histtype="step")
+    axs[1].ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
+    axs[1].set_xlabel(r"Hit $\varphi$s")
+    axs[1].set_ylabel("Number of Hits")
+
+    bins = np.linspace(0, 50, 51) if i < 2 else np.linspace(0, 4, 51)
+    axs[2].hist(layer_Es[i] / 1000, bins=bins, histtype="step")
+    axs[2].set_xlabel("Hit Energies (GeV)")
+    axs[2].set_ylabel("Number of Hits")
+    axs[2].set_yscale("log")

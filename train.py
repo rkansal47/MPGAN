@@ -627,19 +627,14 @@ def make_plots(
 ):
     """Plot histograms, jet images, loss curves, and evaluation curves"""
 
-    plotting.plot_part_feats(
-        jet_type,
+    plotting.plot_hit_feats(
         real_jets,
         gen_jets,
         real_mask,
         gen_mask,
         name=name + "p",
         figs_path=figs_path,
-        losses=losses,
         num_particles=num_particles,
-        coords=coords,
-        dataset=dataset,
-        const_ylim=const_ylim,
         show=False,
     )
 
