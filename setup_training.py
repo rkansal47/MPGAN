@@ -198,7 +198,7 @@ def parse_args():
 
     parser.add_argument("--sd", type=float, default=0.2, help="standard deviation of noise")
 
-    parser.add_argument("--node-feat-size", type=int, default=3, help="node feature size")
+    parser.add_argument("--node-feat-size", type=int, default=4, help="node feature size")
     parser.add_argument(
         "--hidden-node-size",
         type=int,
@@ -487,7 +487,7 @@ def parse_args():
     parser.add_argument(
         "--eval-tot-samples",
         type=int,
-        default=50000,
+        default=10000,
         help="tot # of jets to generate to sample from",
     )
 
@@ -917,11 +917,11 @@ def init_project_dirs(args):
 
     if args.dir_path == "":
         if args.n:
-            args.dir_path = "/graphganvol/MPGAN/outputs/"
+            args.dir_path = "/graphganvol/MPGAN/calogan_outputs/"
         elif args.lx:
-            args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs/"
+            args.dir_path = "/eos/user/r/rkansal/MPGAN/calogan_outputs/"
         else:
-            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/outputs/"
+            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/calogan_outputs/"
 
     os.system(f"mkdir -p {args.dir_path}")
 
