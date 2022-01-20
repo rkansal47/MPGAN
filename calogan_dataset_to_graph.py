@@ -138,6 +138,7 @@ for i in range(3):
 
 
 import mplhep as hep
+from matplotlib.colors import LogNorm
 
 plt.switch_backend("agg")
 plt.rcParams.update({"font.size": 12})
@@ -153,10 +154,11 @@ for i, subfig in enumerate(subfigs):
 
     # create 1x3 subplots per subfig
     axs = subfig.subplots(nrows=1, ncols=3)
-    axs[0].hist(layer_etas[i], bins=np.arange(LAYER_SPECS[i][1] + 1), histtype="step")
+    axs[0].hist(layer_etas[i], bins=np.arange(LAYER_SPECS[i][1] + 1), histtype="step", label="test")
     axs[0].ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
     axs[0].set_xlabel(r"Hit $\eta$s")
     axs[0].set_ylabel("Number of Hits")
+    axs[0].legend()
 
     axs[1].hist(layer_phis[i], bins=np.arange(LAYER_SPECS[i][0] + 1), histtype="step")
     axs[1].ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
@@ -168,3 +170,100 @@ for i, subfig in enumerate(subfigs):
     axs[2].set_xlabel("Hit Energies (GeV)")
     axs[2].set_ylabel("Number of Hits")
     axs[2].set_yscale("log")
+
+
+def to_image(phi_size, eta_size, phis, etas, Es):
+    jet_image = np.zeros((phi_size, eta_size))
+
+    for eta, phi, pt in zip(phis, etas, Es):
+        if eta >= 0 and eta < eta_size and phi >= 0 and phi < phi_size:
+            jet_image[phi, eta] += pt
+
+    return jet_image
+
+
+real_showers = final_dataset
+
+real_ims = []
+
+NUM_IMS = 1000
+
+for j in range(3):
+    real_layer_ims = []
+    for i in range(NUM_IMS):
+        real_layer_hits = real_showers[i][
+            (real_showers[i][:, 2] > j * 0.33) * (real_showers[i][:, 2] < (j + 1) * 0.33)
+        ]
+        real_etas = ((real_layer_hits[:, 0] * LAYER_SPECS[j][1]) - 0.5).astype(int)
+        real_phis = ((real_layer_hits[:, 1] * LAYER_SPECS[j][0]) - 0.5).astype(int)
+        real_Es = real_layer_hits[:, 3]
+        real_layer_ims.append(
+            to_image(LAYER_SPECS[j][0], LAYER_SPECS[j][1], real_etas, real_phis, real_Es)
+        )
+
+    real_ims.append(real_layer_ims)
+
+
+fig = plt.figure(figsize=(24, 32), constrained_layout=True)
+fig.suptitle(" ")
+
+subfigs = fig.subfigures(nrows=1, ncols=3)
+
+vmins = [1e-2, 1e-2, 1e-4]
+vmaxs = [1e5, 1e3, 10]
+
+for i, subfig in enumerate(subfigs):
+    subfig.suptitle(f"Layer {i + 1}")
+
+    axs = subfig.subplots(nrows=6, ncols=1)
+
+    for j in range(5):
+        # print(f"{i} {j}")
+        # print(real_ims[j][i])
+
+        pos = axs[j].imshow(
+            real_ims[i][j],
+            aspect="auto",
+            cmap="binary",
+            vmin=vmins[i],
+            vmax=vmaxs[i],
+            norm=LogNorm(),
+            extent=(0, LAYER_SPECS[i][1], 0, LAYER_SPECS[i][0]),
+        )
+        axs[j].set_xlabel(r"$\eta$")
+        axs[j].set_ylabel(r"$\varphi$")
+        fig.colorbar(pos, ax=axs[j])
+
+    j = 5
+    axs[j].set_title("Average Image")
+    pos = axs[j].imshow(
+        np.mean(np.array(real_ims[i]), axis=0),
+        aspect="auto",
+        cmap="binary",
+        vmin=vmins[i],
+        vmax=vmaxs[i],
+        norm=LogNorm(),
+        extent=(0, LAYER_SPECS[i][1], 0, LAYER_SPECS[i][0]),
+    )
+    axs[j].set_xlabel(r"$\eta$")
+    axs[j].set_ylabel(r"$\varphi$")
+    fig.colorbar(pos, ax=axs[j])
+
+
+real_ims[0][0]
+
+j = 0
+plt.imshow(
+    real_ims[0][j],
+    aspect="auto",
+    cmap="binary",
+    vmin=1e-1,
+    vmax=1000,
+    norm=LogNorm(),
+    extent=(0, LAYER_SPECS[j][1], 0, LAYER_SPECS[j][0]),
+)
+plt.xlabel(r"$\eta$")
+plt.ylabel(r"$\varphi$")
+
+
+final_dataset[i]

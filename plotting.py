@@ -1,10 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import mplhep as hep
+from matplotlib.colors import LogNorm
 
 plt.switch_backend("agg")
 plt.rcParams.update({"font.size": 16})
 plt.style.use(hep.style.CMS)
+
+
+LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
 
 
 def plot_hit_feats(
@@ -17,8 +21,6 @@ def plot_hit_feats(
     num_particles=30,
     show=False,
 ):
-    LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
-
     real_hits = real_showers[real_mask]
     gen_hits = gen_showers[gen_mask]
 
@@ -90,6 +92,92 @@ def plot_hit_feats(
         axs[2].legend()
 
     # plt.tight_layout(2.0)
+    if figs_path is not None and name is not None:
+        plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def to_image(phi_size, eta_size, phis, etas, Es):
+    jet_image = np.zeros((phi_size, eta_size))
+
+    for eta, phi, pt in zip(phis, etas, Es):
+        if eta >= 0 and eta < eta_size and phi >= 0 and phi < phi_size:
+            jet_image[phi, eta] += pt
+
+    return jet_image
+
+
+def plot_shower_ims(
+    gen_showers,
+    name=None,
+    figs_path=None,
+    show=False,
+):
+    gen_ims = []
+
+    NUM_IMS = 1000
+
+    for j in range(3):
+        gen_layer_ims = []
+        for i in range(NUM_IMS):
+            gen_layer_hits = gen_showers[i][
+                (gen_showers[i][:, 2] > j * 0.33) * (gen_showers[i][:, 2] < (j + 1) * 0.33)
+            ]
+            gen_etas = ((gen_layer_hits[:, 0] * LAYER_SPECS[j][1]) - 0.5).astype(int)
+            gen_phis = ((gen_layer_hits[:, 1] * LAYER_SPECS[j][0]) - 0.5).astype(int)
+            gen_Es = gen_layer_hits[:, 3]
+            gen_layer_ims.append(
+                to_image(LAYER_SPECS[j][0], LAYER_SPECS[j][1], gen_etas, gen_phis, gen_Es)
+            )
+
+        gen_ims.append(gen_layer_ims)
+
+    vmins = [1e-2, 1e-2, 1e-4]
+    vmaxs = [1e5, 1e3, 10]
+
+    fig = plt.figure(figsize=(24, 32), constrained_layout=True)
+    fig.suptitle(" ")
+
+    subfigs = fig.subfigures(nrows=1, ncols=3)
+
+    for i, subfig in enumerate(subfigs):
+        subfig.suptitle(f"Layer {i + 1}")
+
+        axs = subfig.subplots(nrows=6, ncols=1)
+
+        for j in range(5):
+            pos = axs[j].imshow(
+                gen_ims[i][j],
+                aspect="auto",
+                cmap="binary",
+                vmin=vmins[i],
+                vmax=vmaxs[i],
+                norm=LogNorm(),
+                extent=(0, LAYER_SPECS[i][1], 0, LAYER_SPECS[i][0]),
+            )
+            axs[j].set_xlabel(r"$\eta$")
+            axs[j].set_ylabel(r"$\varphi$")
+            fig.colorbar(pos, ax=axs[j])
+
+        j = 5
+        axs[j].set_title("Average Image")
+        pos = axs[j].imshow(
+            np.mean(np.array(gen_ims[i]), axis=0),
+            aspect="auto",
+            cmap="binary",
+            vmin=vmins[i],
+            vmax=vmaxs[i],
+            norm=LogNorm(),
+            extent=(0, LAYER_SPECS[i][1], 0, LAYER_SPECS[i][0]),
+        )
+        axs[j].set_xlabel(r"$\eta$")
+        axs[j].set_ylabel(r"$\varphi$")
+        fig.colorbar(pos, ax=axs[j])
+
     if figs_path is not None and name is not None:
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
 

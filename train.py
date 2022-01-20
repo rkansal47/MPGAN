@@ -638,6 +638,13 @@ def make_plots(
         show=False,
     )
 
+    plotting.plot_shower_ims(
+        gen_jets,
+        name=name + "_ims",
+        figs_path=figs_path,
+        show=False,
+    )
+
     if len(losses["G"]) > 1:
         plotting.plot_losses(losses, loss=loss, name=name, losses_path=losses_path, show=False)
 
