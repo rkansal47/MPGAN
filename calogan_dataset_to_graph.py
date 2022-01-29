@@ -182,6 +182,9 @@ def to_image(phi_size, eta_size, phis, etas, Es):
     return jet_image
 
 
+from pympler import asizeof
+
+
 real_showers = final_dataset
 
 real_ims = []
@@ -203,6 +206,7 @@ for j in range(3):
 
     real_ims.append(real_layer_ims)
 
+asizeof.asizeof(real_ims)
 
 fig = plt.figure(figsize=(24, 32), constrained_layout=True)
 fig.suptitle(" ")
@@ -249,6 +253,7 @@ for i, subfig in enumerate(subfigs):
     axs[j].set_ylabel(r"$\varphi$")
     fig.colorbar(pos, ax=axs[j])
 
+plt.savefig("calogan_real_ims.pdf")
 
 real_ims[0][0]
 
