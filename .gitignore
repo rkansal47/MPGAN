@@ -18,6 +18,8 @@ trained_models/*/**
 !Dockerfile
 !.gitignore
 
+!NeurIPS21_Poster.pdf
+
 setup.py
 **/__pycache__
 **/.DS_Store
