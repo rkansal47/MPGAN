@@ -12,6 +12,59 @@ LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
 
 
 def plot_hit_feats(
+    real_jets,
+    gen_jets,
+    real_mask=None,
+    gen_mask=None,
+    coords="polarrel",
+    name=None,
+    figs_path=None,
+    dataset="jetnet",
+    num_particles=30,
+    losses=None,
+    const_ylim=False,
+    show=False,
+):
+    """Plot particle feature histograms"""
+    plabels = ["$\eta$", "$\phi$", "z", "E (GeV)"]
+    pbins = [
+        np.linspace(0, 1, 51),
+        np.linspace(0, 1, 51),
+        np.linspace(0, 1, 51),
+        np.linspace(0, 50000, 51),
+    ]
+
+    if real_mask is not None:
+        parts_real = real_jets[real_mask]
+        parts_gen = gen_jets[gen_mask]
+    else:
+        parts_real = real_jets.reshape(-1, real_jets.shape[2])
+        parts_gen = gen_jets.reshape(-1, gen_jets.shape[2])
+
+    fig = plt.figure(figsize=(16, 16))
+
+    for i in range(4):
+        fig.add_subplot(2, 2, i + 1)
+        plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
+        _ = plt.hist(parts_real[:, i], pbins[i], histtype="step", label="Real", color="red")
+        _ = plt.hist(parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue")
+        plt.xlabel("Hit " + plabels[i])
+        plt.ylabel("Number of Hits")
+        if i == 3:
+            plt.yscale("log")
+        plt.legend(loc=1, prop={"size": 18})
+
+    plt.tight_layout(2.0)
+    if figs_path is not None and name is not None:
+        plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_layerwise_hit_feats(
     real_showers,
     gen_showers,
     real_mask=None,
@@ -179,60 +232,6 @@ def plot_shower_ims(
         axs[j].set_ylabel(r"$\varphi$")
         fig.colorbar(pos, ax=axs[j])
 
-    if figs_path is not None and name is not None:
-        plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
-
-    if show:
-        plt.show()
-    else:
-        plt.close()
-
-
-def plot_part_feats(
-    jet_type,
-    real_jets,
-    gen_jets,
-    real_mask=None,
-    gen_mask=None,
-    coords="polarrel",
-    name=None,
-    figs_path=None,
-    dataset="jetnet",
-    num_particles=30,
-    losses=None,
-    const_ylim=False,
-    show=False,
-):
-    """Plot particle feature histograms"""
-    plabels = ["$\eta$", "$\phi$", "z", "E (GeV)"]
-    pbins = [
-        np.linspace(0, 1, 51),
-        np.linspace(0, 1, 51),
-        np.linspace(0, 1, 51),
-        np.linspace(0, 50000, 51),
-    ]
-
-    if real_mask is not None:
-        parts_real = real_jets[real_mask]
-        parts_gen = gen_jets[gen_mask]
-    else:
-        parts_real = real_jets.reshape(-1, real_jets.shape[2])
-        parts_gen = gen_jets.reshape(-1, gen_jets.shape[2])
-
-    fig = plt.figure(figsize=(16, 16))
-
-    for i in range(4):
-        fig.add_subplot(2, 2, i + 1)
-        plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-        _ = plt.hist(parts_real[:, i], pbins[i], histtype="step", label="Real", color="red")
-        _ = plt.hist(parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue")
-        plt.xlabel("Hit " + plabels[i])
-        plt.ylabel("Number of Hits")
-        if i == 3:
-            plt.yscale("log")
-        plt.legend(loc=1, prop={"size": 18})
-
-    plt.tight_layout(2.0)
     if figs_path is not None and name is not None:
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
 

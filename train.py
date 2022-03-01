@@ -609,7 +609,18 @@ def make_plots(
         gen_jets,
         real_mask,
         gen_mask,
-        name=name + "p",
+        name=name + "h",
+        figs_path=figs_path,
+        num_particles=num_particles,
+        show=False,
+    )
+
+    plotting.plot_layerwise_hit_feats(
+        real_jets,
+        gen_jets,
+        real_mask,
+        gen_mask,
+        name=name + "lh",
         figs_path=figs_path,
         num_particles=num_particles,
         show=False,
