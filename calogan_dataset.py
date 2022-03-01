@@ -20,6 +20,7 @@ class CaloGANDataset(torch.utils.data.Dataset):
         normalize: bool = True,
         feature_norms: List[float] = [None, None, None, 1.0, 1.0],
         feature_shifts: List[float] = [-0.5, -0.5, -0.5, -0.5, -0.5],
+        logE: bool = False,
         use_mask: bool = True,
         train: bool = True,
         train_fraction: float = 0.7,
@@ -29,10 +30,16 @@ class CaloGANDataset(torch.utils.data.Dataset):
         self.use_mask = use_mask
         self.normalize = normalize
         self.num_particles = num_particles
+        self.logE = logE
 
         npy_file = f"{data_dir}/calogan_graph_30_hits_etaphizEmask.npy"
 
         dataset = Tensor(np.load(npy_file))
+
+        if self.logE:
+            dataset[:, :, 3] = torch.log(dataset[:, :, 3] + 1e-12)
+            self.feature_shifts[3] = 0
+
         jet_features = self.get_jet_features(dataset)
 
         logging.info(f"Loaded dataset {dataset.shape = }")
@@ -162,6 +169,9 @@ class CaloGANDataset(torch.utils.data.Dataset):
             if self.feature_norms[i] is not None:
                 dataset[:, :, i] /= self.feature_norms[i]
                 dataset[:, :, i] *= self.feature_maxes[i]
+
+        if self.logE:
+            dataset[:, :, 3] = torch.exp(dataset[:, :, 3])
 
         mask = dataset[:, :, -1] >= 0.5 if self.use_mask else None
 

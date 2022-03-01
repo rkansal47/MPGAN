@@ -191,6 +191,7 @@ def parse_args():
         help="cartesian, polarrel or polarrelabspt",
         choices=["cartesian, polarrel, polarrelabspt"],
     )
+    add_bool_arg(parser, "logE", "Use log of energy or not", default=False)
 
     parser.add_argument(
         "--norm", type=float, default=1, help="normalizing max value of features to this value"

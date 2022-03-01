@@ -93,6 +93,7 @@ def plot_hit_feats(
 
     # plt.tight_layout(2.0)
     if figs_path is not None and name is not None:
+        print(f"saving fig at {figs_path} {name}")
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
 
     if show:
