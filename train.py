@@ -21,6 +21,11 @@ from tqdm import tqdm
 import logging
 
 
+from guppy import hpy
+
+h = hpy()
+
+
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.autograd.set_detect_anomaly(False)
@@ -615,6 +620,9 @@ def make_plots(
         show=False,
     )
 
+    print("hit feats")
+    print(h.heap())
+
     plotting.plot_layerwise_hit_feats(
         real_jets,
         gen_jets,
@@ -626,12 +634,18 @@ def make_plots(
         show=False,
     )
 
+    print("layerwise hit feats")
+    print(h.heap())
+
     plotting.plot_shower_ims(
         gen_jets,
         name=name + "_ims",
         figs_path=figs_path,
         show=False,
     )
+
+    print("shower ims")
+    print(h.heap())
 
     if len(losses["G"]) > 1:
         plotting.plot_losses(losses, loss=loss, name=name, losses_path=losses_path, show=False)
@@ -640,6 +654,9 @@ def make_plots(
             remove(losses_path + "/" + str(epoch - save_epochs) + ".pdf")
         except:
             logging.info("Couldn't remove previous loss curves")
+
+    print("losses")
+    print(h.heap())
 
     # if len(losses["w1p"]) > 1:
     #     plotting.plot_eval(
@@ -671,6 +688,10 @@ def eval_save_plot(
     best_epoch,
     **extra_args,
 ):
+
+    print("after eval start")
+    print(h.heap())
+
     G.eval()
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
@@ -713,6 +734,9 @@ def eval_save_plot(
     if gen_mask is not None:
         gen_mask = gen_mask.numpy()
 
+    print("jets")
+    print(h.heap())
+
     # evaluate(
     #     losses,
     #     real_jets,
@@ -725,6 +749,9 @@ def eval_save_plot(
     #     efp_jobs=args.efp_jobs if hasattr(args, "efp_jobs") else None,
     # )
     save_losses(losses, args.losses_path)
+
+    print("saved losses")
+    print(h.heap())
 
     make_plots(
         losses,
@@ -743,6 +770,9 @@ def eval_save_plot(
         coords=args.coords,
         loss=args.loss,
     )
+
+    print("made plots")
+    print(h.heap())
 
     # save model state and sample generated jets if this is the lowest w1m score yet
     # if epoch > 0 and losses["w1m"][-1][0] < best_epoch[-1][1]:
@@ -853,6 +883,9 @@ def train(
     model_eval_args,
     extra_args,
 ):
+    print("train start")
+    print(h.heap())
+
     if args.start_epoch == 0 and args.save_zero:
         eval_save_plot(
             args,
@@ -867,6 +900,9 @@ def train(
             best_epoch,
             **extra_args,
         )
+
+    print("after eval save plot")
+    print(h.heap())
 
     D_losses = ["Dr", "Df", "D"]
     if args.gp:
@@ -907,6 +943,9 @@ def train(
             extra_args,
         )
         logging.info(f"Epoch {epoch} Training Over")
+
+        print("one train loop")
+        print(h.heap())
 
         for key in D_losses:
             losses[key].append(epoch_loss[key] / (lenX / args.num_gen))

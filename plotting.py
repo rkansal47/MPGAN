@@ -1,14 +1,22 @@
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib import figure
 import mplhep as hep
 from matplotlib.colors import LogNorm
+import gc
 
-plt.switch_backend("agg")
+# matplotlib.use("PDF")
+# plt.switch_backend("agg")
 plt.rcParams.update({"font.size": 16})
 plt.style.use(hep.style.CMS)
 
 
 LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
+
+from guppy import hpy
+
+h = hpy()
 
 
 def plot_hit_feats(
@@ -41,6 +49,11 @@ def plot_hit_feats(
         parts_real = real_jets.reshape(-1, real_jets.shape[2])
         parts_gen = gen_jets.reshape(-1, gen_jets.shape[2])
 
+    print("pre plot")
+    print(h.heap())
+
+    # plt.switch_backend("agg")
+
     fig = plt.figure(figsize=(16, 16))
 
     for i in range(4):
@@ -54,14 +67,21 @@ def plot_hit_feats(
             plt.yscale("log")
         plt.legend(loc=1, prop={"size": 18})
 
-    plt.tight_layout(2.0)
+    plt.tight_layout(pad=2.0)
     if figs_path is not None and name is not None:
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
+
+    print("before close")
+    print(h.heap())
 
     if show:
         plt.show()
     else:
         plt.close()
+        gc.collect()
+
+        print("after close")
+        print(h.heap())
 
 
 def plot_layerwise_hit_feats(
