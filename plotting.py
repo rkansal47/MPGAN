@@ -7,7 +7,7 @@ from matplotlib.colors import LogNorm
 import gc
 
 # matplotlib.use("PDF")
-# plt.switch_backend("agg")
+plt.switch_backend("agg")
 plt.rcParams.update({"font.size": 16})
 plt.style.use(hep.style.CMS)
 
@@ -78,7 +78,7 @@ def plot_hit_feats(
         plt.show()
     else:
         plt.close()
-        gc.collect()
+        # gc.collect()
 
         print("after close")
         print(h.heap())

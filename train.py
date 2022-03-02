@@ -688,10 +688,6 @@ def eval_save_plot(
     best_epoch,
     **extra_args,
 ):
-
-    print("after eval start")
-    print(h.heap())
-
     G.eval()
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
@@ -944,7 +940,7 @@ def train(
         )
         logging.info(f"Epoch {epoch} Training Over")
 
-        print("one train loop")
+        print("train loop")
         print(h.heap())
 
         for key in D_losses:
@@ -955,6 +951,9 @@ def train(
             logging.info("{} loss: {:.3f}".format(key, losses[key][-1]))
 
         if (epoch) % args.save_epochs == 0:
+            print("pre eval save plot")
+            print(h.heap())
+
             eval_save_plot(
                 args,
                 X_test,
@@ -968,6 +967,9 @@ def train(
                 best_epoch,
                 **extra_args,
             )
+
+            print("post eval save plot")
+            print(h.heap())
         elif (epoch) % args.save_model_epochs == 0:
             save_models(
                 D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu
