@@ -749,26 +749,27 @@ def eval_save_plot(
     print("saved losses")
     print(h.heap())
 
-    make_plots(
-        losses,
-        epoch,
-        real_jets,
-        gen_jets,
-        real_mask,
-        gen_mask,
-        args.jets,
-        args.num_hits,
-        str(epoch),
-        args.figs_path,
-        args.losses_path,
-        save_epochs=args.save_epochs,
-        const_ylim=args.const_ylim,
-        coords=args.coords,
-        loss=args.loss,
-    )
+    if args.make_plots:
+        make_plots(
+            losses,
+            epoch,
+            real_jets,
+            gen_jets,
+            real_mask,
+            gen_mask,
+            args.jets,
+            args.num_hits,
+            str(epoch),
+            args.figs_path,
+            args.losses_path,
+            save_epochs=args.save_epochs,
+            const_ylim=args.const_ylim,
+            coords=args.coords,
+            loss=args.loss,
+        )
 
-    print("made plots")
-    print(h.heap())
+        print("made plots")
+        print(h.heap())
 
     # save model state and sample generated jets if this is the lowest w1m score yet
     # if epoch > 0 and losses["w1m"][-1][0] < best_epoch[-1][1]:
