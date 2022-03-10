@@ -606,6 +606,7 @@ def make_plots(
     coords="polarrel",
     dataset="jetnet",
     loss="ls",
+    shower_ims=True,
 ):
     """Plot histograms, jet images, loss curves, and evaluation curves"""
 
@@ -637,15 +638,16 @@ def make_plots(
     print("layerwise hit feats")
     print(h.heap())
 
-    plotting.plot_shower_ims(
-        gen_jets,
-        name=name + "_ims",
-        figs_path=figs_path,
-        show=False,
-    )
+    if shower_ims:
+        plotting.plot_shower_ims(
+            gen_jets,
+            name=name + "_ims",
+            figs_path=figs_path,
+            show=False,
+        )
 
-    print("shower ims")
-    print(h.heap())
+        print("shower ims")
+        print(h.heap())
 
     if len(losses["G"]) > 1:
         plotting.plot_losses(losses, loss=loss, name=name, losses_path=losses_path, show=False)
@@ -766,6 +768,7 @@ def eval_save_plot(
             const_ylim=args.const_ylim,
             coords=args.coords,
             loss=args.loss,
+            shower_ims=args.shower_ims,
         )
 
         print("made plots")

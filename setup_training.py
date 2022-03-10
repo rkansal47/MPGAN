@@ -165,6 +165,7 @@ def parse_args():
     add_bool_arg(parser, "real-only", "use jets with ony real particles", default=False)
 
     add_bool_arg(parser, "make-plots", "make plots", default=True)
+    add_bool_arg(parser, "shower-ims", "make shower ims", default=True)
 
     add_bool_arg(parser, "multi-gpu", "use multiple gpus if possible", default=False)
 
