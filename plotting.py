@@ -93,7 +93,8 @@ def plot_part_feats(
     if show:
         plt.show()
     else:
-        plt.close()
+        plt.close("all")
+        del subfigs
 
 
 def plot_part_feats_jet_mass(
