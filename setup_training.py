@@ -925,7 +925,11 @@ def init_project_dirs(args):
 
     if args.dir_path == "":
         if args.n:
-            args.dir_path = "/graphganvol/MPGAN/outputs/"
+            args.dir_path = (
+                "/graphganvol/MPGAN/outputs/"
+                if args.dataset == "jets"
+                else "/graphganvol/MPGAN/cmsjets_outputs/"
+            )
         elif args.lx:
             args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs/"
         else:

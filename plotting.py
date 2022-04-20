@@ -240,6 +240,7 @@ def plot_jet_feats(
             mbins = np.linspace(0, 0.12, 51)
 
     bins = [np.linspace(0, binr, 100) for binr in binranges]
+
     fig = plt.figure(figsize=(20, 12))
 
     fig.add_subplot(2, 3, 1)
