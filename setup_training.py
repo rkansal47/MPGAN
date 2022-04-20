@@ -87,7 +87,11 @@ def parse_args():
         help="name or tag for model; will be appended with other info",
     )
     parser.add_argument(
-        "--dataset", type=str, default="jets", help="dataset to use", choices=["jets", "jets-lagan"]
+        "--dataset",
+        type=str,
+        default="jets",
+        help="dataset to use",
+        choices=["jets", "jets-lagan", "cms-jets"],
     )
 
     parser.add_argument("--ttsplit", type=float, default=0.7, help="ratio of train/test split")
@@ -698,6 +702,10 @@ def process_args(args):
 
     if args.dataset == "jets-lagan" and args.jets == "g":
         args.jets = "sig"
+
+    if args.dataset == "cms-jets":
+        args.fpnd = False
+        args.coords = "polarrelabspt"
 
     ##########################################################
     # Architecture

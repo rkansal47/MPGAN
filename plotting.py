@@ -59,7 +59,11 @@ def plot_part_feats(
             ]
     elif coords == "polarrelabspt":
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
-        pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
+        pbins = [
+            np.linspace(-0.5, 0.5, 100),
+            np.linspace(-0.5, 0.5, 100),
+            np.linspace(0, 200, 100),
+        ]
 
     if real_mask is not None:
         parts_real = real_jets[real_mask]
@@ -86,7 +90,7 @@ def plot_part_feats(
             )
         plt.legend(loc=1, prop={"size": 18})
 
-    plt.tight_layout(2.0)
+    plt.tight_layout(pad=2.0)
     if figs_path is not None and name is not None:
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
 
@@ -141,7 +145,11 @@ def plot_part_feats_jet_mass(
             ]
     elif coords == "polarrelabspt":
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
-        pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
+        pbins = [
+            np.linspace(-0.5, 0.5, 100),
+            np.linspace(-0.5, 0.5, 100),
+            np.linspace(0, 1500, 100),
+        ]
 
     if jet_type == "g" or jet_type == "q" or jet_type == "t":
         mbins = np.linspace(0, 0.225, 51)
@@ -182,7 +190,7 @@ def plot_part_feats_jet_mass(
     if losses is not None and "w1m" in losses:
         plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}', fontsize=12)
 
-    plt.tight_layout(2.0)
+    plt.tight_layout(pad=2.0)
     if figs_path is not None and name is not None:
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
 
@@ -198,26 +206,40 @@ def plot_jet_feats(
     gen_masses,
     real_efps,
     gen_efps,
+    coords="polarrel",
     name=None,
     figs_path=None,
     losses=None,
     show=False,
 ):
     """Plot 5 EFPs and jet mass histograms"""
-    if jet_type == "g":
-        binranges = [0.0013, 0.0004, 0.0004, 0.0004, 0.0004]
-    elif jet_type == "q":
-        binranges = [0.002, 0.001, 0.001, 0.0005, 0.0005]
-    else:
-        binranges = [0.0045, 0.0035, 0.004, 0.002, 0.003]
 
-    bins = [np.linspace(0, binr, 101) for binr in binranges]
+    if coords == "polarrel":
+        if jet_type == "g":
+            binranges = [0.0013, 0.0004, 0.0004, 0.0004, 0.0004]
+        elif jet_type == "q":
+            binranges = [0.002, 0.001, 0.001, 0.0005, 0.0005]
+        else:
+            binranges = [0.0045, 0.0035, 0.004, 0.002, 0.003]
 
-    if jet_type == "g" or jet_type == "q" or jet_type == "t":
-        mbins = np.linspace(0, 0.225, 51)
-    else:
-        mbins = np.linspace(0, 0.12, 51)
+        if jet_type == "g" or jet_type == "q" or jet_type == "t":
+            mbins = np.linspace(0, 0.225, 51)
+        else:
+            mbins = np.linspace(0, 0.12, 51)
+    elif coords == "polarrelabspt":
+        if jet_type == "g":
+            binranges = [4e10, 1e10, 1e10, 1e10, 1e10]
+        elif jet_type == "q":
+            binranges = [0.002, 0.001, 0.001, 0.0005, 0.0005]
+        else:
+            binranges = [0.0045, 0.0035, 0.004, 0.002, 0.003]
 
+        if jet_type == "g" or jet_type == "q" or jet_type == "t":
+            mbins = np.linspace(0, 500, 50)
+        else:
+            mbins = np.linspace(0, 0.12, 51)
+
+    bins = [np.linspace(0, binr, 100) for binr in binranges]
     fig = plt.figure(figsize=(20, 12))
 
     fig.add_subplot(2, 3, 1)

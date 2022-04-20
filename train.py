@@ -2,6 +2,8 @@ import jetnet
 from jetnet.datasets import JetNet
 from jetnet import evaluation
 
+from cms_jets_dataset import CMSJets
+
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
@@ -31,7 +33,9 @@ def main():
     args.device = device
     logging.info("Args initalized")
 
-    X_train = JetNet(
+    dataset = JetNet if args.dataset == "jets" else CMSJets
+
+    X_train = dataset(
         jet_type=args.jets,
         train=True,
         data_dir=args.datasets_path,
@@ -39,11 +43,10 @@ def main():
         use_mask=args.mask,
         train_fraction=args.ttsplit,
         num_pad_particles=args.pad_hits,
-        noise_padding=args.noise_padding,
     )
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
-    X_test = JetNet(
+    X_test = dataset(
         jet_type=args.jets,
         train=False,
         data_dir=args.datasets_path,
@@ -51,7 +54,6 @@ def main():
         use_mask=args.mask,
         train_fraction=args.ttsplit,
         num_pad_particles=args.pad_hits,
-        noise_padding=args.noise_padding,
     )
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info("Data loaded")
@@ -636,6 +638,7 @@ def make_plots(
             gen_masses,
             real_efps,
             gen_efps,
+            coords=coords,
             name=name + "j",
             figs_path=figs_path,
             losses=losses,
