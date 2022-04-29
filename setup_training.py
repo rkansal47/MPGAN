@@ -200,6 +200,8 @@ def parse_args():
         "--norm", type=float, default=1, help="normalizing max value of features to this value"
     )
 
+    add_bool_arg(parser, "logpt", "use log(pT) while training", default=True)
+
     parser.add_argument("--sd", type=float, default=0.2, help="standard deviation of noise")
 
     parser.add_argument("--node-feat-size", type=int, default=3, help="node feature size")
@@ -924,16 +926,17 @@ def init_project_dirs(args):
     os.system(f"mkdir -p {args.datasets_path}")
 
     if args.dir_path == "":
+        if args.dataset == "jets":
+            out_dir = "outputs"
+        elif args.dataset == "cms-jets":
+            out_dir = "cmsjets_outputs"
+
         if args.n:
-            args.dir_path = (
-                "/graphganvol/MPGAN/outputs/"
-                if args.dataset == "jets"
-                else "/graphganvol/MPGAN/cmsjets_outputs/"
-            )
+            args.dir_path = f"/graphganvol/MPGAN/{out_dir}/"
         elif args.lx:
-            args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs/"
+            args.dir_path = f"/eos/user/r/rkansal/MPGAN/{out_dir}/"
         else:
-            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/outputs/"
+            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/" + out_dir
 
     os.system(f"mkdir -p {args.dir_path}")
 

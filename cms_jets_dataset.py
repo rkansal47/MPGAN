@@ -76,6 +76,7 @@ class CMSJets(torch.utils.data.Dataset):
         num_pad_particles: int = 0,
         use_num_particles_jet_feature: bool = True,
         noise_padding: bool = False,
+        logpt: bool = False,
     ):
         assert jet_type in ["g", "t", "q"], "Invalid jet type"
 
@@ -86,6 +87,7 @@ class CMSJets(torch.utils.data.Dataset):
         self.use_jet_features = use_num_particles_jet_feature and self.use_mask
         self.noise_padding = noise_padding and self.use_masks
         self.normalize = normalize
+        self.logpt = logpt
 
         # Use JetNet150 if ``num_particles`` > 30
         use_150 = num_particles > 30
@@ -101,7 +103,9 @@ class CMSJets(torch.utils.data.Dataset):
         logging.info(f"Loaded dataset {dataset.shape = }")
         if normalize:
             logging.info("Normalizing features")
-            self.feature_maxes = self.normalize_features(dataset, feature_norms, feature_shifts)
+            self.feature_maxes = self.normalize_features(
+                dataset, feature_norms, feature_shifts, logpt
+            )
 
         tcut = int(len(dataset) * train_fraction)
 
@@ -109,6 +113,7 @@ class CMSJets(torch.utils.data.Dataset):
         if self.use_jet_features:
             self.jet_features = jet_features[:tcut] if train else jet_features[tcut:]
 
+        logging.debug(f"{self.data = }")
         logging.info("Dataset processed")
 
     def load_dataset(
@@ -164,7 +169,7 @@ class CMSJets(torch.utils.data.Dataset):
 
         """
         jet_num_particles = (torch.sum(dataset[:, :, -1], dim=1) / self.num_particles).unsqueeze(1)
-        logging.debug("{num_particles = }")
+        logging.debug(f"{jet_num_particles = }")
         return jet_num_particles
 
     @classmethod
@@ -173,6 +178,7 @@ class CMSJets(torch.utils.data.Dataset):
         dataset: Tensor,
         feature_norms: Union[float, List[float]] = 1.0,
         feature_shifts: Union[float, List[float]] = 0.0,
+        logpt: bool = False,
         fpnd: bool = False,
     ) -> Optional[List]:
         """
@@ -203,14 +209,28 @@ class CMSJets(torch.utils.data.Dataset):
         """
         num_features = dataset.shape[2]
 
+        # dataset = torch.load("datasets/cms_g30_jets.pt")
+        # torch.log(torch.min(dataset[:, :, 2][dataset[:, :, 2] > 0]))
+        # torch.log(torch.max(dataset[:, :, 2]))
+
+        # print(f"{dataset = }")
+
         if not fpnd:
             feature_maxes = [
                 float(torch.max(torch.abs(dataset[:, :, i]))) for i in range(num_features)
             ]
+
+            if logpt:
+                dataset[:, :, 2] = torch.log(dataset[:, :, 2] + 1e-12)
+                feature_maxes[2] = float(
+                    torch.max(torch.abs(dataset[:, :, 2][dataset[:, :, 2] > -12]))
+                )
         else:
             feature_maxes = CMSJets._fpnd_feature_maxes
             feature_norms = CMSJets._fpnd_feature_norms
             feature_shifts = CMSJets._fpnd_feature_shifts
+
+        # print(f"log {dataset = }")
 
         if isinstance(feature_norms, float):
             feature_norms = np.full(num_features, feature_norms)
@@ -227,6 +247,8 @@ class CMSJets(torch.utils.data.Dataset):
 
             if feature_shifts[i] is not None and feature_shifts[i] != 0:
                 dataset[:, :, i] += feature_shifts[i]
+
+        # print(f"normalized {dataset = }")
 
         if not fpnd:
             return feature_maxes
@@ -264,6 +286,7 @@ class CMSJets(torch.utils.data.Dataset):
         if not self.normalize:
             raise RuntimeError("Can't unnormalize features if dataset has not been normalized.")
 
+        # print(f"{dataset = }")
         num_features = dataset.shape[2]
 
         for i in range(num_features):
@@ -274,13 +297,17 @@ class CMSJets(torch.utils.data.Dataset):
                 dataset[:, :, i] /= self.feature_norms[i]
                 dataset[:, :, i] *= self.feature_maxes[i]
 
+        # print(f"post linear transform {dataset = }")
+
         mask = dataset[:, :, -1] >= 0.5 if self.use_mask else None
+
+        if self.logpt:
+            dataset[:, :, 2] = torch.exp(dataset[:, :, 2])
+        elif not is_real_data and zero_neg_pt:
+            dataset[:, :, 2][dataset[:, :, 2] < 0] = 0
 
         if not is_real_data and zero_mask_particles and self.use_mask:
             dataset[~mask] = 0
-
-        if not is_real_data and zero_neg_pt:
-            dataset[:, :, 2][dataset[:, :, 2] < 0] = 0
 
         return dataset[:, :, : self._num_non_mask_features], mask if ret_mask_separate else dataset
 

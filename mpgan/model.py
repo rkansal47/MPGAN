@@ -697,11 +697,11 @@ class MPGenerator(MPNet):
                 .unsqueeze(2)
                 .float()
             )
-            logging.debug(
-                "x \n {} \n num particles \n {} \n gen mask \n {}".format(
-                    x[:2, :, 0], num_jet_particles[:2], mask[:2, :, 0]
-                )
-            )
+            # logging.debug(
+            #     "x \n {} \n num particles \n {} \n gen mask \n {}".format(
+            #         x[:2, :, 0], num_jet_particles[:2], mask[:2, :, 0]
+            #     )
+            # )
 
         elif mask_learn_sep:
             # last 'particle' in tensor is input to the fmg ``num_jet_particles`` prediction network

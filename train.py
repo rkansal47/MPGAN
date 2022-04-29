@@ -43,6 +43,7 @@ def main():
         use_mask=args.mask,
         train_fraction=args.ttsplit,
         num_pad_particles=args.pad_hits,
+        logpt=args.logpt,
     )
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
@@ -54,6 +55,7 @@ def main():
         use_mask=args.mask,
         train_fraction=args.ttsplit,
         num_pad_particles=args.pad_hits,
+        logpt=args.logpt,
     )
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info("Data loaded")
@@ -705,6 +707,7 @@ def eval_save_plot(
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
 
+    # print("unnormalizing real")
     real_jets, real_mask = X_test.unnormalize_features(
         X_test.data[: args.eval_tot_samples].clone(),
         ret_mask_separate=True,
@@ -712,6 +715,8 @@ def eval_save_plot(
         zero_mask_particles=True,
         zero_neg_pt=True,
     )
+
+    # print(f"{real_jets = }")
     gen_output = gen_multi_batch(
         model_args,
         G,
@@ -734,7 +739,7 @@ def eval_save_plot(
         zero_neg_pt=True,
     )
 
-    print(f"eval save plot {real_jets.shape} {gen_jets.shape}")
+    # logging.debug(f"{real_jets = } {gen_jets = }")
 
     real_jets = real_jets.detach().cpu().numpy()
     if real_mask is not None:
