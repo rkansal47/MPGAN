@@ -200,7 +200,7 @@ def parse_args():
         "--norm", type=float, default=1, help="normalizing max value of features to this value"
     )
 
-    add_bool_arg(parser, "logpt", "use log(pT) while training", default=True)
+    add_bool_arg(parser, "logpt", "use log(pT) while training", default=False)
 
     parser.add_argument("--sd", type=float, default=0.2, help="standard deviation of noise")
 
