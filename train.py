@@ -612,32 +612,33 @@ def make_plots(
     loss="ls",
 ):
     """Plot histograms, jet images, loss curves, and evaluation curves"""
-    real_masses = jetnet.utils.jet_features(real_jets)["mass"]
-    gen_masses = jetnet.utils.jet_features(gen_jets)["mass"]
+    real_jfs = jetnet.utils.jet_features(real_jets)
+    gen_jfs = jetnet.utils.jet_features(gen_jets)
+
+    plotting.plot_part_feats(
+        jet_type,
+        real_jets,
+        gen_jets,
+        real_mask,
+        gen_mask,
+        name=name + "p",
+        figs_path=figs_path,
+        losses=losses,
+        num_particles=num_particles,
+        coords=coords,
+        dataset=dataset,
+        const_ylim=const_ylim,
+        show=False,
+    )
 
     if "w1efp" in losses:
         real_efps = jetnet.utils.efps(real_jets)
         gen_efps = jetnet.utils.efps(gen_jets)
 
-        plotting.plot_part_feats(
-            jet_type,
-            real_jets,
-            gen_jets,
-            real_mask,
-            gen_mask,
-            name=name + "p",
-            figs_path=figs_path,
-            losses=losses,
-            num_particles=num_particles,
-            coords=coords,
-            dataset=dataset,
-            const_ylim=const_ylim,
-            show=False,
-        )
         plotting.plot_jet_feats(
             jet_type,
-            real_masses,
-            gen_masses,
+            real_jfs["mass"],
+            gen_jfs["mass"],
             real_efps,
             gen_efps,
             coords=coords,
@@ -647,21 +648,16 @@ def make_plots(
             show=False,
         )
     else:
-        plotting.plot_part_feats_jet_mass(
+        plotting.plot_jet_mass_pt(
             jet_type,
-            real_jets,
-            gen_jets,
-            real_mask,
-            gen_mask,
-            real_masses,
-            gen_masses,
-            name=name + "pm",
+            real_jfs["mass"],
+            gen_jfs["mass"],
+            real_jfs["pt"],
+            gen_jfs["pt"],
+            coords=coords,
+            name=name + "j",
             figs_path=figs_path,
             losses=losses,
-            num_particles=num_particles,
-            coords=coords,
-            dataset=dataset,
-            const_ylim=const_ylim,
             show=False,
         )
 

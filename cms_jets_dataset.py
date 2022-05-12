@@ -7,6 +7,8 @@ import numpy as np
 import logging
 from os.path import exists
 
+from sklearn.model_selection import train_test_split
+
 
 # TODO: allow for loading all three jet types together
 
@@ -107,11 +109,14 @@ class CMSJets(torch.utils.data.Dataset):
                 dataset, feature_norms, feature_shifts, logpt
             )
 
-        tcut = int(len(dataset) * train_fraction)
+        train_data, test_data = train_test_split(dataset, train_size=train_fraction, random_state=4)
+        self.data = train_data if train else test_data
 
-        self.data = dataset[:tcut] if train else dataset[tcut:]
         if self.use_jet_features:
-            self.jet_features = jet_features[:tcut] if train else jet_features[tcut:]
+            train_jf, test_jf = train_test_split(
+                jet_features, train_size=train_fraction, random_state=4
+            )
+            self.jet_features = train_jf if train else test_jf
 
         logging.debug(f"{self.data = }")
         logging.info("Dataset processed")

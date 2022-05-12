@@ -91,7 +91,7 @@ def parse_args():
         type=str,
         default="jets",
         help="dataset to use",
-        choices=["jets", "jets-lagan", "cms-jets"],
+        choices=["jetnet", "jets-lagan", "cms-jets"],
     )
 
     parser.add_argument("--ttsplit", type=float, default=0.7, help="ratio of train/test split")

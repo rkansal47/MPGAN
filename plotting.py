@@ -7,6 +7,15 @@ plt.rcParams.update({"font.size": 16})
 plt.style.use(hep.style.CMS)
 
 
+def _real_gen_hists(real_data, gen_data, bins, label, parts=True):
+    plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
+    _ = plt.hist(real_data, bins=bins, histtype="step", label="Real", color="red")
+    _ = plt.hist(gen_data, bins=bins, histtype="step", label="Generated", color="blue")
+    plt.xlabel(label)
+    plt.ylabel(f"Number of {'Particles' if parts else 'Jets'}")
+    plt.legend(loc=1, prop={"size": 18})
+
+
 def plot_part_feats(
     jet_type,
     real_jets,
@@ -143,6 +152,8 @@ def plot_part_feats_jet_mass(
                 np.linspace(-0.5, 0.5, 100),
                 np.linspace(0, 0.2, 100),
             ]
+
+        mlabel = "Jet $m/p_{T}$"
     elif coords == "polarrelabspt":
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
         pbins = [
@@ -150,6 +161,8 @@ def plot_part_feats_jet_mass(
             np.linspace(-0.5, 0.5, 100),
             np.linspace(0, 1500, 100),
         ]
+
+        mlabel = "Jet m (GeV)"
 
     if jet_type == "g" or jet_type == "q" or jet_type == "t":
         mbins = np.linspace(0, 0.225, 51)
@@ -184,7 +197,7 @@ def plot_part_feats_jet_mass(
     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
     _ = plt.hist(real_masses, bins=mbins, histtype="step", label="Real", color="red")
     _ = plt.hist(gen_masses, bins=mbins, histtype="step", label="Generated", color="blue")
-    plt.xlabel("Jet $m/p_{T}$")
+    plt.xlabel(mlabel)
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
     if losses is not None and "w1m" in losses:
@@ -226,6 +239,8 @@ def plot_jet_feats(
             mbins = np.linspace(0, 0.225, 51)
         else:
             mbins = np.linspace(0, 0.12, 51)
+
+        mlabel = "Jet $m/p_{T}$"
     elif coords == "polarrelabspt":
         if jet_type == "g":
             binranges = [4e10, 1e10, 1e10, 1e10, 1e10]
@@ -239,6 +254,8 @@ def plot_jet_feats(
         else:
             mbins = np.linspace(0, 0.12, 51)
 
+        mlabel = "Jet m (GeV)"
+
     bins = [np.linspace(0, binr, 100) for binr in binranges]
 
     fig = plt.figure(figsize=(20, 12))
@@ -247,9 +264,10 @@ def plot_jet_feats(
     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
     _ = plt.hist(real_masses, bins=mbins, histtype="step", label="Real", color="red")
     _ = plt.hist(gen_masses, bins=mbins, histtype="step", label="Generated", color="blue")
-    plt.xlabel("Jet $m/p_{T}$")
+    plt.xlabel(mlabel)
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
+
     if losses is not None and "w1m" in losses:
         plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}', fontsize=12)
 
@@ -278,44 +296,45 @@ def plot_jet_feats(
         plt.close()
 
 
-# def plot_jet_mass_pt(realjf, genjf, dataset="jetnet", name=None, figs_path=None, show=False):
-#     if dataset == "jetnet":
-#         jlabels = ["Jet Relative Mass", "Jet Relative $p_T$"]
-#         binsm = np.linspace(0, 0.225, 101)
-#         binspt = np.linspace(0.5, 1.2, 101)
-#     elif dataset == "jets-lagan":
-#         jlabels = ["Jet Mass (GeV)", "Jet $p_T$ (GeV)"]
-#         binsm = np.linspace(40, 120, 51)
-#         binspt = np.linspace(220, 340, 51)
-#
-#     fig = plt.figure(figsize=(16, 8))
-#
-#     fig.add_subplot(1, 2, 1)
-#     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-#     # plt.ticklabel_format(axis='x', scilimits=(0, 0), useMathText=True)
-#     _ = plt.hist(realjf[:, 0], bins=binsm, histtype="step", label="Real", color="red")
-#     _ = plt.hist(genjf[:, 0], bins=binsm, histtype="step", label="Generated", color="blue")
-#     plt.xlabel(jlabels[0])
-#     plt.ylabel("Jets")
-#     plt.legend(loc=1, prop={"size": 18})
-#
-#     fig.add_subplot(1, 2, 2)
-#     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-#     plt.ticklabel_format(axis="x", scilimits=(0, 0), useMathText=True)
-#     _ = plt.hist(realjf[:, 1], bins=binspt, histtype="step", label="Real", color="red")
-#     _ = plt.hist(genjf[:, 1], bins=binspt, histtype="step", label="Generated", color="blue")
-#     plt.xlabel(jlabels[1])
-#     plt.ylabel("Jets")
-#     plt.legend(loc=1, prop={"size": 18})
-#
-#     plt.tight_layout(pad=2)
-#     if figs_path is not None and name is not None:
-#         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
-#
-#     if show:
-#         plt.show()
-#     else:
-#         plt.close()
+def plot_jet_mass_pt(
+    jet_type,
+    real_masses,
+    gen_masses,
+    real_pts,
+    gen_pts,
+    coords="polarrel",
+    name=None,
+    figs_path=None,
+    losses=None,
+    show=False,
+):
+    if coords == "polarrel":
+        mlabel = "Jet $m/p_{T}$"
+        ptlabel = "Jet Relative $p_T$"
+        mbins = np.linspace(0, 0.225, 101)
+        ptbins = np.linspace(0.5, 1.2, 101)
+    elif coords == "polarrelabspt":
+        mlabel = "Jet m (GeV)"
+        ptlabel = "Jet $p_T$ (GeV)"
+        mbins = np.linspace(0, 500, 101)
+        ptbins = np.linspace(0, 4000, 101)
+
+    fig = plt.figure(figsize=(16, 8))
+
+    fig.add_subplot(1, 2, 1)
+    _real_gen_hists(real_masses, gen_masses, mbins, mlabel, parts=False)
+
+    fig.add_subplot(1, 2, 2)
+    _real_gen_hists(real_pts, gen_pts, ptbins, ptlabel, parts=False)
+
+    plt.tight_layout(pad=2)
+    if figs_path is not None and name is not None:
+        plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 def plot_losses(losses, loss="lg", name=None, losses_path=None, show=False):
