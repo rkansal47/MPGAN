@@ -76,18 +76,18 @@ class CMSJets(torch.utils.data.Dataset):
         train: bool = True,
         train_fraction: float = 0.7,
         num_pad_particles: int = 0,
-        use_num_particles_jet_feature: bool = True,
+        get_jet_features: List[str] = ["num_particles", "pt"],
         noise_padding: bool = False,
         logpt: bool = False,
     ):
-        assert jet_type in ["g", "t", "q"], "Invalid jet type"
+        assert jet_type in ["g", "q", "all"], "Invalid jet type"
 
         self.feature_norms = feature_norms
         self.feature_shifts = feature_shifts
         self.use_mask = use_mask
-        # in the future there'll be more jet features such as jet pT and eta
-        self.use_jet_features = use_num_particles_jet_feature and self.use_mask
-        self.noise_padding = noise_padding and self.use_masks
+
+        self.use_jet_features = len(get_jet_features) > 0
+
         self.normalize = normalize
         self.logpt = logpt
 
@@ -100,7 +100,9 @@ class CMSJets(torch.utils.data.Dataset):
         self.num_particles = num_particles if num_particles > 0 else dataset.shape[1]
 
         if self.use_jet_features:
-            jet_features = self.get_jet_features(dataset, use_num_particles_jet_feature)
+            jet_features = self.get_jet_features(
+                f"{data_dir}/cms_{jet_type}_jet_features.pt", dataset, get_jet_features
+            )
 
         logging.info(f"Loaded dataset {dataset.shape = }")
         if normalize:
@@ -159,7 +161,9 @@ class CMSJets(torch.utils.data.Dataset):
 
         return dataset
 
-    def get_jet_features(self, dataset: Tensor, use_num_particles_jet_feature: bool) -> Tensor:
+    def get_jet_features(
+        self, pt_file: str, dataset: Tensor, get_jet_features: List[str]
+    ) -> Tensor:
         """
         Returns jet-level features. `Will be expanded to include jet pT and eta.`
 
@@ -173,9 +177,26 @@ class CMSJets(torch.utils.data.Dataset):
             Tensor: jet features tensor of shape [N, num_jet_features].
 
         """
-        jet_num_particles = (torch.sum(dataset[:, :, -1], dim=1) / self.num_particles).unsqueeze(1)
-        logging.debug(f"{jet_num_particles = }")
-        return jet_num_particles
+        jet_features_dict = {}
+
+        if "num_particles" in get_jet_features:
+            jet_features_dict["num_particles"] = (
+                torch.sum(dataset[:, :, -1], dim=1) / self.num_particles
+            ).unsqueeze(1)
+            logging.debug(f'{jet_features_dict["num_particles"] = }')
+
+        if "pt" in get_jet_features or "eta" in get_jet_features:
+            jfs = torch.load(pt_file)
+            if "pt" in get_jet_features:
+                jet_features_dict["pt"] = jfs[:, 0]
+
+        jet_features_list = []
+        for feat in get_jet_features:
+            jet_features_list.append(jet_features_dict[feat])
+
+        jet_features = torch.stack(jet_features_list, axis=1)
+
+        return jet_features
 
     @classmethod
     def normalize_features(
