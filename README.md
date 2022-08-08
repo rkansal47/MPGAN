@@ -22,7 +22,7 @@ Additionally, we release the standalone [JetNet](https://github.com/jet-net/JetN
 #### Training, Plotting, Evaluation
 
  - `torch >= 1.8.0`
- - `jetnet >= 0.1.0`
+ - `0.1.2 >= jetnet >= 0.1.0` (*This branch hasn't been updated for later JetNet versions - see `main` branch for that*)
  - `numpy >= 1.21.0`
  - `matplotlib`
  - `mplhep`
