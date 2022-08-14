@@ -87,7 +87,11 @@ def parse_args():
         help="name or tag for model; will be appended with other info",
     )
     parser.add_argument(
-        "--dataset", type=str, default="jets", help="dataset to use", choices=["jets", "jets-lagan"]
+        "--dataset",
+        type=str,
+        default="jets",
+        help="dataset to use",
+        choices=["jetnet", "jets-lagan", "cms-jets"],
     )
 
     parser.add_argument("--ttsplit", type=float, default=0.7, help="ratio of train/test split")
@@ -195,6 +199,8 @@ def parse_args():
     parser.add_argument(
         "--norm", type=float, default=1, help="normalizing max value of features to this value"
     )
+
+    add_bool_arg(parser, "logpt", "use log(pT) while training", default=False)
 
     parser.add_argument("--sd", type=float, default=0.2, help="standard deviation of noise")
 
@@ -699,6 +705,10 @@ def process_args(args):
     if args.dataset == "jets-lagan" and args.jets == "g":
         args.jets = "sig"
 
+    if args.dataset == "cms-jets":
+        args.fpnd = False
+        args.coords = "polarrelabspt"
+
     ##########################################################
     # Architecture
     ##########################################################
@@ -916,12 +926,17 @@ def init_project_dirs(args):
     os.system(f"mkdir -p {args.datasets_path}")
 
     if args.dir_path == "":
+        if args.dataset == "jets":
+            out_dir = "outputs"
+        elif args.dataset == "cms-jets":
+            out_dir = "cmsjets_outputs"
+
         if args.n:
-            args.dir_path = "/graphganvol/MPGAN/outputs/"
+            args.dir_path = f"/graphganvol/MPGAN/{out_dir}/"
         elif args.lx:
-            args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs/"
+            args.dir_path = f"/eos/user/r/rkansal/MPGAN/{out_dir}/"
         else:
-            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/outputs/"
+            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/" + out_dir
 
     os.system(f"mkdir -p {args.dir_path}")
 

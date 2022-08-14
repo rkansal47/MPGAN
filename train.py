@@ -2,6 +2,8 @@ import jetnet
 from jetnet.datasets import JetNet
 from jetnet import evaluation
 
+from cms_jets_dataset import CMSJets
+
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
@@ -31,20 +33,29 @@ def main():
     args.device = device
     logging.info("Args initalized")
 
-    X_train = JetNet(
+    dataset = JetNet if args.dataset == "jets" else CMSJets
+
+    X_train = dataset(
         jet_type=args.jets,
         data_dir=args.datasets_path,
         num_particles=args.num_hits,
+
         particle_features=JetNet.particle_features_order
         if args.mask
         else JetNet.particle_features_order[:-1],
         jet_features="num_particles" if (args.clabels or args.mask_c) else None,
         split="train",
         split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
+        """
+        use_mask=args.mask,
+        train_fraction=args.ttsplit,
+        num_pad_particles=args.pad_hits,
+        logpt=args.logpt,
+        """
     )
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
-    X_test = JetNet(
+    X_test = dataset(
         jet_type=args.jets,
         data_dir=args.datasets_path,
         num_particles=args.num_hits,
@@ -54,6 +65,12 @@ def main():
         jet_features="num_particles" if (args.clabels or args.mask_c) else None,
         split="valid",
         split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
+        """
+        use_mask=args.mask,
+        train_fraction=args.ttsplit,
+        num_pad_particles=args.pad_hits,
+        logpt=args.logpt,
+        """
     )
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info("Data loaded")
@@ -606,55 +623,52 @@ def make_plots(
     loss="ls",
 ):
     """Plot histograms, jet images, loss curves, and evaluation curves"""
-    real_masses = jetnet.utils.jet_features(real_jets)["mass"]
-    gen_masses = jetnet.utils.jet_features(gen_jets)["mass"]
+    real_jfs = jetnet.utils.jet_features(real_jets)
+    gen_jfs = jetnet.utils.jet_features(gen_jets)
+
+    plotting.plot_part_feats(
+        jet_type,
+        real_jets,
+        gen_jets,
+        real_mask,
+        gen_mask,
+        name=name + "p",
+        figs_path=figs_path,
+        losses=losses,
+        num_particles=num_particles,
+        coords=coords,
+        dataset=dataset,
+        const_ylim=const_ylim,
+        show=False,
+    )
 
     if "w1efp" in losses:
         real_efps = jetnet.utils.efps(real_jets)
         gen_efps = jetnet.utils.efps(gen_jets)
 
-        plotting.plot_part_feats(
-            jet_type,
-            real_jets,
-            gen_jets,
-            real_mask,
-            gen_mask,
-            name=name + "p",
-            figs_path=figs_path,
-            losses=losses,
-            num_particles=num_particles,
-            coords=coords,
-            dataset=dataset,
-            const_ylim=const_ylim,
-            show=False,
-        )
         plotting.plot_jet_feats(
             jet_type,
-            real_masses,
-            gen_masses,
+            real_jfs["mass"],
+            gen_jfs["mass"],
             real_efps,
             gen_efps,
+            coords=coords,
             name=name + "j",
             figs_path=figs_path,
             losses=losses,
             show=False,
         )
     else:
-        plotting.plot_part_feats_jet_mass(
+        plotting.plot_jet_mass_pt(
             jet_type,
-            real_jets,
-            gen_jets,
-            real_mask,
-            gen_mask,
-            real_masses,
-            gen_masses,
-            name=name + "pm",
+            real_jfs["mass"],
+            gen_jfs["mass"],
+            real_jfs["pt"],
+            gen_jfs["pt"],
+            coords=coords,
+            name=name + "j",
             figs_path=figs_path,
             losses=losses,
-            num_particles=num_particles,
-            coords=coords,
-            dataset=dataset,
-            const_ylim=const_ylim,
             show=False,
         )
 
@@ -700,11 +714,25 @@ def eval_save_plot(
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
 
+
     real_jets, real_mask = jetnet.utils.gen_jet_corrections(
         X_test.particle_normalisation(X_test.particle_data[: args.eval_tot_samples], inverse=True),
         zero_mask_particles=False,
         zero_neg_pt=False,
     )
+
+    # print("unnormalizing real")
+    """
+    real_jets, real_mask = X_test.unnormalize_features(
+        X_test.data[: args.eval_tot_samples].clone(),
+        ret_mask_separate=True,
+        is_real_data=True,
+        zero_mask_particles=True,
+        zero_neg_pt=True,
+    )
+    """
+
+    # print(f"{real_jets = }")
 
     gen_output = gen_multi_batch(
         model_args,
@@ -722,7 +750,11 @@ def eval_save_plot(
         X_test.particle_normalisation(gen_output, inverse=True),
     )
 
-    real_jets = real_jets.numpy()
+
+    # logging.debug(f"{real_jets = } {gen_jets = }")
+
+    real_jets = real_jets.detach().cpu().numpy()
+
     if real_mask is not None:
         real_mask = real_mask.numpy()
 
