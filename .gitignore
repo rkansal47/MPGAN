@@ -14,10 +14,10 @@ trained_models/*/**
 
 !*.py
 !LICENSE
-!README.md
 !Dockerfile
 !.gitignore
 !.pre-commit-config.yaml
+!pyproject.toml
 
 setup.py
 **/__pycache__
