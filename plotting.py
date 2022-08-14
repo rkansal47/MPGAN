@@ -59,11 +59,7 @@ def plot_part_feats(
             ]
     elif coords == "polarrelabspt":
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
-        pbins = [
-            np.arange(-0.5, 0.5, 0.01),
-            np.arange(-0.5, 0.5, 0.01),
-            np.arange(0, 400, 4),
-        ]
+        pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
 
     if real_mask is not None:
         parts_real = real_jets[real_mask]
@@ -145,11 +141,7 @@ def plot_part_feats_jet_mass(
             ]
     elif coords == "polarrelabspt":
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
-        pbins = [
-            np.arange(-0.5, 0.5, 0.01),
-            np.arange(-0.5, 0.5, 0.01),
-            np.arange(0, 400, 4),
-        ]
+        pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
 
     if jet_type == "g" or jet_type == "q" or jet_type == "t":
         mbins = np.linspace(0, 0.225, 51)
@@ -188,10 +180,7 @@ def plot_part_feats_jet_mass(
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
     if losses is not None and "w1m" in losses:
-        plt.title(
-            f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}',
-            fontsize=12,
-        )
+        plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}', fontsize=12)
 
     plt.tight_layout(pad=2.0)
     if figs_path is not None and name is not None:
@@ -239,10 +228,7 @@ def plot_jet_feats(
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
     if losses is not None and "w1m" in losses:
-        plt.title(
-            f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}',
-            fontsize=12,
-        )
+        plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}', fontsize=12)
 
     for i in range(5):
         fig.add_subplot(2, 3, i + 2)
@@ -341,13 +327,7 @@ def plot_losses(losses, loss="lg", name=None, losses_path=None, show=False):
 
 
 def plot_eval(
-    losses,
-    epoch,
-    save_epochs,
-    coords="polarrel",
-    name=None,
-    losses_path=None,
-    show=False,
+    losses, epoch, save_epochs, coords="polarrel", name=None, losses_path=None, show=False
 ):
     """Evaluation metric plots per epoch"""
     if coords == "cartesian":
@@ -383,12 +363,7 @@ def plot_eval(
     if "w1efp" in losses:
         fig.add_subplot(3, 3, 5)
         for i in range(5):
-            plt.plot(
-                x,
-                np.array(losses["w1p"])[:, i],
-                label="EFP " + str(i + 1),
-                color=colors[i],
-            )
+            plt.plot(x, np.array(losses["w1p"])[:, i], label="EFP " + str(i + 1), color=colors[i])
         plt.legend(loc=1)
         plt.xlabel("Epoch")
         plt.ylabel("Jet EFPs $W_1$")
