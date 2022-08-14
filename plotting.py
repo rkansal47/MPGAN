@@ -86,7 +86,7 @@ def plot_part_feats(
             )
         plt.legend(loc=1, prop={"size": 18})
 
-    plt.tight_layout(2.0)
+    plt.tight_layout(pad=2.0)
     if figs_path is not None and name is not None:
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
 
@@ -182,7 +182,7 @@ def plot_part_feats_jet_mass(
     if losses is not None and "w1m" in losses:
         plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}', fontsize=12)
 
-    plt.tight_layout(2.0)
+    plt.tight_layout(pad=2.0)
     if figs_path is not None and name is not None:
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
 
