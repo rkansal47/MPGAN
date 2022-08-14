@@ -45,7 +45,9 @@ correlation_plot("w1m", "coverage", "W1-M", "Coverage", [[0, 0.01], [0, 1]])
 
 
 fig = plt.figure(figsize=(12, 10))
-h = plt.hist2d(losses["w1m"], losses["fpnd"], bins=50, range=[[0, 0.02], [0, 50]], cmap="jet")
+h = plt.hist2d(
+    losses["w1m"], losses["fpnd"], bins=50, range=[[0, 0.02], [0, 50]], cmap="jet"
+)
 c = plt.colorbar(h[3])
 c.set_label("Number of batches")
 plt.xlabel("W1-M")
@@ -55,7 +57,9 @@ plt.savefig(f"{plots_dir}/w1mvfpnd.pdf", bbox_inches="tight")
 
 
 fig = plt.figure(figsize=(12, 10))
-h = plt.hist2d(losses["w1m"], losses["w1efp"], bins=50, range=[[0, 0.015], [0, 0.0005]], cmap="jet")
+h = plt.hist2d(
+    losses["w1m"], losses["w1efp"], bins=50, range=[[0, 0.015], [0, 0.0005]], cmap="jet"
+)
 plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
 c = plt.colorbar(h[3])
 c.set_label("Number of batches")
@@ -66,7 +70,9 @@ plt.savefig(f"{plots_dir}/w1mvw1efp.pdf", bbox_inches="tight")
 
 
 fig = plt.figure(figsize=(12, 10))
-h = plt.hist2d(losses["w1m"], losses["w1p"], bins=50, range=[[0, 0.02], [0, 0.01]], cmap="jet")
+h = plt.hist2d(
+    losses["w1m"], losses["w1p"], bins=50, range=[[0, 0.02], [0, 0.01]], cmap="jet"
+)
 # plt.ticklabel_format(axis='y', scilimits=(0, 0), useMathText=True)
 c = plt.colorbar(h[3])
 c.set_label("Number of batches")
@@ -77,7 +83,9 @@ plt.savefig(f"{plots_dir}/w1mvw1p.pdf", bbox_inches="tight")
 
 
 fig = plt.figure(figsize=(12, 10))
-h = plt.hist2d(losses["w1p"], losses["fpnd"], bins=50, range=[[0, 0.01], [0, 50]], cmap="jet")
+h = plt.hist2d(
+    losses["w1p"], losses["fpnd"], bins=50, range=[[0, 0.01], [0, 50]], cmap="jet"
+)
 # plt.ticklabel_format(axis='y', scilimits=(0, 0), useMathText=True)
 c = plt.colorbar(h[3])
 c.set_label("Number of batches")
@@ -88,7 +96,9 @@ plt.savefig(f"{plots_dir}/w1pvfpnd.pdf", bbox_inches="tight")
 
 
 fig = plt.figure(figsize=(12, 10))
-h = plt.hist2d(losses["w1m"], losses["mmd"], bins=50, range=[[0, 0.01], [0, 0.1]], cmap="jet")
+h = plt.hist2d(
+    losses["w1m"], losses["mmd"], bins=50, range=[[0, 0.01], [0, 0.1]], cmap="jet"
+)
 # plt.ticklabel_format(axis='y', scilimits=(0, 0), useMathText=True)
 c = plt.colorbar(h[3])
 c.set_label("Number of batches")
@@ -99,7 +109,9 @@ plt.savefig(f"{plots_dir}/w1mvmmd.pdf", bbox_inches="tight")
 
 
 fig = plt.figure(figsize=(12, 10))
-h = plt.hist2d(losses["w1m"], losses["coverage"], bins=50, range=[[0, 0.01], [0, 1]], cmap="jet")
+h = plt.hist2d(
+    losses["w1m"], losses["coverage"], bins=50, range=[[0, 0.01], [0, 1]], cmap="jet"
+)
 # plt.ticklabel_format(axis='y', scilimits=(0, 0), useMathText=True)
 c = plt.colorbar(h[3])
 c.set_label("Number of batches")

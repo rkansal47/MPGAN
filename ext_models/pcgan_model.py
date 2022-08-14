@@ -201,7 +201,10 @@ class skipD(nn.Module):
         self.tc = nn.Linear(self.z1_dim, hid_d)
         self.tu = nn.Linear(hid_d - self.z1_dim, hid_d, bias=False)
         self.part3 = nn.Sequential(
-            nn.Softplus(), nn.Linear(hid_d, hid_d), nn.Softplus(), nn.Linear(hid_d, o_dim)
+            nn.Softplus(),
+            nn.Linear(hid_d, hid_d),
+            nn.Softplus(),
+            nn.Linear(hid_d, o_dim),
         )
         print(self)
         self.faster_parameters = [p for p in self.parameters()]
@@ -269,7 +272,10 @@ class skipG(nn.Module):
         self.sc = nn.Linear(self.z1_dim, hid_d)
         self.su = nn.Linear(self.z2_dim, hid_d, bias=False)
         self.part2 = nn.Sequential(
-            nn.Softplus(), nn.Linear(hid_d, hid_d), nn.Softplus(), nn.Linear(hid_d, x_dim)
+            nn.Softplus(),
+            nn.Linear(hid_d, hid_d),
+            nn.Softplus(),
+            nn.Linear(hid_d, x_dim),
         )
         print(self)
         self.faster_parameters = [p for p in self.parameters()]

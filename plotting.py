@@ -59,7 +59,11 @@ def plot_part_feats(
             ]
     elif coords == "polarrelabspt":
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
-        pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
+        pbins = [
+            np.arange(-0.5, 0.5, 0.01),
+            np.arange(-0.5, 0.5, 0.01),
+            np.arange(0, 400, 4),
+        ]
 
     if real_mask is not None:
         parts_real = real_jets[real_mask]
@@ -73,8 +77,12 @@ def plot_part_feats(
     for i in range(3):
         fig.add_subplot(1, 3, i + 1)
         plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-        _ = plt.hist(parts_real[:, i], pbins[i], histtype="step", label="Real", color="red")
-        _ = plt.hist(parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue")
+        _ = plt.hist(
+            parts_real[:, i], pbins[i], histtype="step", label="Real", color="red"
+        )
+        _ = plt.hist(
+            parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue"
+        )
         plt.xlabel("Particle " + plabels[i])
         plt.ylabel("Number of Particles")
         if const_ylim:
@@ -141,7 +149,11 @@ def plot_part_feats_jet_mass(
             ]
     elif coords == "polarrelabspt":
         plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
-        pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
+        pbins = [
+            np.arange(-0.5, 0.5, 0.01),
+            np.arange(-0.5, 0.5, 0.01),
+            np.arange(0, 400, 4),
+        ]
 
     if jet_type == "g" or jet_type == "q" or jet_type == "t":
         mbins = np.linspace(0, 0.225, 51)
@@ -160,8 +172,12 @@ def plot_part_feats_jet_mass(
     for i in range(3):
         fig.add_subplot(1, 4, i + 1)
         plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-        _ = plt.hist(parts_real[:, i], pbins[i], histtype="step", label="Real", color="red")
-        _ = plt.hist(parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue")
+        _ = plt.hist(
+            parts_real[:, i], pbins[i], histtype="step", label="Real", color="red"
+        )
+        _ = plt.hist(
+            parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue"
+        )
         plt.xlabel("Particle " + plabels[i])
         plt.ylabel("Number of Particles")
         if losses is not None and "w1p" in losses:
@@ -175,12 +191,17 @@ def plot_part_feats_jet_mass(
     fig.add_subplot(1, 4, 4)
     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
     _ = plt.hist(real_masses, bins=mbins, histtype="step", label="Real", color="red")
-    _ = plt.hist(gen_masses, bins=mbins, histtype="step", label="Generated", color="blue")
+    _ = plt.hist(
+        gen_masses, bins=mbins, histtype="step", label="Generated", color="blue"
+    )
     plt.xlabel("Jet $m/p_{T}$")
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
     if losses is not None and "w1m" in losses:
-        plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}', fontsize=12)
+        plt.title(
+            f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}',
+            fontsize=12,
+        )
 
     plt.tight_layout(pad=2.0)
     if figs_path is not None and name is not None:
@@ -223,19 +244,28 @@ def plot_jet_feats(
     fig.add_subplot(2, 3, 1)
     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
     _ = plt.hist(real_masses, bins=mbins, histtype="step", label="Real", color="red")
-    _ = plt.hist(gen_masses, bins=mbins, histtype="step", label="Generated", color="blue")
+    _ = plt.hist(
+        gen_masses, bins=mbins, histtype="step", label="Generated", color="blue"
+    )
     plt.xlabel("Jet $m/p_{T}$")
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
     if losses is not None and "w1m" in losses:
-        plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}', fontsize=12)
+        plt.title(
+            f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}',
+            fontsize=12,
+        )
 
     for i in range(5):
         fig.add_subplot(2, 3, i + 2)
         plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
         plt.ticklabel_format(axis="x", scilimits=(0, 0), useMathText=True)
-        _ = plt.hist(real_efps[:, i], bins[i], histtype="step", label="Real", color="red")
-        _ = plt.hist(gen_efps[:, i], bins[i], histtype="step", label="Generated", color="blue")
+        _ = plt.hist(
+            real_efps[:, i], bins[i], histtype="step", label="Real", color="red"
+        )
+        _ = plt.hist(
+            gen_efps[:, i], bins[i], histtype="step", label="Generated", color="blue"
+        )
         plt.xlabel("EFP " + str(i + 1), x=0.7)
         plt.ylabel("Jets")
         plt.legend(loc=1, prop={"size": 18})
@@ -327,7 +357,13 @@ def plot_losses(losses, loss="lg", name=None, losses_path=None, show=False):
 
 
 def plot_eval(
-    losses, epoch, save_epochs, coords="polarrel", name=None, losses_path=None, show=False
+    losses,
+    epoch,
+    save_epochs,
+    coords="polarrel",
+    name=None,
+    losses_path=None,
+    show=False,
 ):
     """Evaluation metric plots per epoch"""
     if coords == "cartesian":
@@ -363,7 +399,12 @@ def plot_eval(
     if "w1efp" in losses:
         fig.add_subplot(3, 3, 5)
         for i in range(5):
-            plt.plot(x, np.array(losses["w1p"])[:, i], label="EFP " + str(i + 1), color=colors[i])
+            plt.plot(
+                x,
+                np.array(losses["w1p"])[:, i],
+                label="EFP " + str(i + 1),
+                color=colors[i],
+            )
         plt.legend(loc=1)
         plt.xlabel("Epoch")
         plt.ylabel("Jet EFPs $W_1$")
