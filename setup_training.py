@@ -87,11 +87,7 @@ def parse_args():
         help="name or tag for model; will be appended with other info",
     )
     parser.add_argument(
-        "--dataset",
-        type=str,
-        default="jets",
-        help="dataset to use",
-        choices=["jets", "jets-lagan"],
+        "--dataset", type=str, default="jets", help="dataset to use", choices=["jets", "jets-lagan"]
     )
 
     parser.add_argument("--ttsplit", type=float, default=0.7, help="ratio of train/test split")
@@ -136,10 +132,7 @@ def parse_args():
     parser.add_argument("--datasets-path", type=str, default="", help="path to datasets")
 
     parser.add_argument(
-        "--num-samples",
-        type=int,
-        default=50000,
-        help="num samples to evaluate every 5 epochs",
+        "--num-samples", type=int, default=50000, help="num samples to evaluate every 5 epochs"
     )
 
     add_bool_arg(parser, "n", "run on nautilus cluster", default=False)
@@ -152,10 +145,7 @@ def parse_args():
         "--save-epochs", type=int, default=0, help="save outputs per how many epochs"
     )
     parser.add_argument(
-        "--save-model-epochs",
-        type=int,
-        default=0,
-        help="save models per how many epochs",
+        "--save-model-epochs", type=int, default=0, help="save models per how many epochs"
     )
 
     add_bool_arg(parser, "debug", "debug mode", default=False)
@@ -177,10 +167,7 @@ def parse_args():
     add_bool_arg(parser, "multi-gpu", "use multiple gpus if possible", default=False)
 
     parser.add_argument(
-        "--log-file",
-        type=str,
-        default="",
-        help='path to log file ; "stdout" prints to console',
+        "--log-file", type=str, default="", help='path to log file ; "stdout" prints to console'
     )
     parser.add_argument(
         "--log",
@@ -206,10 +193,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--norm",
-        type=float,
-        default=1,
-        help="normalizing max value of features to this value",
+        "--norm", type=float, default=1, help="normalizing max value of features to this value"
     )
 
     parser.add_argument("--sd", type=float, default=0.2, help="standard deviation of noise")
@@ -239,11 +223,7 @@ def parse_args():
     add_bool_arg(parser, "clabels-hl", "use conditional labels in hidden layers", default=True)
 
     parser.add_argument(
-        "--fn",
-        type=int,
-        nargs="*",
-        default=[256, 256],
-        help="hidden fn layers e.g. 256 256",
+        "--fn", type=int, nargs="*", default=[256, 256], help="hidden fn layers e.g. 256 256"
     )
     parser.add_argument(
         "--fe1g",
@@ -304,11 +284,7 @@ def parse_args():
 
     add_bool_arg(parser, "dea", "use early averaging discriminator", default=True)
     parser.add_argument(
-        "--fnd",
-        type=int,
-        nargs="*",
-        default=[],
-        help="hidden disc output layers e.g. 128 64",
+        "--fnd", type=int, nargs="*", default=[], help="hidden disc output layers e.g. 128 64"
     )
 
     add_bool_arg(
@@ -336,10 +312,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--glorot",
-        type=float,
-        default=0,
-        help="gain of glorot - if zero then glorot not used",
+        "--glorot", type=float, default=0, help="gain of glorot - if zero then glorot not used"
     )
 
     add_bool_arg(parser, "gtanh", "use tanh for g output", default=True)
@@ -366,10 +339,7 @@ def parse_args():
     )
     add_bool_arg(parser, "mask-real-only", "only use masking for real jets", default=False)
     add_bool_arg(
-        parser,
-        "mask-learn",
-        "learn mask from latent vars only use during gen",
-        default=False,
+        parser, "mask-learn", "learn mask from latent vars only use during gen", default=False
     )
     add_bool_arg(parser, "mask-learn-bin", "binary or continuous learnt mask", default=True)
     add_bool_arg(parser, "mask-learn-sep", "learn mask from separate noise vector", default=False)
@@ -382,16 +352,10 @@ def parse_args():
     )
     add_bool_arg(parser, "mask-c", "conditional mask", default=True)
     add_bool_arg(
-        parser,
-        "mask-fne-np",
-        "pass num particles as features into fn and fe",
-        default=False,
+        parser, "mask-fne-np", "pass num particles as features into fn and fe", default=False
     )
     parser.add_argument(
-        "--mask-epoch",
-        type=int,
-        default=0,
-        help="# of epochs after which to start masking",
+        "--mask-epoch", type=int, default=0, help="# of epochs after which to start masking"
     )
 
     add_bool_arg(
@@ -456,46 +420,26 @@ def parse_args():
     add_bool_arg(parser, "batch-norm-disc", "use batch normalization", default=False)
     add_bool_arg(parser, "batch-norm-gen", "use batch normalization", default=False)
     add_bool_arg(
-        parser,
-        "spectral-norm-disc",
-        "use spectral normalization in discriminator",
-        default=False,
+        parser, "spectral-norm-disc", "use spectral normalization in discriminator", default=False
     )
     add_bool_arg(
-        parser,
-        "spectral-norm-gen",
-        "use spectral normalization in generator",
-        default=False,
+        parser, "spectral-norm-gen", "use spectral normalization in generator", default=False
     )
 
     parser.add_argument(
-        "--disc-dropout",
-        type=float,
-        default=0.5,
-        help="fraction of discriminator dropout",
+        "--disc-dropout", type=float, default=0.5, help="fraction of discriminator dropout"
     )
     parser.add_argument(
         "--gen-dropout", type=float, default=0, help="fraction of generator dropout"
     )
 
-    add_bool_arg(
-        parser,
-        "label-smoothing",
-        "use label smoothing with discriminator",
-        default=False,
-    )
+    add_bool_arg(parser, "label-smoothing", "use label smoothing with discriminator", default=False)
     parser.add_argument(
-        "--label-noise",
-        type=float,
-        default=0,
-        help="discriminator label noise (between 0 and 1)",
+        "--label-noise", type=float, default=0, help="discriminator label noise (between 0 and 1)"
     )
 
     parser.add_argument(
-        "--gp",
-        type=float,
-        default=0,
-        help="WGAN generator penalty weight - 0 means not used",
+        "--gp", type=float, default=0, help="WGAN generator penalty weight - 0 means not used"
     )
 
     ##########################################################
@@ -511,16 +455,10 @@ def parse_args():
         "--translate-ratio", type=float, default=0.125, help="random translate ratio"
     )
     parser.add_argument(
-        "--scale-sd",
-        type=float,
-        default=0.125,
-        help="random scale lognormal standard deviation",
+        "--scale-sd", type=float, default=0.125, help="random scale lognormal standard deviation"
     )
     parser.add_argument(
-        "--translate-pn-ratio",
-        type=float,
-        default=0.05,
-        help="random translate per node ratio",
+        "--translate-pn-ratio", type=float, default=0.05, help="random translate per node ratio"
     )
 
     add_bool_arg(parser, "adaptive-prob", "adaptive augment probability", default=False)
@@ -544,10 +482,7 @@ def parse_args():
     parser.add_argument("--gpu-batch", type=int, default=50, help="")
 
     add_bool_arg(
-        parser,
-        "eval",
-        "calculate the evaluation metrics: W1, FNPD, coverage, mmd",
-        default=True,
+        parser, "eval", "calculate the evaluation metrics: W1, FNPD, coverage, mmd", default=True
     )
     parser.add_argument(
         "--eval-tot-samples",
@@ -578,11 +513,7 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--jf",
-        type=str,
-        nargs="*",
-        default=["mass", "pt"],
-        help="jet level features to evaluate",
+        "--jf", type=str, nargs="*", default=["mass", "pt"], help="jet level features to evaluate"
     )
 
     ##########################################################
@@ -592,11 +523,7 @@ def parse_args():
     parser.add_argument("--latent-dim", type=int, default=128, help="")
 
     parser.add_argument(
-        "--rgang-fc",
-        type=int,
-        nargs="+",
-        default=[64, 128],
-        help="rGAN generator layer node sizes",
+        "--rgang-fc", type=int, nargs="+", default=[64, 128], help="rGAN generator layer node sizes"
     )
     parser.add_argument(
         "--rgand-sfc",
@@ -606,11 +533,7 @@ def parse_args():
         help="rGAN discriminator convolutional layer node sizes",
     )
     parser.add_argument(
-        "--rgand-fc",
-        type=int,
-        nargs="*",
-        default=0,
-        help="rGAN discriminator layer node sizes",
+        "--rgand-fc", type=int, nargs="*", default=0, help="rGAN discriminator layer node sizes"
     )
 
     parser.add_argument(
@@ -657,10 +580,7 @@ def parse_args():
         help="TreeGAN generator features per node per layer",
     )
     parser.add_argument(
-        "--treegang-support",
-        type=int,
-        default=10,
-        help="Support value for TreeGCN loop term.",
+        "--treegang-support", type=int, default=10, help="Support value for TreeGCN loop term."
     )
 
     parser.add_argument(
@@ -1265,16 +1185,10 @@ def models(args, gen_only=False):
     if args.load_model:
         try:
             G.load_state_dict(
-                torch.load(
-                    f"{args.models_path}/G_{args.start_epoch}.pt",
-                    map_location=args.device,
-                )
+                torch.load(f"{args.models_path}/G_{args.start_epoch}.pt", map_location=args.device)
             )
             D.load_state_dict(
-                torch.load(
-                    f"{args.models_path}/D_{args.start_epoch}.pt",
-                    map_location=args.device,
-                )
+                torch.load(f"{args.models_path}/D_{args.start_epoch}.pt", map_location=args.device)
             )
         except AttributeError:
             G = torch.load(f"{args.models_path}/G_{args.start_epoch}.pt", map_location=args.device)
@@ -1350,18 +1264,12 @@ def get_model_args(args):
     elif args.model == "treegan":
         model_args = {"treegang_features": args.treegang_features}
     elif args.model == "pcgan":
-        model_args = {
-            "pcgan_latent_dim": args.treegang_features,
-            "pcgan_z2_dim": args.pcgan_z2_dim,
-        }
+        model_args = {"pcgan_latent_dim": args.treegang_features, "pcgan_z2_dim": args.pcgan_z2_dim}
 
     model_train_args = {**model_args, **pcgan_train_args}
     model_eval_args = {**model_args, **pcgan_eval_args}
 
-    extra_args = {
-        "mask_manual": args.mask_manual,
-        "pt_cutoff": 0,
-    }  # TODO: get right pT cutoff
+    extra_args = {"mask_manual": args.mask_manual, "pt_cutoff": 0}  # TODO: get right pT cutoff
 
     return model_train_args, model_eval_args, extra_args
 

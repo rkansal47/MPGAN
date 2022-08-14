@@ -606,11 +606,7 @@ class MPGenerator(MPNet):
         return x
 
     def _init_mask(
-        self,
-        mask_learn: bool = False,
-        mask_learn_sep: bool = False,
-        fmg: list = [64],
-        **mask_args,
+        self, mask_learn: bool = False, mask_learn_sep: bool = False, fmg: list = [64], **mask_args
     ):
         """
         Intialize potential mask networks and variables.

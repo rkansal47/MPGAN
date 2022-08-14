@@ -703,15 +703,7 @@ def eval_save_plot(
 ):
     G.eval()
     D.eval()
-    save_models(
-        D,
-        G,
-        D_optimizer,
-        G_optimizer,
-        args.models_path,
-        epoch,
-        multi_gpu=args.multi_gpu,
-    )
+    save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
 
     real_jets, real_mask = jetnet.utils.gen_jet_corrections(
         X_test.particle_normalisation(X_test.particle_data[: args.eval_tot_samples], inverse=True),
@@ -963,13 +955,7 @@ def train(
             )
         elif (epoch) % args.save_model_epochs == 0:
             save_models(
-                D,
-                G,
-                D_optimizer,
-                G_optimizer,
-                args.models_path,
-                epoch,
-                multi_gpu=args.multi_gpu,
+                D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu
             )
 
 

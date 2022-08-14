@@ -48,11 +48,7 @@ for dir in os.listdir(models_dir):
 for dataset in datasets:
     real_samples[dataset] = (
         JetNet(
-            dataset,
-            "/graphganvol/MPGAN/datasets/",
-            normalize=False,
-            train=False,
-            use_mask=False,
+            dataset, "/graphganvol/MPGAN/datasets/", normalize=False, train=False, use_mask=False
         )
         .data[:num_samples]
         .numpy()
@@ -218,16 +214,14 @@ for dataset in datasets:
 
             line += " & " + bold_best_key(
                 format_mean_sd(
-                    np.mean(evals["w1p"][0]) * 1e3,
-                    np.linalg.norm(evals["w1p"][1]) * 1e3,
+                    np.mean(evals["w1p"][0]) * 1e3, np.linalg.norm(evals["w1p"][1]) * 1e3
                 ),
                 key in best_key_dict[dataset]["w1p"],
             )
 
             line += " & " + bold_best_key(
                 format_mean_sd(
-                    np.mean(evals["w1efp"][0]) * 1e5,
-                    np.linalg.norm(evals["w1efp"][1]) * 1e5,
+                    np.mean(evals["w1efp"][0]) * 1e5, np.linalg.norm(evals["w1efp"][1]) * 1e5
                 ),
                 key in best_key_dict[dataset]["w1efp"],
             )

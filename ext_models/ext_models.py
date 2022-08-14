@@ -210,14 +210,7 @@ class PointNetMixD(nn.Module):
 # https://github.com/jtpils/TreeGAN/blob/master/layers/gcn.py
 class TreeGCN(nn.Module):
     def __init__(
-        self,
-        depth,
-        features,
-        degrees,
-        support=10,
-        node=1,
-        upsample=False,
-        activation=True,
+        self, depth, features, degrees, support=10, node=1, upsample=False, activation=True
     ):
         self.depth = depth
         self.in_feature = features[depth]

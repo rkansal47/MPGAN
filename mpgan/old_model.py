@@ -56,8 +56,7 @@ class Graph_GAN(nn.Module):
 
         if args.lfc:
             self.lfc = nn.Linear(
-                self.args.lfc_latent_size,
-                self.args.num_hits * self.first_layer_node_size,
+                self.args.lfc_latent_size, self.args.num_hits * self.first_layer_node_size
             )
 
         # edge and node networks

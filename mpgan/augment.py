@@ -84,8 +84,7 @@ def rand_translate_per_node(args, X):
 def rand_scale(args, X):
     batch_size = X.size(0)
     lognormal = torch.distributions.log_normal.LogNormal(
-        torch.tensor([0.0]).to(args.device),
-        torch.tensor([args.scale_sd]).to(args.device),
+        torch.tensor([0.0]).to(args.device), torch.tensor([args.scale_sd]).to(args.device)
     )
     scale = lognormal.sample((batch_size, 1)).repeat(1, args.num_hits, 2)
     ones = torch.ones(batch_size, args.num_hits, 1).to(args.device)
