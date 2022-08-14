@@ -151,7 +151,7 @@ for dataset in datasets:
 def format_mean_sd(mean, sd):
     """round mean and standard deviation to most significant digit of sd and apply latex formatting"""
     decimals = -int(np.floor(np.log10(sd)))
-    decimals -= int((sd * 10 ** decimals) >= 9.5)
+    decimals -= int((sd * 10**decimals) >= 9.5)
 
     if decimals < 0:
         ten_to = 10 ** (-decimals)
