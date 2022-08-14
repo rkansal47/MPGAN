@@ -94,9 +94,7 @@ def parse_args():
         choices=["jets", "jets-lagan"],
     )
 
-    parser.add_argument(
-        "--ttsplit", type=float, default=0.7, help="ratio of train/test split"
-    )
+    parser.add_argument("--ttsplit", type=float, default=0.7, help="ratio of train/test split")
 
     parser.add_argument(
         "--model",
@@ -132,16 +130,10 @@ def parse_args():
         default=-1,
         help="which epoch to start training on, only applies if loading a model, by default start at the highest epoch model",
     )
-    parser.add_argument(
-        "--num-epochs", type=int, default=2000, help="number of epochs to train"
-    )
+    parser.add_argument("--num-epochs", type=int, default=2000, help="number of epochs to train")
 
-    parser.add_argument(
-        "--dir-path", type=str, default="", help="path where output will be stored"
-    )
-    parser.add_argument(
-        "--datasets-path", type=str, default="", help="path to datasets"
-    )
+    parser.add_argument("--dir-path", type=str, default="", help="path where output will be stored")
+    parser.add_argument("--datasets-path", type=str, default="", help="path to datasets")
 
     parser.add_argument(
         "--num-samples",
@@ -151,15 +143,11 @@ def parse_args():
     )
 
     add_bool_arg(parser, "n", "run on nautilus cluster", default=False)
-    add_bool_arg(
-        parser, "bottleneck", "use torch.utils.bottleneck settings", default=False
-    )
+    add_bool_arg(parser, "bottleneck", "use torch.utils.bottleneck settings", default=False)
     add_bool_arg(parser, "lx", "run on lxplus", default=False)
 
     add_bool_arg(parser, "save-zero", "save the initial figure", default=False)
-    add_bool_arg(
-        parser, "no-save-zero-or", "override --n save-zero default", default=False
-    )
+    add_bool_arg(parser, "no-save-zero-or", "override --n save-zero default", default=False)
     parser.add_argument(
         "--save-epochs", type=int, default=0, help="save outputs per how many epochs"
     )
@@ -172,9 +160,7 @@ def parse_args():
 
     add_bool_arg(parser, "debug", "debug mode", default=False)
     add_bool_arg(parser, "break-zero", "break after 1 iteration", default=False)
-    add_bool_arg(
-        parser, "low-samples", "small number of samples for debugging", default=False
-    )
+    add_bool_arg(parser, "low-samples", "small number of samples for debugging", default=False)
 
     add_bool_arg(parser, "const-ylim", "const ylim in plots", default=False)
 
@@ -226,13 +212,9 @@ def parse_args():
         help="normalizing max value of features to this value",
     )
 
-    parser.add_argument(
-        "--sd", type=float, default=0.2, help="standard deviation of noise"
-    )
+    parser.add_argument("--sd", type=float, default=0.2, help="standard deviation of noise")
 
-    parser.add_argument(
-        "--node-feat-size", type=int, default=3, help="node feature size"
-    )
+    parser.add_argument("--node-feat-size", type=int, default=3, help="node feature size")
     parser.add_argument(
         "--hidden-node-size",
         type=int,
@@ -253,12 +235,8 @@ def parse_args():
         help="0 - no clabels, 1 - clabels with pt only, 2 - clabels with pt and eta",
         choices=[0, 1, 2],
     )
-    add_bool_arg(
-        parser, "clabels-fl", "use conditional labels in first layer", default=True
-    )
-    add_bool_arg(
-        parser, "clabels-hl", "use conditional labels in hidden layers", default=True
-    )
+    add_bool_arg(parser, "clabels-fl", "use conditional labels in first layer", default=True)
+    add_bool_arg(parser, "clabels-hl", "use conditional labels in hidden layers", default=True)
 
     parser.add_argument(
         "--fn",
@@ -317,18 +295,12 @@ def parse_args():
 
     add_bool_arg(parser, "int-diffs", "use int diffs", default=False)
     add_bool_arg(parser, "pos-diffs", "use pos diffs", default=False)
-    add_bool_arg(
-        parser, "all-ef", "use all node features for edge distance", default=False
-    )
+    add_bool_arg(parser, "all-ef", "use all node features for edge distance", default=False)
     # add_bool_arg(parser, "scalar-diffs", "use scalar diff (as opposed to vector)", default=True)
     add_bool_arg(parser, "deltar", "use delta r as an edge feature", default=False)
-    add_bool_arg(
-        parser, "deltacoords", "use delta coords as edge features", default=False
-    )
+    add_bool_arg(parser, "deltacoords", "use delta coords as edge features", default=False)
 
-    parser.add_argument(
-        "--leaky-relu-alpha", type=float, default=0.2, help="leaky relu alpha"
-    )
+    parser.add_argument("--leaky-relu-alpha", type=float, default=0.2, help="leaky relu alpha")
 
     add_bool_arg(parser, "dea", "use early averaging discriminator", default=True)
     parser.add_argument(
@@ -377,12 +349,8 @@ def parse_args():
     # Masking
     ##########################################################
 
-    add_bool_arg(
-        parser, "mask-feat", "add mask as continuous fourth feature", default=False
-    )
-    add_bool_arg(
-        parser, "mask-feat-bin", "add mask as binary fourth feature", default=False
-    )
+    add_bool_arg(parser, "mask-feat", "add mask as continuous fourth feature", default=False)
+    add_bool_arg(parser, "mask-feat-bin", "add mask as binary fourth feature", default=False)
     add_bool_arg(parser, "mask-weights", "weight D nodes by mask", default=False)
     add_bool_arg(
         parser,
@@ -396,24 +364,16 @@ def parse_args():
         "exponentially decaying or binary mask; relevant only if mask-manual is true",
         default=False,
     )
-    add_bool_arg(
-        parser, "mask-real-only", "only use masking for real jets", default=False
-    )
+    add_bool_arg(parser, "mask-real-only", "only use masking for real jets", default=False)
     add_bool_arg(
         parser,
         "mask-learn",
         "learn mask from latent vars only use during gen",
         default=False,
     )
-    add_bool_arg(
-        parser, "mask-learn-bin", "binary or continuous learnt mask", default=True
-    )
-    add_bool_arg(
-        parser, "mask-learn-sep", "learn mask from separate noise vector", default=False
-    )
-    add_bool_arg(
-        parser, "mask-disc-sep", "separate disc network for # particles", default=False
-    )
+    add_bool_arg(parser, "mask-learn-bin", "binary or continuous learnt mask", default=True)
+    add_bool_arg(parser, "mask-learn-sep", "learn mask from separate noise vector", default=False)
+    add_bool_arg(parser, "mask-disc-sep", "separate disc network for # particles", default=False)
     add_bool_arg(
         parser,
         "mask-fnd-np",
@@ -473,9 +433,7 @@ def parse_args():
         help="learning rate for generator; defaults are 1e-5, 2e-5, and 0.5e-5 for gluon, top, and quark jet resp.",
     )
     parser.add_argument("--beta1", type=float, default=0.9, help="Adam optimizer beta1")
-    parser.add_argument(
-        "--beta2", type=float, default=0.999, help="Adam optimizer beta2"
-    )
+    parser.add_argument("--beta2", type=float, default=0.999, help="Adam optimizer beta2")
     parser.add_argument("--batch-size", type=int, default=0, help="batch size")
 
     parser.add_argument(
@@ -1033,9 +991,7 @@ def init_project_dirs(args):
         if args.n:
             args.datasets_path = "/graphganvol/MPGAN/datasets/"
         else:
-            args.datasets_path = (
-                str(pathlib.Path(__file__).parent.resolve()) + "/datasets/"
-            )
+            args.datasets_path = str(pathlib.Path(__file__).parent.resolve()) + "/datasets/"
 
     os.system(f"mkdir -p {args.datasets_path}")
 
@@ -1106,9 +1062,7 @@ def load_args(args):
     if args.load_model:
         if args.start_epoch == -1:
             # find the last saved model and start from there
-            prev_models = [
-                int(f[:-3].split("_")[-1]) for f in listdir(args.models_path)
-            ]
+            prev_models = [int(f[:-3].split("_")[-1]) for f in listdir(args.models_path)]
 
             if len(prev_models):
                 args.start_epoch = max(prev_models)
@@ -1212,9 +1166,7 @@ def setup_mpgan(args, gen):
     disc_args = {
         "mp_iters": args.mp_iters_disc,
         "fe1_layers": args.fe1d if args.fe1d else None,
-        "final_activation": ""
-        if (args.loss == "w" or args.loss == "hinge")
-        else "sigmoid",
+        "final_activation": "" if (args.loss == "w" or args.loss == "hinge") else "sigmoid",
         "input_node_size": args.node_feat_size,
         "dea": args.dea,
         "dea_sum": args.sum,
@@ -1276,9 +1228,7 @@ def models(args, gen_only=False):
     elif args.model == "treegan":
         from ext_models import TreeGANG
 
-        G = TreeGANG(
-            args.treegang_features, args.treegang_degrees, args.treegang_support
-        )
+        G = TreeGANG(args.treegang_features, args.treegang_degrees, args.treegang_support)
         logging.info(G)
     elif args.model == "pcgan":
         from ext_models import latent_G
@@ -1327,12 +1277,8 @@ def models(args, gen_only=False):
                 )
             )
         except AttributeError:
-            G = torch.load(
-                f"{args.models_path}/G_{args.start_epoch}.pt", map_location=args.device
-            )
-            D = torch.load(
-                f"{args.models_path}/D_{args.start_epoch}.pt", map_location=args.device
-            )
+            G = torch.load(f"{args.models_path}/G_{args.start_epoch}.pt", map_location=args.device)
+            D = torch.load(f"{args.models_path}/D_{args.start_epoch}.pt", map_location=args.device)
 
     if args.multi_gpu:
         logging.info("Using", torch.cuda.device_count(), "GPUs")
@@ -1350,23 +1296,15 @@ def pcgan_models(args):
     import ext_models
     from ext_models import G_inv_Tanh, G
 
-    G_inv = G_inv_Tanh(
-        args.node_feat_size, args.pcgan_d_dim, args.pcgan_z1_dim, args.pcgan_pool
-    )
+    G_inv = G_inv_Tanh(args.node_feat_size, args.pcgan_d_dim, args.pcgan_z1_dim, args.pcgan_pool)
     G_pc = G(args.node_feat_size, args.pcgan_z1_dim, args.pcgan_z2_dim)
 
-    pcgan_models_path = (
-        pathlib.Path(ext_models.__file__).parent.resolve() + "/pcgan_models/"
-    )
+    pcgan_models_path = pathlib.Path(ext_models.__file__).parent.resolve() + "/pcgan_models/"
     G_inv.load_state_dict(
-        torch.load(
-            f"{pcgan_models_path}/pcgan_G_inv_{args.jets}.pt", map_location=args.device
-        )
+        torch.load(f"{pcgan_models_path}/pcgan_G_inv_{args.jets}.pt", map_location=args.device)
     )
     G_pc.load_state_dict(
-        torch.load(
-            f"{pcgan_models_path}/pcgan_G_pc_{args.jets}.pt", map_location=args.device
-        )
+        torch.load(f"{pcgan_models_path}/pcgan_G_pc_{args.jets}.pt", map_location=args.device)
     )
 
     if args.multi_gpu:
@@ -1496,9 +1434,7 @@ def losses(args):
                     np.expand_dims(losses[key], 0)
                 losses[key] = losses[key].tolist()
                 if key in eval_keys:
-                    losses[key] = losses[key][
-                        : int(args.start_epoch / args.save_epochs) + 1
-                    ]
+                    losses[key] = losses[key][: int(args.start_epoch / args.save_epochs) + 1]
                 else:
                     losses[key] = losses[key][: args.start_epoch + 1]
             except OSError:

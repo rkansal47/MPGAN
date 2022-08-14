@@ -42,9 +42,7 @@ def main():
         split="train",
         split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
     )
-    X_train_loaded = DataLoader(
-        X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True
-    )
+    X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
     X_test = JetNet(
         jet_type=args.jets,
@@ -109,9 +107,7 @@ def get_gen_noise(
         if model_args["lfc"]:
             noise = dist.sample((num_samples, model_args["lfc_latent_size"]))
         else:
-            extra_noise_p = int(
-                "mask_learn_sep" in model_args and model_args["mask_learn_sep"]
-            )
+            extra_noise_p = int("mask_learn_sep" in model_args and model_args["mask_learn_sep"])
             noise = dist.sample(
                 (
                     num_samples,
@@ -126,9 +122,9 @@ def get_gen_noise(
     elif model == "pcgan":
         noise = dist.sample((num_samples, model_args["pcgan_latent_dim"]))
         if model_args["sample_points"]:
-            point_noise = Normal(
-                torch.tensor(0.0).to(device), torch.tensor(1.0).to(device)
-            ).sample([num_samples, num_particles, model_args["pcgan_z2_dim"]])
+            point_noise = Normal(torch.tensor(0.0).to(device), torch.tensor(1.0).to(device)).sample(
+                [num_samples, num_particles, model_args["pcgan_z2_dim"]]
+            )
 
     return noise, point_noise
 
@@ -187,9 +183,7 @@ def gen(
     device = next(G.parameters()).device
 
     if labels is not None:
-        assert (
-            labels.shape[0] == num_samples
-        ), "number of labels doesn't match num_samples"
+        assert labels.shape[0] == num_samples, "number of labels doesn't match num_samples"
         labels = labels.to(device)
 
     if noise is None:
@@ -239,9 +233,7 @@ def gen_multi_batch(
     assert out_device == "cuda" or out_device == "cpu", "Invalid device type"
 
     if labels is not None:
-        assert (
-            labels.shape[0] == num_samples
-        ), "number of labels doesn't match num_samples"
+        assert labels.shape[0] == num_samples, "number of labels doesn't match num_samples"
 
     gen_data = None
 
@@ -276,9 +268,7 @@ def gen_multi_batch(
 
 
 # from https://github.com/EmilienDupont/wgan-gp
-def gradient_penalty(
-    gp_lambda, D, real_data, generated_data, batch_size, device, model="mpgan"
-):
+def gradient_penalty(gp_lambda, D, real_data, generated_data, batch_size, device, model="mpgan"):
     # Calculate interpolation
     alpha = (
         torch.rand(batch_size, 1, 1).to(device)
@@ -373,9 +363,7 @@ def calc_D_loss(
     D_loss = D_real_loss + D_fake_loss
 
     if gp_lambda:
-        gp = gradient_penalty(
-            gp_lambda, D, data, gen_data, run_batch_size, device, model
-        )
+        gp = gradient_penalty(gp_lambda, D, data, gen_data, run_batch_size, device, model)
         gpitem = gp.item()
         D_loss += gp
     else:
@@ -434,11 +422,7 @@ def train_D(
         )
 
     if augment_args is not None and augment_args.augment:
-        p = (
-            augment_args.aug_prob
-            if not augment_args.adaptive_prob
-            else augment_args.augment_p[-1]
-        )
+        p = augment_args.aug_prob if not augment_args.adaptive_prob else augment_args.augment_p[-1]
         data = augment.augment(augment_args, data, p)
         gen_data = augment.augment(augment_args, gen_data, p)
 
@@ -508,11 +492,7 @@ def train_G(
     )
 
     if augment_args is not None and augment_args.augment:
-        p = (
-            augment_args.aug_prob
-            if not augment_args.adaptive_prob
-            else augment_args.augment_p[-1]
-        )
+        p = augment_args.aug_prob if not augment_args.adaptive_prob else augment_args.augment_p[-1]
         gen_data = augment.augment(augment_args, gen_data, p)
 
     D_fake_output = D(gen_data, labels)
@@ -684,9 +664,7 @@ def make_plots(
         )
 
     if len(losses["G"]) > 1:
-        plotting.plot_losses(
-            losses, loss=loss, name=name, losses_path=losses_path, show=False
-        )
+        plotting.plot_losses(losses, loss=loss, name=name, losses_path=losses_path, show=False)
 
         try:
             remove(losses_path + "/" + str(epoch - save_epochs) + ".pdf")
@@ -736,9 +714,7 @@ def eval_save_plot(
     )
 
     real_jets, real_mask = jetnet.utils.gen_jet_corrections(
-        X_test.particle_normalisation(
-            X_test.particle_data[: args.eval_tot_samples], inverse=True
-        ),
+        X_test.particle_normalisation(X_test.particle_data[: args.eval_tot_samples], inverse=True),
         zero_mask_particles=False,
         zero_neg_pt=False,
     )
@@ -752,9 +728,7 @@ def eval_save_plot(
         out_device="cpu",
         model=args.model,
         detach=True,
-        labels=X_test.jet_data[: args.eval_tot_samples]
-        if (args.mask_c or args.clabels)
-        else None,
+        labels=X_test.jet_data[: args.eval_tot_samples] if (args.mask_c or args.clabels) else None,
         **extra_args,
     )
     gen_jets, gen_mask = jetnet.utils.gen_jet_corrections(
@@ -846,9 +820,7 @@ def train_loop(
             # run through pre-trained inference network first i.e. find latent representation
             data = model_train_args["pcgan_G_inv"](data.clone())
 
-        if args.num_critic > 1 or (
-            batch_ndx == 0 or (batch_ndx - 1) % args.num_gen == 0
-        ):
+        if args.num_critic > 1 or (batch_ndx == 0 or (batch_ndx - 1) % args.num_gen == 0):
             D_loss_items = train_D(
                 model_train_args,
                 D,

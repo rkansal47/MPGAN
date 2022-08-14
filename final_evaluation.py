@@ -97,9 +97,7 @@ for key in order:
         evals["w1m"] = evaluation.w1m(gen_jets, real_jets)
         evals["w1p"] = evaluation.w1p(gen_jets, real_jets, average_over_features=False)
         evals["w1efp"] = evaluation.w1efp(gen_jets, real_jets, average_over_efps=False)
-        evals["fpnd"] = evaluation.fpnd(
-            gen_jets[:, :30], dataset, device="cuda", batch_size=256
-        )
+        evals["fpnd"] = evaluation.fpnd(gen_jets[:, :30], dataset, device="cuda", batch_size=256)
         cov, mmd = evaluation.cov_mmd(real_jets, gen_jets)
         evals["coverage"] = cov
         evals["mmd"] = mmd
@@ -143,13 +141,9 @@ for dataset in datasets:
 
         lists["w1m"].append(np.round(evals["w1m"][0], 5))
         lists["w1p"].append(np.round(np.mean(evals["w1p"][0]), 4))
-        lists["w1efp"].append(
-            np.round(np.mean(evals["w1efp"][0]), 5 if dataset == "t" else 6)
-        )
+        lists["w1efp"].append(np.round(np.mean(evals["w1efp"][0]), 5 if dataset == "t" else 6))
         lists["fpnd"].append(np.round(evals["fpnd"], 2))
-        lists["coverage"].append(
-            1 - np.round(evals["coverage"], 2)
-        )  # invert to maximize cov
+        lists["coverage"].append(1 - np.round(evals["coverage"], 2))  # invert to maximize cov
         lists["mmd"].append(np.round(evals["mmd"], 3))
 
     for key in eval_keys:

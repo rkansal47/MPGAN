@@ -228,9 +228,7 @@ class MPLayer(nn.Module):
         batch_size = x.size(0)
         num_nodes = x.size(1)
 
-        assert not (
-            use_mask and mask is None
-        ), "need ``mask`` tensor if using ``use_mask`` option"
+        assert not (use_mask and mask is None), "need ``mask`` tensor if using ``use_mask`` option"
         assert not (
             self.clabels and labels is None
         ), "need ``labels`` tensor if using ``clabels`` option"
@@ -240,9 +238,7 @@ class MPLayer(nn.Module):
 
         # get inputs to edge network
         if self.fully_connected:
-            A, A_mask = self._getA_fully_connected(
-                x, batch_size, num_nodes, use_mask, mask
-            )
+            A, A_mask = self._getA_fully_connected(x, batch_size, num_nodes, use_mask, mask)
             num_knn = num_nodes  # if fully connected num_knn is the size of the graph
         else:
             A, A_mask = self._getA_knn(x, batch_size, num_nodes, use_mask, mask)
@@ -250,9 +246,7 @@ class MPLayer(nn.Module):
 
         if self.clabels:
             # add conditioning labels
-            A = torch.cat(
-                (A, labels[:, : self.clabels].repeat(num_nodes * num_knn, 1)), axis=1
-            )
+            A = torch.cat((A, labels[:, : self.clabels].repeat(num_nodes * num_knn, 1)), axis=1)
 
         if self.mask_fne_np:
             # add # of real (i.e. not zero-padded) particles in the graph
@@ -297,9 +291,7 @@ class MPLayer(nn.Module):
 
         A_mask = None
 
-        x1 = x.repeat(1, 1, num_nodes).view(
-            batch_size, num_nodes * num_nodes, node_size
-        )
+        x1 = x.repeat(1, 1, num_nodes).view(batch_size, num_nodes * num_nodes, node_size)
         x2 = x.repeat(1, num_nodes, 1)
 
         if self.pos_diffs:
@@ -320,9 +312,7 @@ class MPLayer(nn.Module):
 
             A = A.view(batch_size * num_nodes * num_nodes, out_size)
         else:
-            A = torch.cat((x1, x2), 2).view(
-                batch_size * num_nodes * num_nodes, out_size
-            )
+            A = torch.cat((x1, x2), 2).view(batch_size * num_nodes * num_nodes, out_size)
 
         return A, A_mask
 
@@ -336,9 +326,7 @@ class MPLayer(nn.Module):
 
         A_mask = None
 
-        x1 = x.repeat(1, 1, num_nodes).view(
-            batch_size, num_nodes * num_nodes, node_size
-        )
+        x1 = x.repeat(1, 1, num_nodes).view(batch_size, num_nodes * num_nodes, node_size)
 
         if use_mask:
             # multiply masked particles by this so they are not selected as a nearest neighbour
@@ -353,9 +341,7 @@ class MPLayer(nn.Module):
         else:
             diffs = x2[:, :, :num_coords] - x1[:, :, :num_coords]
 
-        dists = torch.norm(diffs + 1e-12, dim=2).reshape(
-            batch_size, num_nodes, num_nodes
-        )
+        dists = torch.norm(diffs + 1e-12, dim=2).reshape(batch_size, num_nodes, num_nodes)
 
         # sort the distances to find the k-nearest neighbours
         sorted = torch.sort(dists, dim=2)
@@ -368,14 +354,12 @@ class MPLayer(nn.Module):
         dists = sorted[0][:, :, self_loops_idx : self.num_knn + self_loops_idx].reshape(
             batch_size, num_nodes * self.num_knn, 1
         )
-        sorted = sorted[1][
-            :, :, self_loops_idx : self.num_knn + self_loops_idx
-        ].reshape(batch_size, num_nodes * self.num_knn, 1)
+        sorted = sorted[1][:, :, self_loops_idx : self.num_knn + self_loops_idx].reshape(
+            batch_size, num_nodes * self.num_knn, 1
+        )
         sorted.reshape(batch_size, num_nodes * self.num_knn, 1).repeat(1, 1, node_size)
 
-        x1_knn = x.repeat(1, 1, self.num_knn).view(
-            batch_size, num_nodes * self.num_knn, node_size
-        )
+        x1_knn = x.repeat(1, 1, self.num_knn).view(batch_size, num_nodes * self.num_knn, node_size)
 
         # gather the k nearest neighbours using the ``sorted`` tensor containing their indices
         if use_mask:
@@ -453,9 +437,7 @@ class MPNet(nn.Module):
         super(MPNet, self).__init__()
         self.num_particles = num_particles
         self.input_node_size = input_node_size
-        self.output_node_size = (
-            output_node_size if output_node_size > 0 else hidden_node_size
-        )
+        self.output_node_size = output_node_size if output_node_size > 0 else hidden_node_size
         self.mp_iters = mp_iters
 
         fe1_layers = fe_layers if fe1_layers is None else fe1_layers
@@ -528,9 +510,7 @@ class MPNet(nn.Module):
         """
         x = self._pre_mp(x, labels)
 
-        x, use_mask, mask, num_jet_particles = self._get_mask(
-            x, labels, **self.mask_args
-        )
+        x, use_mask, mask, num_jet_particles = self._get_mask(x, labels, **self.mask_args)
 
         # message passing
         for i in range(self.mp_iters):
@@ -616,16 +596,12 @@ class MPGenerator(MPNet):
         # latent fully connected layer
         self.lfc = lfc
         if lfc:
-            self.lfc_layer = nn.Linear(
-                lfc_latent_size, self.num_particles * self.input_node_size
-            )
+            self.lfc_layer = nn.Linear(lfc_latent_size, self.num_particles * self.input_node_size)
 
     def _pre_mp(self, x, labels):
         """Pre-message-passing operations"""
         if self.lfc:
-            x = self.lfc_layer(x).reshape(
-                x.shape[0], self.num_particles, self.input_node_size
-            )
+            x = self.lfc_layer(x).reshape(x.shape[0], self.num_particles, self.input_node_size)
 
         return x
 
@@ -782,9 +758,7 @@ class MPGenerator(MPNet):
     def __repr__(self):
         lfc_str = f"LFC = {self.lfc_layer},\n" if self.lfc else ""
         fmg_str = f"FMG = {self.fmg_layer},\n" if hasattr(self, "fmg_layer") else ""
-        return (
-            f"{self.__class__.__name__}({lfc_str}{fmg_str}MPLayers = {self.mp_layers})"
-        )
+        return f"{self.__class__.__name__}({lfc_str}{fmg_str}MPLayers = {self.mp_layers})"
 
 
 class MPDiscriminator(MPNet):
@@ -820,9 +794,7 @@ class MPDiscriminator(MPNet):
         mask_fnd_np: bool = False,
         **mpnet_args,
     ):
-        super(MPDiscriminator, self).__init__(
-            output_node_size=1 if not dea else 0, **mpnet_args
-        )
+        super(MPDiscriminator, self).__init__(output_node_size=1 if not dea else 0, **mpnet_args)
 
         self.dea = dea
         self.dea_sum = dea_sum

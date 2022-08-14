@@ -96,9 +96,7 @@ for i in range(len(datasets)):
         mask = np.linalg.norm(samples, axis=2) != 0
         parts = samples[mask]
 
-        _ = plt.hist(
-            parts[:, 0], pbins[0], histtype="step", label=key, **line_opts[key]
-        )
+        _ = plt.hist(parts[:, 0], pbins[0], histtype="step", label=key, **line_opts[key])
 
     plt.legend(loc=1, prop={"size": 18}, fancybox=True)
     plt.ylim(0, ylims[0])
@@ -115,9 +113,7 @@ for i in range(len(datasets)):
         mask = np.linalg.norm(samples, axis=2) != 0
         parts = samples[mask]
 
-        _ = plt.hist(
-            parts[:, 2], pbins[1], histtype="step", label=key, **line_opts[key]
-        )
+        _ = plt.hist(parts[:, 2], pbins[1], histtype="step", label=key, **line_opts[key])
 
     plt.legend(loc=1, prop={"size": 18}, fancybox=True)
     plt.ylim(0, ylims[1])
@@ -141,9 +137,7 @@ for i in range(len(datasets)):
     plt.ylabel("Number of Jets")
 
     for key in line_opts.keys():
-        _ = plt.hist(
-            efps[dataset][key], efpbins, histtype="step", label=key, **line_opts[key]
-        )
+        _ = plt.hist(efps[dataset][key], efpbins, histtype="step", label=key, **line_opts[key])
 
     plt.legend(loc=1, prop={"size": 18}, fancybox=True)
     plt.ylim(0, ylims[3])
@@ -207,9 +201,7 @@ for dataset in datasets:
                 extent=[-maxR, maxR, -maxR, maxR],
                 vmax=0.05,
             )
-            axes[j][i].tick_params(
-                which="both", bottom=False, top=False, left=False, right=False
-            )
+            axes[j][i].tick_params(which="both", bottom=False, top=False, left=False, right=False)
             axes[j][i].set_xlabel("$\phi^{rel}$")
             axes[j][i].set_ylabel("$\eta^{rel}$")
 
@@ -231,9 +223,7 @@ for dataset in datasets:
             vmax=0.05,
         )
         axes[j][-1].set_title("Average Jet Image", pad=5)
-        axes[j][-1].tick_params(
-            which="both", bottom=False, top=False, left=False, right=False
-        )
+        axes[j][-1].tick_params(which="both", bottom=False, top=False, left=False, right=False)
         axes[j][-1].set_xlabel("$\phi^{rel}$")
         axes[j][-1].set_ylabel("$\eta^{rel}$")
 

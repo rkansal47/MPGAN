@@ -77,12 +77,8 @@ def plot_part_feats(
     for i in range(3):
         fig.add_subplot(1, 3, i + 1)
         plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-        _ = plt.hist(
-            parts_real[:, i], pbins[i], histtype="step", label="Real", color="red"
-        )
-        _ = plt.hist(
-            parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue"
-        )
+        _ = plt.hist(parts_real[:, i], pbins[i], histtype="step", label="Real", color="red")
+        _ = plt.hist(parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue")
         plt.xlabel("Particle " + plabels[i])
         plt.ylabel("Number of Particles")
         if const_ylim:
@@ -172,12 +168,8 @@ def plot_part_feats_jet_mass(
     for i in range(3):
         fig.add_subplot(1, 4, i + 1)
         plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-        _ = plt.hist(
-            parts_real[:, i], pbins[i], histtype="step", label="Real", color="red"
-        )
-        _ = plt.hist(
-            parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue"
-        )
+        _ = plt.hist(parts_real[:, i], pbins[i], histtype="step", label="Real", color="red")
+        _ = plt.hist(parts_gen[:, i], pbins[i], histtype="step", label="Generated", color="blue")
         plt.xlabel("Particle " + plabels[i])
         plt.ylabel("Number of Particles")
         if losses is not None and "w1p" in losses:
@@ -191,9 +183,7 @@ def plot_part_feats_jet_mass(
     fig.add_subplot(1, 4, 4)
     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
     _ = plt.hist(real_masses, bins=mbins, histtype="step", label="Real", color="red")
-    _ = plt.hist(
-        gen_masses, bins=mbins, histtype="step", label="Generated", color="blue"
-    )
+    _ = plt.hist(gen_masses, bins=mbins, histtype="step", label="Generated", color="blue")
     plt.xlabel("Jet $m/p_{T}$")
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
@@ -244,9 +234,7 @@ def plot_jet_feats(
     fig.add_subplot(2, 3, 1)
     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
     _ = plt.hist(real_masses, bins=mbins, histtype="step", label="Real", color="red")
-    _ = plt.hist(
-        gen_masses, bins=mbins, histtype="step", label="Generated", color="blue"
-    )
+    _ = plt.hist(gen_masses, bins=mbins, histtype="step", label="Generated", color="blue")
     plt.xlabel("Jet $m/p_{T}$")
     plt.ylabel("Jets")
     plt.legend(loc=1, prop={"size": 18})
@@ -260,12 +248,8 @@ def plot_jet_feats(
         fig.add_subplot(2, 3, i + 2)
         plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
         plt.ticklabel_format(axis="x", scilimits=(0, 0), useMathText=True)
-        _ = plt.hist(
-            real_efps[:, i], bins[i], histtype="step", label="Real", color="red"
-        )
-        _ = plt.hist(
-            gen_efps[:, i], bins[i], histtype="step", label="Generated", color="blue"
-        )
+        _ = plt.hist(real_efps[:, i], bins[i], histtype="step", label="Real", color="red")
+        _ = plt.hist(gen_efps[:, i], bins[i], histtype="step", label="Generated", color="blue")
         plt.xlabel("EFP " + str(i + 1), x=0.7)
         plt.ylabel("Jets")
         plt.legend(loc=1, prop={"size": 18})
