@@ -58,8 +58,6 @@ def main():
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info("Data loaded")
 
-    print(f"init {X_test.particle_data.shape}")
-
     G, D = setup_training.models(args)
     model_train_args, model_eval_args, extra_args = setup_training.get_model_args(args)
     logging.info("Models loaded")
@@ -552,8 +550,6 @@ def evaluate(
         losses["w1p"].append(np.concatenate((w1pm, w1pstd)))
 
     if "w1m" in losses:
-        print(real_jets.shape)
-        print(gen_jets.shape)
         w1mm, w1mstd = evaluation.w1m(
             real_jets,
             gen_jets,
@@ -610,7 +606,6 @@ def make_plots(
     loss="ls",
 ):
     """Plot histograms, jet images, loss curves, and evaluation curves"""
-    print(real_jets)
     real_masses = jetnet.utils.jet_features(real_jets)["mass"]
     gen_masses = jetnet.utils.jet_features(gen_jets)["mass"]
 
@@ -726,8 +721,6 @@ def eval_save_plot(
     gen_jets, gen_mask = jetnet.utils.gen_jet_corrections(
         X_test.particle_normalisation(gen_output, inverse=True),
     )
-
-    print(f"eval save plot {real_jets.shape} {gen_jets.shape}")
 
     real_jets = real_jets.numpy()
     if real_mask is not None:
