@@ -12,7 +12,7 @@ Code for Kansal et. al., *Particle Cloud Generation with Message Passing Generat
 This repository contains PyTorch code for the message passing GAN (MPGAN) [model](mpgan/model.py), as well as scripts for [training](train.py) the models from scratch, [generating](gen.py) and [plotting](plotting.py) the particle clouds. 
 We include also [weights](trained_models) of fully trained models discussed in the paper. 
 
-Additionally, we release the standalone [JetNet](https://github.com/rkansal47/JetNet) library, which provides a PyTorch Dataset class for our JetNet dataset, implementations of the evaluation metrics discussed in the paper, and some more useful utilities for development in machine learning + jets.
+Additionally, we release the standalone [JetNet](https://github.com/jet-net/JetNet) library, which provides a PyTorch Dataset class for our JetNet dataset, implementations of the evaluation metrics discussed in the paper, and some more useful utilities for development in machine learning + jets.
 
 ## Dependencies
 
