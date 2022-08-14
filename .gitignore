@@ -17,6 +17,7 @@ trained_models/*/**
 !README.md
 !Dockerfile
 !.gitignore
+!.pre-commit-config.yaml
 
 setup.py
 **/__pycache__
