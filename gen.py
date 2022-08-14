@@ -100,7 +100,9 @@ def main():
     if G_args.mask_c:
         from jetnet.datasets import JetNet
 
-        labels = JetNet(G_args.jets, data_dir=args.datasets_path, train=False).jet_features
+        labels = JetNet(
+            G_args.jets, data_dir=args.datasets_path, train=False
+        ).jet_features
 
         rng = np.random.default_rng()
         rand = rng.choice(len(labels), size=args.num_samples)

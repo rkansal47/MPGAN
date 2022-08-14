@@ -19,8 +19,12 @@ class Graph_GAN(nn.Module):
         self.args.spectral_norm = (
             self.args.spectral_norm_gen if self.G else self.args.spectral_norm_disc
         )
-        self.args.batch_norm = self.args.batch_norm_gen if self.G else self.args.batch_norm_disc
-        self.args.mp_iters = self.args.mp_iters_gen if self.G else self.args.mp_iters_disc
+        self.args.batch_norm = (
+            self.args.batch_norm_gen if self.G else self.args.batch_norm_disc
+        )
+        self.args.mp_iters = (
+            self.args.mp_iters_gen if self.G else self.args.mp_iters_disc
+        )
         self.args.fe1 = self.args.fe1g if self.G else self.args.fe1d
         if self.G:
             self.args.dea = False
@@ -56,7 +60,8 @@ class Graph_GAN(nn.Module):
 
         if args.lfc:
             self.lfc = nn.Linear(
-                self.args.lfc_latent_size, self.args.num_hits * self.first_layer_node_size
+                self.args.lfc_latent_size,
+                self.args.num_hits * self.first_layer_node_size,
             )
 
         # edge and node networks
@@ -166,7 +171,9 @@ class Graph_GAN(nn.Module):
         # final disc FCN
 
         if self.args.dea:
-            self.args.fnd.insert(0, self.args.hidden_node_size + int(self.args.mask_fnd_np))
+            self.args.fnd.insert(
+                0, self.args.hidden_node_size + int(self.args.mask_fnd_np)
+            )
             self.args.fnd.append(1)
 
             self.fnd = nn.ModuleList()
@@ -246,7 +253,9 @@ class Graph_GAN(nn.Module):
         logging.debug(f"x: {x}")
 
         if self.args.lfc:
-            x = self.lfc(x).reshape(batch_size, self.args.num_hits, self.first_layer_node_size)
+            x = self.lfc(x).reshape(
+                batch_size, self.args.num_hits, self.first_layer_node_size
+            )
             logging.debug(f"LFC'd x: {x}")
 
         try:
@@ -263,7 +272,11 @@ class Graph_GAN(nn.Module):
                 )
                 or (
                     self.G
-                    and (self.args.mask_learn or self.args.mask_c or self.args.mask_learn_sep)
+                    and (
+                        self.args.mask_learn
+                        or self.args.mask_c
+                        or self.args.mask_learn_sep
+                    )
                 )
                 and epoch >= self.args.mask_epoch
             )
@@ -279,7 +292,9 @@ class Graph_GAN(nn.Module):
                 x = x[:, :, :3]
 
             if self.G and self.args.mask_learn:
-                mask = F.leaky_relu(self.fmg[0](x), negative_slope=self.args.leaky_relu_alpha)
+                mask = F.leaky_relu(
+                    self.fmg[0](x), negative_slope=self.args.leaky_relu_alpha
+                )
                 if self.args.batch_norm:
                     mask = self.bnmg[0](mask)
                 mask = self.dropout(mask)
@@ -291,12 +306,20 @@ class Graph_GAN(nn.Module):
                         mask = self.bnmg[i](mask)
                     mask = self.dropout(mask)
 
-                mask = torch.sign(mask) if self.args.mask_learn_bin else torch.sigmoid(mask)
+                mask = (
+                    torch.sign(mask)
+                    if self.args.mask_learn_bin
+                    else torch.sigmoid(mask)
+                )
                 logging.debug("gen mask \n {}".format(mask[:2, :, 0]))
 
             if self.G and self.args.mask_c:
                 nump = (labels[:, self.args.clabels] * self.args.num_hits).int() - 1
-                mask = (x[:, :, 0].argsort(1).argsort(1) <= nump.unsqueeze(1)).unsqueeze(2).float()
+                mask = (
+                    (x[:, :, 0].argsort(1).argsort(1) <= nump.unsqueeze(1))
+                    .unsqueeze(2)
+                    .float()
+                )
                 logging.debug(
                     "x \n {} \n num particles \n {} \n gen mask \n {}".format(
                         x[:2, :, 0], nump[:2], mask[:2, :, 0]
@@ -320,7 +343,11 @@ class Graph_GAN(nn.Module):
                     nump = self.dropout(nump)
 
                 nump = torch.argmax(nump, dim=1)
-                mask = (x[:, :, 0].argsort(1).argsort(1) <= nump.unsqueeze(1)).unsqueeze(2).float()
+                mask = (
+                    (x[:, :, 0].argsort(1).argsort(1) <= nump.unsqueeze(1))
+                    .unsqueeze(2)
+                    .float()
+                )
 
                 logging.debug(
                     "x \n {} \n num particles \n {} \n gen mask \n {}".format(
@@ -365,19 +392,25 @@ class Graph_GAN(nn.Module):
 
             # NEED TO FIX FOR MASK-FNE-NP + CLABELS (probably just labels --> labels[:, :self.args.clabels])
             if clabel_iter:
-                A = torch.cat((A, labels.repeat(self.args.num_hits * num_knn, 1)), axis=1)
+                A = torch.cat(
+                    (A, labels.repeat(self.args.num_hits * num_knn, 1)), axis=1
+                )
             if self.args.mask_fne_np:
                 A = torch.cat((A, nump.repeat(self.args.num_hits * num_knn, 1)), axis=1)
 
             for j in range(len(self.fe[i])):
-                A = F.leaky_relu(self.fe[i][j](A), negative_slope=self.args.leaky_relu_alpha)
+                A = F.leaky_relu(
+                    self.fe[i][j](A), negative_slope=self.args.leaky_relu_alpha
+                )
                 if self.args.batch_norm:
                     A = self.bne[i][j](A)  # try before activation
                 A = self.dropout(A)
 
             if (A != A).any():
                 logging.warning(
-                    "Nan values in A after message passing \n x: \n {} \n A: \n {}".format(x, A)
+                    "Nan values in A after message passing \n x: \n {} \n A: \n {}".format(
+                        x, A
+                    )
                 )
 
             # message aggregation into new features
@@ -391,11 +424,15 @@ class Graph_GAN(nn.Module):
             # logging.debug('A \n {}'.format(A[:2, :10]))
 
             A = torch.sum(A, 2) if self.args.sum else torch.mean(A, 2)
-            x = torch.cat((A, x), 2).view(batch_size * self.args.num_hits, fe_out_size + node_size)
+            x = torch.cat((A, x), 2).view(
+                batch_size * self.args.num_hits, fe_out_size + node_size
+            )
 
             if (x != x).any():
                 logging.warning(
-                    "Nan values in x after message passing \n x: \n {} \n A: \n {}".format(x, A)
+                    "Nan values in x after message passing \n x: \n {} \n A: \n {}".format(
+                        x, A
+                    )
                 )
 
             if clabel_iter:
@@ -404,7 +441,9 @@ class Graph_GAN(nn.Module):
                 x = torch.cat((x, nump.repeat(self.args.num_hits, 1)), axis=1)
 
             for j in range(len(self.fn[i]) - 1):
-                x = F.leaky_relu(self.fn[i][j](x), negative_slope=self.args.leaky_relu_alpha)
+                x = F.leaky_relu(
+                    self.fn[i][j](x), negative_slope=self.args.leaky_relu_alpha
+                )
                 if self.args.batch_norm:
                     x = self.bnn[i][j](x)
                 x = self.dropout(x)
@@ -413,7 +452,9 @@ class Graph_GAN(nn.Module):
             x = x.view(batch_size, self.args.num_hits, self.args.hidden_node_size)
 
             if (x != x).any():
-                logging.warning("Nan values in x after fn \n x: \n {} \n A: \n {}".format(x, A))
+                logging.warning(
+                    "Nan values in x after fn \n x: \n {} \n A: \n {}".format(x, A)
+                )
 
         if self.G:
             x = (
@@ -444,7 +485,9 @@ class Graph_GAN(nn.Module):
                     x = torch.cat((num_particles, x), dim=1)
 
                 for i in range(len(self.fnd) - 1):
-                    x = F.leaky_relu(self.fnd[i](x), negative_slope=self.args.leaky_relu_alpha)
+                    x = F.leaky_relu(
+                        self.fnd[i](x), negative_slope=self.args.leaky_relu_alpha
+                    )
                     if self.args.batch_norm:
                         x = self.bnd[i](x)
                     x = self.dropout(x)
@@ -463,7 +506,11 @@ class Graph_GAN(nn.Module):
                 else:
                     x = torch.mean(x, 1)
 
-            return x if (self.args.loss == "w" or self.args.loss == "hinge") else torch.sigmoid(x)
+            return (
+                x
+                if (self.args.loss == "w" or self.args.loss == "hinge")
+                else torch.sigmoid(x)
+            )
 
     def getA(self, x, i, batch_size, fe_in_size, mask_bool, mask):
         node_size = x.size(2)
@@ -493,7 +540,9 @@ class Graph_GAN(nn.Module):
                 elif self.args.deltacoords:
                     A = torch.cat((x1, x2, diffs), 2)
 
-                A = A.view(batch_size * self.args.num_hits * self.args.num_hits, fe_in_size)
+                A = A.view(
+                    batch_size * self.args.num_hits * self.args.num_hits, fe_in_size
+                )
             else:
                 A = torch.cat((x1, x2), 2).view(
                     batch_size * self.args.num_hits * self.args.num_hits, fe_in_size
@@ -510,8 +559,12 @@ class Graph_GAN(nn.Module):
             else:
                 x2 = x.repeat(1, self.args.num_hits, 1)
 
-            if (self.args.all_ef or not self.args.pos_diffs) and not (self.D and i == 0):
-                diffs = x2 - x1  # for first iteration of D message passing use only physical coords
+            if (self.args.all_ef or not self.args.pos_diffs) and not (
+                self.D and i == 0
+            ):
+                diffs = (
+                    x2 - x1
+                )  # for first iteration of D message passing use only physical coords
             else:
                 diffs = x2[:, :, :num_coords] - x1[:, :, :num_coords]
 
@@ -524,16 +577,16 @@ class Graph_GAN(nn.Module):
 
             # logging.debug("x \n {} \n x1 \n {} \n x2 \n {} \n diffs \n {} \n dists \n {} \n sorted[0] \n {} \n sorted[1] \n {}".format(x[0], x1[0], x2[0], diffs[0], dists[0], sorted[0][0], sorted[0][1]))
 
-            dists = sorted[0][:, :, self_loops : self.args.num_knn + self_loops].reshape(
-                batch_size, self.args.num_hits * self.args.num_knn, 1
-            )
-            sorted = sorted[1][:, :, self_loops : self.args.num_knn + self_loops].reshape(
-                batch_size, self.args.num_hits * self.args.num_knn, 1
-            )
+            dists = sorted[0][
+                :, :, self_loops : self.args.num_knn + self_loops
+            ].reshape(batch_size, self.args.num_hits * self.args.num_knn, 1)
+            sorted = sorted[1][
+                :, :, self_loops : self.args.num_knn + self_loops
+            ].reshape(batch_size, self.args.num_hits * self.args.num_knn, 1)
 
-            sorted.reshape(batch_size, self.args.num_hits * self.args.num_knn, 1).repeat(
-                1, 1, node_size
-            )
+            sorted.reshape(
+                batch_size, self.args.num_hits * self.args.num_knn, 1
+            ).repeat(1, 1, node_size)
 
             x1_knn = x.repeat(1, 1, self.args.num_knn).view(
                 batch_size, self.args.num_hits * self.args.num_knn, node_size
