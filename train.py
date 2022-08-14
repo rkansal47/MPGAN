@@ -33,30 +33,30 @@ def main():
 
     X_train = JetNet(
         jet_type=args.jets,
-        train=True,
         data_dir=args.datasets_path,
         num_particles=args.num_hits,
-        use_mask=args.mask,
-        train_fraction=args.ttsplit,
-        num_pad_particles=args.pad_hits,
-        noise_padding=args.noise_padding,
+        particle_features=JetNet.particle_features_order
+        if args.mask
+        else JetNet.particle_features_order[:-1],
+        jet_features="num_particles" if (args.clabels or args.mask_c) else None,
+        split="train",
+        split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
     )
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
     X_test = JetNet(
         jet_type=args.jets,
-        train=False,
         data_dir=args.datasets_path,
         num_particles=args.num_hits,
-        use_mask=args.mask,
-        train_fraction=args.ttsplit,
-        num_pad_particles=args.pad_hits,
-        noise_padding=args.noise_padding,
+        particle_features=JetNet.particle_features_order
+        if args.mask
+        else JetNet.particle_features_order[:-1],
+        jet_features="num_particles" if (args.clabels or args.mask_c) else None,
+        split="valid",
+        split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
     )
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info("Data loaded")
-
-    print(f"init {X_test.data.shape}")
 
     G, D = setup_training.models(args)
     model_train_args, model_eval_args, extra_args = setup_training.get_model_args(args)
@@ -300,7 +300,7 @@ def gradient_penalty(gp_lambda, D, real_data, generated_data, batch_size, device
 
     # Derivatives of the gradient close to 0 can cause problems because of
     # the square root, so manually calculate norm and add epsilon
-    gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
+    gradients_norm = torch.sqrt(torch.sum(gradients**2, dim=1) + 1e-12)
 
     # Return gradient penalty
     gp = gp_lambda * ((gradients_norm - 1) ** 2).mean()
@@ -550,8 +550,6 @@ def evaluate(
         losses["w1p"].append(np.concatenate((w1pm, w1pstd)))
 
     if "w1m" in losses:
-        print(real_jets.shape)
-        print(gen_jets.shape)
         w1mm, w1mstd = evaluation.w1m(
             real_jets,
             gen_jets,
@@ -702,13 +700,12 @@ def eval_save_plot(
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
 
-    real_jets, real_mask = X_test.unnormalize_features(
-        X_test.data[: args.eval_tot_samples].clone(),
-        ret_mask_separate=True,
-        is_real_data=True,
-        zero_mask_particles=True,
-        zero_neg_pt=True,
+    real_jets, real_mask = jetnet.utils.gen_jet_corrections(
+        X_test.particle_normalisation(X_test.particle_data[: args.eval_tot_samples], inverse=True),
+        zero_mask_particles=False,
+        zero_neg_pt=False,
     )
+
     gen_output = gen_multi_batch(
         model_args,
         G,
@@ -718,24 +715,16 @@ def eval_save_plot(
         out_device="cpu",
         model=args.model,
         detach=True,
-        labels=X_test.jet_features[: args.eval_tot_samples]
-        if (args.mask_c or args.clabels)
-        else None,
+        labels=X_test.jet_data[: args.eval_tot_samples] if (args.mask_c or args.clabels) else None,
         **extra_args,
     )
-    gen_jets, gen_mask = X_test.unnormalize_features(
-        gen_output,
-        ret_mask_separate=True,
-        is_real_data=False,
-        zero_mask_particles=True,
-        zero_neg_pt=True,
+    gen_jets, gen_mask = jetnet.utils.gen_jet_corrections(
+        X_test.particle_normalisation(gen_output, inverse=True),
     )
 
-    print(f"eval save plot {real_jets.shape} {gen_jets.shape}")
-
-    real_jets = real_jets.detach().cpu().numpy()
+    real_jets = real_jets.numpy()
     if real_mask is not None:
-        real_mask = real_mask.detach().cpu().numpy()
+        real_mask = real_mask.numpy()
 
     gen_jets = gen_jets.numpy()
     if gen_mask is not None:
