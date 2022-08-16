@@ -1,6 +1,7 @@
 import jetnet
 from jetnet.datasets import JetNet
 from jetnet import evaluation
+from jetnet.datasets.normalisations import FeaturewiseLinearBounded
 
 import setup_training
 from mpgan import augment, mask_manual
@@ -31,6 +32,9 @@ def main():
     args.device = device
     logging.info("Args initalized")
 
+    # as used for arXiv:2106.11535
+    norm = FeaturewiseLinearBounded(feature_norms=1.0, feature_shifts=[0.0, 0.0, -0.5, -0.5])
+
     X_train = JetNet(
         jet_type=args.jets,
         data_dir=args.datasets_path,
@@ -39,6 +43,7 @@ def main():
         if args.mask
         else JetNet.particle_features_order[:-1],
         jet_features="num_particles" if (args.clabels or args.mask_c) else None,
+        particle_normalisation=norm,
         split="train",
         split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
     )
@@ -52,6 +57,7 @@ def main():
         if args.mask
         else JetNet.particle_features_order[:-1],
         jet_features="num_particles" if (args.clabels or args.mask_c) else None,
+        particle_normalisation=norm,
         split="valid",
         split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
     )
