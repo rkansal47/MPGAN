@@ -238,6 +238,7 @@ def gen_multi_batch(
 
     if labels is not None:
         assert labels.shape[0] == num_samples, "number of labels doesn't match num_samples"
+        labels = Tensor(labels)
 
     gen_data = None
 
