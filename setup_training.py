@@ -615,9 +615,17 @@ def parse_args():
         help="PCGAN inference network pooling - has to be the same as the pre-trained network",
     )
 
+    parse_mnist_args(parser)
+
     args = parser.parse_args()
 
     return args
+
+
+def parse_mnist_args(parser):
+    parser.add_argument(
+        "--mnist-num", type=int, default=-1, help="mnist number to generate, -1 means all"
+    )
 
 
 def check_args_errors(args):
@@ -915,13 +923,21 @@ def init_project_dirs(args):
 
     os.system(f"mkdir -p {args.datasets_path}")
 
+    # if args.dir_path == "":
+    #     if args.n:
+    #         args.dir_path = "/graphganvol/MPGAN/outputs/"
+    #     elif args.lx:
+    #         args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs/"
+    #     else:
+    #         args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/outputs/"
+
     if args.dir_path == "":
         if args.n:
-            args.dir_path = "/graphganvol/MPGAN/outputs/"
+            args.dir_path = "/graphganvol/MPGAN/mnist_outputs/"
         elif args.lx:
-            args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs/"
+            args.dir_path = "/eos/user/r/rkansal/MPGAN/mnist_outputs/"
         else:
-            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/outputs/"
+            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/mnist_outputs/"
 
     os.system(f"mkdir -p {args.dir_path}")
 
