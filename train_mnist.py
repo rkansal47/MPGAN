@@ -1,7 +1,5 @@
 import jetnet
 from datasets import MNISTGraphDataset
-from jetnet import evaluation
-
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
