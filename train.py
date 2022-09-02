@@ -31,30 +31,21 @@ def main():
     args.device = device
     logging.info("Args initalized")
 
-    X_train = JetNet(
-        jet_type=args.jets,
-        data_dir=args.datasets_path,
-        num_particles=args.num_hits,
-        particle_features=JetNet.particle_features_order
+    data_args = {
+        "jet_type": args.jets,
+        "data_dir": args.datasets_path,
+        "num_particles": args.num_hits,
+        "particle_features": JetNet.all_particle_features
         if args.mask
-        else JetNet.particle_features_order[:-1],
-        jet_features="num_particles" if (args.clabels or args.mask_c) else None,
-        split="train",
-        split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
-    )
+        else JetNet.all_particle_features[:-1],
+        "jet_features": "num_particles" if (args.clabels or args.mask_c) else None,
+        "split_fraction": [args.ttsplit, 1 - args.ttsplit, 0],
+    }
+
+    X_train = JetNet(**data_args, split="train")
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
-    X_test = JetNet(
-        jet_type=args.jets,
-        data_dir=args.datasets_path,
-        num_particles=args.num_hits,
-        particle_features=JetNet.particle_features_order
-        if args.mask
-        else JetNet.particle_features_order[:-1],
-        jet_features="num_particles" if (args.clabels or args.mask_c) else None,
-        split="valid",
-        split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
-    )
+    X_test = JetNet(**data_args, split="valid")
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info("Data loaded")
 
