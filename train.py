@@ -723,10 +723,6 @@ def eval_save_plot(
         X_test.particle_normalisation(gen_output, inverse=True),
     )
 
-    real_jets = real_jets.numpy()
-    if real_mask is not None:
-        real_mask = real_mask.numpy()
-
     gen_jets = gen_jets.numpy()
     if gen_mask is not None:
         gen_mask = gen_mask.numpy()
