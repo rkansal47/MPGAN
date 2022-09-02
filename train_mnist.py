@@ -616,9 +616,7 @@ def train_loop(
     for batch_ndx, data in tqdm(
         enumerate(X_train_loaded), total=lenX, mininterval=0.1, desc=f"Epoch {epoch}"
     ):
-        if args.model == "pcgan":
-            # run through pre-trained inference network first i.e. find latent representation
-            data = model_train_args["pcgan_G_inv"](data.clone())
+        data = data.to(args.device)
 
         if args.num_critic > 1 or (batch_ndx == 0 or (batch_ndx - 1) % args.num_gen == 0):
             D_loss_items = train_D(
