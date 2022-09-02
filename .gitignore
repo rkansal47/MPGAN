@@ -5,6 +5,8 @@
 !mpgan/**
 !ext_models
 !ext_models/**
+!gapt
+!gapt/**
 
 !trained_models
 !trained_models/*
