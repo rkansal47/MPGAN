@@ -120,7 +120,7 @@ class MAB(nn.Module):
         self.dropout = nn.Dropout(p=dropout_p)
 
     def forward(self, x: Tensor, y: Tensor, y_mask: Tensor = None):
-        x = x + self.attention(x, y, y, attn_mask=y_mask)
+        x = x + self.attention(x, y, y, attn_mask=y_mask, need_weights=False)[0]
         if self.layer_norm:
             x = self.norm1(x)
         x = self.dropout(x)
@@ -135,9 +135,9 @@ class MAB(nn.Module):
 
 # Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
 class SAB(nn.Module):
-    def __init__(self, **args):
+    def __init__(self, **mab_args):
         super(SAB, self).__init__()
-        self.mab = MAB(**args)
+        self.mab = MAB(**mab_args)
 
     def forward(self, x: Tensor, mask: Tensor = None):
         return self.mab(x, x, mask)
@@ -175,23 +175,30 @@ class GAPT_G(nn.Module):
         use_mask: bool = True,
         linear_args: dict = {},
     ):
+        super(GAPT_G, self).__init__()
         self.num_particles = num_particles
         self.output_feat_size = output_feat_size
         self.use_mask = use_mask
 
+        print(self.use_mask)
+
         self.sabs = nn.ModuleList()
+
+        mab_args = {
+            "num_heads": num_heads,
+            "layer_norm": layer_norm,
+            "dropout_p": dropout_p,
+        }
 
         # intermediate layers
         for _ in range(sab_layers):
             self.sabs.append(
                 SAB(
-                    embed_dim,
-                    num_heads,
-                    sab_fc_layers,
-                    layer_norm,
-                    dropout_p,
+                    embed_dim=embed_dim,
+                    ff_layers=sab_fc_layers,
                     final_linear=False,
-                    **linear_args,
+                    **mab_args,
+                    linear_args=linear_args,
                 )
             )
 
@@ -226,7 +233,7 @@ class GAPT_G(nn.Module):
         for sab in self.sabs:
             x = sab(x, mask)
 
-        x = F.tanh(self.final_fc(x))
+        x = torch.tanh(self.final_fc(x))
 
         return torch.cat((x, mask - 0.5), dim=2) if mask is not None else x
 
@@ -246,6 +253,7 @@ class GAPT_D(nn.Module):
         use_mask: bool = True,
         linear_args: dict = {},
     ):
+        super(GAPT_D, self).__init__()
         self.num_particles = num_particles
         self.input_feat_size = input_feat_size
         self.use_mask = use_mask
@@ -266,7 +274,7 @@ class GAPT_D(nn.Module):
         for _ in range(sab_layers):
             self.sabs.append(
                 SAB(
-                    embed_dim,
+                    embed_dim=embed_dim,
                     ff_layers=sab_fc_layers,
                     final_linear=False,
                     **mab_args,
@@ -302,4 +310,4 @@ class GAPT_D(nn.Module):
         for sab in self.sabs:
             x = sab(x, mask)
 
-        return F.sigmoid(self.final_fc(self.pma(x)))
+        return torch.sigmoid(self.final_fc(self.pma(x).squeeze()))

@@ -847,6 +847,12 @@ def process_args(args):
                         else:
                             args.batch_size = 32
 
+        elif args.model == "gapt" or args.model_D == "gapt":
+            if args.num_hits <= 30:
+                args.batch_size = 256
+            else:
+                args.batch_size = 32
+
     if args.lr_disc == 0:
         if args.jets == "g":
             args.lr_disc = 3e-5
@@ -1230,6 +1236,8 @@ def setup_gapt(args, gen):
     """Setup MPGAN models"""
     from gapt import GAPT_G, GAPT_D
 
+    print(args.gapt_mask)
+
     # args for LinearNet layers
     linear_args = {
         "leaky_relu_alpha": args.leaky_relu_alpha,
@@ -1283,6 +1291,9 @@ def models(args, gen_only=False):
     if args.model == "mpgan":
         G = setup_mpgan(args, gen=True)
         logging.info(G)
+    elif args.model == "gapt":
+        G = setup_gapt(args, gen=True)
+        logging.info(G)
     elif args.model == "rgan":
         from ext_models import rGANG
 
@@ -1310,6 +1321,9 @@ def models(args, gen_only=False):
 
     if args.model_D == "mpgan":
         D = setup_mpgan(args, gen=False)
+        logging.info(D)
+    elif args.model_D == "gapt":
+        D = setup_gapt(args, gen=False)
         logging.info(D)
     elif args.model_D == "rgan":
         from ext_models import rGAND

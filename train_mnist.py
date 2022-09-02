@@ -26,6 +26,7 @@ def main():
 
     args = setup_training.init()
     args.mask_c = False
+    args.gapt_mask = False
     torch.manual_seed(args.seed)
     args.device = device
     logging.info("Args initalized")
