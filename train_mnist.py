@@ -106,6 +106,8 @@ def get_gen_noise(
             point_noise = Normal(torch.tensor(0.0).to(device), torch.tensor(1.0).to(device)).sample(
                 [num_samples, num_particles, model_args["pcgan_z2_dim"]]
             )
+    elif model == "gapt":
+        noise = dist.sample((num_samples, num_particles, model_args["embed_dim"]))
 
     return noise, point_noise
 
@@ -132,6 +134,9 @@ def gen(
     ``lfc_latent_size`` (int) size of latent layer if ``lfc``,
     ``mask_learn_sep`` (bool) separate layer to learn masks,
     ``latent_node_size`` (int) size of each node's latent space, if not using lfc.
+
+    gapt:
+    ``embed_dim`` (int): size of node embeddings
 
     rgan, graphcnngan:
     ``latent_dim`` (int)
