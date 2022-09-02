@@ -513,7 +513,7 @@ import matplotlib.cm as cm
 
 def draw_graph(graph, node_r, im_px):
     imd = im_px + node_r
-    img = np.zeros((imd, imd), dtype=np.float)
+    img = np.zeros((imd, imd), dtype=float)
 
     circles = []
     for node in graph:
