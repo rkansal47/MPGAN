@@ -627,6 +627,9 @@ def parse_mnist_args(parser):
     parser.add_argument(
         "--mnist-num", type=int, default=-1, help="mnist number to generate, -1 means all"
     )
+    parser.add_argument(
+        "--fid-eval-samples", type=int, default=8192, help="# of samples for evaluating fid"
+    )
 
 
 def parse_gapt_args(parser):

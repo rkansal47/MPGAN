@@ -1,8 +1,9 @@
-import jetnet
 from datasets import MNISTGraphDataset
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
+
+from mnist import evaluation
 
 import torch
 from torch import Tensor
@@ -18,6 +19,53 @@ from os import remove
 from tqdm import tqdm
 
 import logging
+
+
+def setup_losses(args):
+    """Set up ``losses`` dict which stores model losses per epoch as well as evaluation metrics"""
+    losses = {}
+
+    keys = ["D", "Dr", "Df", "G"]
+    if args.gp:
+        keys.append("gp")
+
+    eval_keys = ["fid"]
+
+    if not args.fpnd:
+        eval_keys.remove("fid")
+
+    keys = keys + eval_keys
+
+    for key in keys:
+        if args.load_model:
+            try:
+                losses[key] = np.loadtxt(f"{args.losses_path}/{key}.txt")
+                if losses[key].ndim == 1:
+                    np.expand_dims(losses[key], 0)
+                losses[key] = losses[key].tolist()
+                if key in eval_keys:
+                    losses[key] = losses[key][: int(args.start_epoch / args.save_epochs) + 1]
+                else:
+                    losses[key] = losses[key][: args.start_epoch + 1]
+            except OSError:
+                logging.info(f"{key} loss file not found")
+                losses[key] = []
+        else:
+            losses[key] = []
+
+    if args.load_model:
+        try:
+            best_epoch = np.loadtxt(f"{args.outs_path}/best_epoch.txt")
+            if best_epoch.ndim == 1:
+                np.expand_dims(best_epoch, 0)
+            best_epoch = best_epoch.tolist()
+        except OSError:
+            logging.info("best epoch file not found")
+            best_epoch = [[0, 10000.0]]
+    else:
+        best_epoch = [[0, 10000.0]]  # saves the best model [epoch, fid score]
+
+    return losses, best_epoch
 
 
 def main():
@@ -49,7 +97,7 @@ def main():
     G_optimizer, D_optimizer = setup_training.optimizers(args, G, D)
     logging.info("Optimizers loaded")
 
-    losses, best_epoch = setup_training.losses(args)
+    losses, best_epoch = setup_losses(args)
 
     train(
         args,
@@ -579,7 +627,7 @@ def eval_save_plot(
         model_args,
         G,
         args.batch_size,
-        100,
+        args.fid_eval_samples,
         args.num_hits,
         out_device="cpu",
         model=args.model,
@@ -600,6 +648,31 @@ def eval_save_plot(
             logging.info("Couldn't remove previous loss curves")
 
     make_images(gen_output, f"{args.figs_path}/{epoch}.pdf")
+
+    if "fid" in losses:
+        losses["fid"].append(
+            evaluation.get_fid(
+                gen_output,
+                args.num_hits,
+                args.mnist_num,
+                batch_size=args.fpnd_batch_size,
+            )
+        )
+
+    # save model state and sample generated jets if this is the lowest w1m score yet
+    if epoch > 0 and losses["fid"][-1][0] < best_epoch[-1][1]:
+        best_epoch.append([epoch, losses["fid"][-1][0]])
+        np.savetxt(f"{args.outs_path}/best_epoch.txt", np.array(best_epoch))
+
+        np.save(f"{args.outs_path}/best_epoch_gen_outputs", gen_output)
+
+        with open(f"{args.outs_path}/best_epoch_losses.txt", "w") as f:
+            f.write(str({key: losses[key][-1] for key in losses}))
+
+        if args.multi_gpu:
+            torch.save(G.module.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
+        else:
+            torch.save(G.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
 
 
 def train_loop(

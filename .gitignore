@@ -17,6 +17,9 @@ trained_models/*/**
 !datasets
 !datasets/*.py
 
+!mnist
+!mnist/**
+
 !*.py
 !LICENSE
 !Dockerfile
