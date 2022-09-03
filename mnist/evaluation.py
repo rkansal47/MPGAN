@@ -231,11 +231,14 @@ def calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
 
 # make sure to deepcopy G passing in
-def get_fid(X: np.ndarray, num_hits: int, num: int, batch_size: int):
+def get_fid(X: np.ndarray, num_hits: int, num: int, batch_size: int, device: str = None):
     eval_path = str(pathlib.Path(__file__).parent.resolve()) + "/evaluation_resources/"
     C, mu2, sigma2 = load(num_hits, eval_path, num)
     logging.info("evaluating fid")
     C.eval()
+
+    if device is None:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # run inference and store activations
     X_loaded = DataLoader(X[:FID_EVAL_SIZE], batch_size)
@@ -243,7 +246,7 @@ def get_fid(X: np.ndarray, num_hits: int, num: int, batch_size: int):
     logging.info(f"Calculating MoNet activations with batch size: {batch_size}")
     activations = []
     for i, jets_batch in tqdm(enumerate(X_loaded), total=len(X_loaded), desc="Running MoNet"):
-        activations.append(C(tg_transform(jets_batch, num_hits)).cpu().detach().numpy())
+        activations.append(C(tg_transform(jets_batch, num_hits).to(device)).cpu().detach().numpy())
 
     activations = np.concatenate(activations, axis=0)
     mu1 = np.mean(activations, axis=0)
