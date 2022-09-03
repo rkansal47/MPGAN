@@ -27,10 +27,7 @@ cutoff = 0.32178
 FID_EVAL_SIZE = 8192
 
 # transform my format to torch_geometric's
-def tg_transform(X: Tensor, num_hits: int, device: str = None):
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
+def tg_transform(X: Tensor, num_hits: int):
     batch_size = X.size(0)
 
     pos = X[:, :, :2]
@@ -58,7 +55,7 @@ def tg_transform(X: Tensor, num_hits: int, device: str = None):
     row, col = edge_index
     edge_attr = (pos[col] - pos[row]) / (2 * 28 * cutoff) + 0.5
 
-    zeros = torch.zeros(batch_size * num_hits, dtype=int).to(device)
+    zeros = torch.zeros(batch_size * num_hits, dtype=int).to(X.device)
     zeros[torch.arange(batch_size) * num_hits] = 1
     batch = torch.cumsum(zeros, 0) - 1
 
@@ -244,9 +241,12 @@ def get_fid(X: np.ndarray, num_hits: int, num: int, batch_size: int, device: str
     X_loaded = DataLoader(X[:FID_EVAL_SIZE], batch_size)
 
     logging.info(f"Calculating MoNet activations with batch size: {batch_size}")
-    activations = []
-    for i, jets_batch in tqdm(enumerate(X_loaded), total=len(X_loaded), desc="Running MoNet"):
-        activations.append(C(tg_transform(jets_batch, num_hits).to(device)).cpu().detach().numpy())
+    with torch.no_grad():
+        activations = []
+        for i, jets_batch in tqdm(enumerate(X_loaded), total=len(X_loaded), desc="Running MoNet"):
+            activations.append(
+                C(tg_transform(jets_batch.to(device), num_hits).to(device)).cpu().detach().numpy()
+            )
 
     activations = np.concatenate(activations, axis=0)
     mu1 = np.mean(activations, axis=0)
