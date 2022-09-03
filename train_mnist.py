@@ -679,7 +679,7 @@ def eval_save_plot(
 
     # save model state and sample generated jets if this is the lowest w1m score yet
     if epoch > 0 and losses["fid"][-1] < best_epoch[-1][1]:
-        best_epoch.append([epoch, losses["fid"][-1][0]])
+        best_epoch.append([epoch, losses["fid"][-1]])
         np.savetxt(f"{args.outs_path}/best_epoch.txt", np.array(best_epoch))
 
         np.save(f"{args.outs_path}/best_epoch_gen_outputs", gen_output)
