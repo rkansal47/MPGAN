@@ -75,6 +75,8 @@ def main():
     args = setup_training.init()
     args.mask_c = False
     args.gapt_mask = False
+    args.fpnd_batch_size = 128
+    args.batch_size = 64
     torch.manual_seed(args.seed)
     args.device = device
     logging.info("Args initalized")
