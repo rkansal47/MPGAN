@@ -1,6 +1,7 @@
 import jetnet
 from jetnet.datasets import JetNet
 from jetnet import evaluation
+from jetnet.datasets.normalisations import FeaturewiseLinearBounded, FeaturewiseLinear
 
 import setup_training
 from mpgan import augment, mask_manual
@@ -31,30 +32,29 @@ def main():
     args.device = device
     logging.info("Args initalized")
 
-    X_train = JetNet(
-        jet_type=args.jets,
-        data_dir=args.datasets_path,
-        num_particles=args.num_hits,
-        particle_features=JetNet.particle_features_order
-        if args.mask
-        else JetNet.particle_features_order[:-1],
-        jet_features="num_particles" if (args.clabels or args.mask_c) else None,
-        split="train",
-        split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
+    # as used for arXiv:2106.11535
+    particle_norm = FeaturewiseLinearBounded(
+        feature_norms=1.0, feature_shifts=[0.0, 0.0, -0.5, -0.5]
     )
+    jet_norm = FeaturewiseLinear(feature_scales=1.0 / args.num_hits)
+
+    data_args = {
+        "jet_type": args.jets,
+        "data_dir": args.datasets_path,
+        "num_particles": args.num_hits,
+        "particle_features": JetNet.all_particle_features
+        if args.mask
+        else JetNet.all_particle_features[:-1],
+        "jet_features": "num_particles" if (args.clabels or args.mask_c) else None,
+        "particle_normalisation": particle_norm,
+        "jet_normalisation": jet_norm,
+        "split_fraction": [args.ttsplit, 1 - args.ttsplit, 0],
+    }
+
+    X_train = JetNet(**data_args, split="train")
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
-    X_test = JetNet(
-        jet_type=args.jets,
-        data_dir=args.datasets_path,
-        num_particles=args.num_hits,
-        particle_features=JetNet.particle_features_order
-        if args.mask
-        else JetNet.particle_features_order[:-1],
-        jet_features="num_particles" if (args.clabels or args.mask_c) else None,
-        split="valid",
-        split_fraction=[args.ttsplit, 1 - args.ttsplit, 0],
-    )
+    X_test = JetNet(**data_args, split="valid")
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info("Data loaded")
 
@@ -232,6 +232,7 @@ def gen_multi_batch(
 
     if labels is not None:
         assert labels.shape[0] == num_samples, "number of labels doesn't match num_samples"
+        labels = Tensor(labels)
 
     gen_data = None
 
@@ -721,10 +722,6 @@ def eval_save_plot(
     gen_jets, gen_mask = jetnet.utils.gen_jet_corrections(
         X_test.particle_normalisation(gen_output, inverse=True),
     )
-
-    real_jets = real_jets.numpy()
-    if real_mask is not None:
-        real_mask = real_mask.numpy()
 
     gen_jets = gen_jets.numpy()
     if gen_mask is not None:
