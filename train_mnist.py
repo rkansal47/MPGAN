@@ -40,8 +40,8 @@ def setup_losses(args):
         if args.load_model:
             try:
                 losses[key] = np.loadtxt(f"{args.losses_path}/{key}.txt")
-                if losses[key].ndim == 1:
-                    np.expand_dims(losses[key], 0)
+                if losses[key].ndim == 0:
+                    losses[key] = np.expand_dims(losses[key], 0)
                 losses[key] = losses[key].tolist()
                 if key in eval_keys:
                     losses[key] = losses[key][: int(args.start_epoch / args.save_epochs) + 1]
