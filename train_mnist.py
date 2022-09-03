@@ -659,6 +659,21 @@ def eval_save_plot(
             )
         )
 
+        if len(losses["fid"]) > 1:
+            plotting.plot_fid(
+                losses,
+                epoch,
+                args.save_epochs,
+                name=str(epoch) + "_eval",
+                losses_path=args.losses_path,
+                show=False,
+            )
+
+            try:
+                remove(args.losses_path + "/" + str(epoch - args.save_epochs) + "_eval.pdf")
+            except:
+                logging.info("Couldn't remove previous eval curves")
+
     # save model state and sample generated jets if this is the lowest w1m score yet
     if epoch > 0 and losses["fid"][-1][0] < best_epoch[-1][1]:
         best_epoch.append([epoch, losses["fid"][-1][0]])

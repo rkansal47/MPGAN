@@ -240,7 +240,7 @@ def get_fid(X: np.ndarray, num_hits: int, num: int, batch_size: int):
     # run inference and store activations
     X_loaded = DataLoader(X[:FID_EVAL_SIZE], batch_size)
 
-    logging.info(f"Calculating MpNet activations with batch size: {batch_size}")
+    logging.info(f"Calculating MoNet activations with batch size: {batch_size}")
     activations = []
     for i, jets_batch in tqdm(enumerate(X_loaded), total=len(X_loaded), desc="Running MoNet"):
         activations.append(C(tg_transform(jets_batch, num_hits)).cpu().detach().numpy())
