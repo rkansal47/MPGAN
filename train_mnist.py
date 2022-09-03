@@ -77,6 +77,7 @@ def main():
     args.gapt_mask = False
     args.fpnd_batch_size = 128
     args.batch_size = 64
+    args.save_epochs = 5
     torch.manual_seed(args.seed)
     args.device = device
     logging.info("Args initalized")
@@ -677,7 +678,7 @@ def eval_save_plot(
                 logging.info("Couldn't remove previous eval curves")
 
     # save model state and sample generated jets if this is the lowest w1m score yet
-    if epoch > 0 and losses["fid"][-1][0] < best_epoch[-1][1]:
+    if epoch > 0 and losses["fid"][-1] < best_epoch[-1][1]:
         best_epoch.append([epoch, losses["fid"][-1][0]])
         np.savetxt(f"{args.outs_path}/best_epoch.txt", np.array(best_epoch))
 
