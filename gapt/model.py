@@ -190,8 +190,6 @@ class GAPT_G(nn.Module):
         self.output_feat_size = output_feat_size
         self.use_mask = use_mask
 
-        print(self.use_mask)
-
         self.sabs = nn.ModuleList()
 
         mab_args = {

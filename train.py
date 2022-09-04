@@ -542,6 +542,7 @@ def evaluate(
 ):
     """Calculate evaluation metrics using the JetNet library and add them to the losses dict"""
 
+    print(real_jets.shape)
     if "w1p" in losses:
         w1pm, w1pstd = evaluation.w1p(
             real_jets,
@@ -705,13 +706,14 @@ def eval_save_plot(
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
 
-    real_jets, real_mask = jetnet.utils.gen_jet_corrections(
+    use_mask = args.mask_c or args.clabels or args.gapt_mask
+
+    real_jets = jetnet.utils.gen_jet_corrections(
         X_test.particle_normalisation(X_test.particle_data[: args.eval_tot_samples], inverse=True),
         zero_mask_particles=False,
+        ret_mask_separate=use_mask,
         zero_neg_pt=False,
     )
-
-    use_mask = args.mask_c or args.clabels or args.gapt_mask
 
     gen_output = gen_multi_batch(
         model_args,
@@ -725,11 +727,21 @@ def eval_save_plot(
         labels=X_test.jet_data[: args.eval_tot_samples] if use_mask else None,
         **extra_args,
     )
-    gen_jets, gen_mask = jetnet.utils.gen_jet_corrections(
+
+    gen_jets = jetnet.utils.gen_jet_corrections(
         X_test.particle_normalisation(gen_output, inverse=True),
         ret_mask_separate=use_mask,
         zero_mask_particles=use_mask,
     )
+
+    if use_mask:
+        gen_mask = gen_jets[1]
+        gen_jets = gen_jets[0]
+        real_mask = real_jets[1]
+        real_jets = real_jets[0]
+    else:
+        gen_mask = None
+        real_mask = None
 
     gen_jets = gen_jets.numpy()
     if gen_mask is not None:
