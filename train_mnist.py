@@ -79,7 +79,7 @@ def main():
     if args.model == "gapt" and args.gapt_embed_dim <= 64:
         args.batch_size = 128
     else:
-        args.batch_size g= 64
+        args.batch_size = 64
     args.save_epochs = 5
     args.num_hits = 75
     torch.manual_seed(args.seed)
