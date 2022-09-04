@@ -774,6 +774,11 @@ def process_args(args):
         args.w1_num_samples = [100]
         args.num_samples = 1000
 
+    if args.fpnd:
+        if (args.num_hits != 30 or args.jets not in ["g", "t", "q"]) and args.dataset != "mnist":
+            args.fpnd = False
+            logging.warn(f"FPND is not possible for this dataset currently - setting to False")
+
     ##########################################################
     # Architecture
     ##########################################################
