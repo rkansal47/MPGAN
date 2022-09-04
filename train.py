@@ -34,7 +34,7 @@ def main():
 
     # as used for arXiv:2106.11535
     particle_norm = FeaturewiseLinearBounded(
-        feature_norms=1.0, feature_shifts=[0.0, 0.0, -0.5, -0.5]
+        feature_norms=1.0, feature_shifts=[0.0, 0.0, -0.5, -0.5] if args.mask else [0.0, 0.0, -0.5]
     )
     jet_norm = FeaturewiseLinear(feature_scales=1.0 / args.num_hits)
 
@@ -45,7 +45,9 @@ def main():
         "particle_features": JetNet.all_particle_features
         if args.mask
         else JetNet.all_particle_features[:-1],
-        "jet_features": "num_particles" if (args.clabels or args.mask_c) else None,
+        "jet_features": "num_particles"
+        if (args.clabels or args.mask_c or args.gapt_mask)
+        else None,
         "particle_normalisation": particle_norm,
         "jet_normalisation": jet_norm,
         "split_fraction": [args.ttsplit, 1 - args.ttsplit, 0],
