@@ -863,10 +863,19 @@ def process_optimization_args(args):
                             args.batch_size = 32
 
         elif args.model == "gapt" or args.model_D == "gapt":
-            if args.num_hits <= 30:
-                args.batch_size = 256
-            else:
-                args.batch_size = 32
+            if args.dataset == "jets":
+                if args.num_hits <= 30:
+                    args.batch_size = 256
+                else:
+                    args.batch_size = 128
+
+            elif args.dataset == "mnist":
+                if args.gapt_embed_dim < 64:
+                    args.batch_size = 128
+                elif args.gapt_embed_dim < 128:
+                    args.batch_size = 64
+                else:
+                    args.batch_size = 32
 
     if args.lr_disc == 0:
         if args.model == "mpgan":
