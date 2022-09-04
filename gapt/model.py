@@ -102,6 +102,7 @@ class MAB(nn.Module):
     ):
         super(MAB, self).__init__()
 
+        self.num_heads = num_heads
         self.attention = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
         self.ff = LinearNet(
             ff_layers,
@@ -120,6 +121,10 @@ class MAB(nn.Module):
         self.dropout = nn.Dropout(p=dropout_p)
 
     def forward(self, x: Tensor, y: Tensor, y_mask: Tensor = None):
+        if y_mask is not None:
+            # torch.nn.MultiheadAttention needs a mask of shape [batch_size * num_heads, N, N]
+            y_mask = torch.repeat_interleave(y_mask, self.num_heads, dim=0)
+
         x = x + self.attention(x, y, y, attn_mask=y_mask, need_weights=False)[0]
         if self.layer_norm:
             x = self.norm1(x)
@@ -140,6 +145,11 @@ class SAB(nn.Module):
         self.mab = MAB(**mab_args)
 
     def forward(self, x: Tensor, mask: Tensor = None):
+        if mask is not None:
+            # torch.nn.MultiheadAttention needs a mask vector for each target node
+            # i.e. reshaping from [B, N, 1] -> [B, N, N]
+            mask = mask.transpose(-2, -1).repeat((1, mask.shape[-2], 1))
+
         return self.mab(x, x, mask)
 
 
@@ -223,15 +233,13 @@ class GAPT_G(nn.Module):
                 .float()
             )
             logging.debug(
-                "x \n {} \n num particles \n {} \n gen mask \n {}".format(
-                    x[:2, :, 0], num_jet_particles[:2], mask[:2, :, 0]
-                )
+                f"x \n {x[:2, :, 0]} \n num particles \n {num_jet_particles[:2]} \n gen mask \n {mask[:2]}"
             )
         else:
             mask = None
 
         for sab in self.sabs:
-            x = sab(x, mask)
+            x = sab(x, (1 - mask).bool())
 
         x = torch.tanh(self.final_fc(x))
 

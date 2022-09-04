@@ -800,6 +800,9 @@ def process_args(args):
         or args.mask_learn_sep
     ):
         args.mask = True
+    elif args.model == "gapt" and args.gapt_mask:
+        args.mask = True
+        args.mask_c = True
     else:
         args.mask = False
         args.mask_c = False

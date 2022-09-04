@@ -113,6 +113,8 @@ def get_gen_noise(
                     model_args["latent_node_size"],
                 )
             )
+    elif model == "gapt":
+        noise = dist.sample((num_samples, num_particles, model_args["embed_dim"]))
     elif model == "rgan" or model == "graphcnngan":
         noise = dist.sample((num_samples, model_args["latent_dim"]))
     elif model == "treegan":
@@ -716,7 +718,9 @@ def eval_save_plot(
         out_device="cpu",
         model=args.model,
         detach=True,
-        labels=X_test.jet_data[: args.eval_tot_samples] if (args.mask_c or args.clabels) else None,
+        labels=X_test.jet_data[: args.eval_tot_samples]
+        if (args.mask_c or args.clabels or args.gapt_mask)
+        else None,
         **extra_args,
     )
     gen_jets, gen_mask = jetnet.utils.gen_jet_corrections(
@@ -795,7 +799,9 @@ def train_loop(
     for batch_ndx, data in tqdm(
         enumerate(X_train_loaded), total=lenX, mininterval=0.1, desc=f"Epoch {epoch}"
     ):
-        labels = data[1].to(args.device) if (args.clabels or args.mask_c) else None
+        labels = (
+            data[1].to(args.device) if (args.clabels or args.mask_c or args.gapt_mask) else None
+        )
         data = data[0].to(args.device)
 
         if args.model == "pcgan":

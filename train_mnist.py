@@ -152,6 +152,8 @@ def get_gen_noise(
                     model_args["latent_node_size"],
                 )
             )
+    elif model == "gapt":
+        noise = dist.sample((num_samples, num_particles, model_args["embed_dim"]))
     elif model == "rgan" or model == "graphcnngan":
         noise = dist.sample((num_samples, model_args["latent_dim"]))
     elif model == "treegan":
@@ -162,8 +164,6 @@ def get_gen_noise(
             point_noise = Normal(torch.tensor(0.0).to(device), torch.tensor(1.0).to(device)).sample(
                 [num_samples, num_particles, model_args["pcgan_z2_dim"]]
             )
-    elif model == "gapt":
-        noise = dist.sample((num_samples, num_particles, model_args["embed_dim"]))
 
     return noise, point_noise
 
