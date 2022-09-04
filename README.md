@@ -14,6 +14,8 @@ We include also [weights](trained_models) of fully trained models discussed in t
 
 Additionally, we release the standalone [JetNet](https://github.com/jet-net/JetNet) library, which provides a PyTorch Dataset class for our JetNet dataset, implementations of the evaluation metrics discussed in the paper, and some more useful utilities for development in machine learning + jets.
 
+*For the exact code and scripts used for* (Kansal et al. 2021)*, please see the [neurips21](https://github.com/rkansal47/MPGAN/tree/neurips21) branch.*
+
 ## Dependencies
 
 #### MPGAN Model
@@ -23,7 +25,7 @@ Additionally, we release the standalone [JetNet](https://github.com/jet-net/JetN
 #### Training, Plotting, Evaluation
 
  - `torch >= 1.8.0`
- - `jetnet >= 0.1.0`
+ - `jetnet >= 0.2.1`
  - `numpy >= 1.21.0`
  - `matplotlib`
  - `mplhep`
