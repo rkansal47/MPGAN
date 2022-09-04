@@ -58,7 +58,7 @@ def main():
 
     X_test = JetNet(**data_args, split="valid")
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
-    logging.info("Data loaded")
+    logging.info(f"Data loaded \n X_train \n {X_train} \n X_test \n {X_test}")
 
     G, D = setup_training.models(args)
     model_train_args, model_eval_args, extra_args = setup_training.get_model_args(args)
