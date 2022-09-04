@@ -239,7 +239,7 @@ class GAPT_G(nn.Module):
             mask = None
 
         for sab in self.sabs:
-            x = sab(x, (1 - mask).bool())
+            x = sab(x, (1 - mask).bool() if self.use_mask else None)
 
         x = torch.tanh(self.final_fc(x))
 
