@@ -183,144 +183,7 @@ def parse_args():
 
     parser.add_argument("--seed", type=int, default=4, help="torch seed")
 
-    ##########################################################
-    # Architecture
-    ##########################################################
-
-    parser.add_argument("--num-hits", type=int, default=30, help="number of hits")
-    parser.add_argument(
-        "--coords",
-        type=str,
-        default="polarrel",
-        help="cartesian, polarrel or polarrelabspt",
-        choices=["cartesian, polarrel, polarrelabspt"],
-    )
-
-    parser.add_argument(
-        "--norm", type=float, default=1, help="normalizing max value of features to this value"
-    )
-
-    parser.add_argument("--sd", type=float, default=0.2, help="standard deviation of noise")
-
-    parser.add_argument("--node-feat-size", type=int, default=3, help="node feature size")
-    parser.add_argument(
-        "--hidden-node-size",
-        type=int,
-        default=32,
-        help="hidden vector size of each node (incl node feature size)",
-    )
-    parser.add_argument(
-        "--latent-node-size",
-        type=int,
-        default=0,
-        help="latent vector size of each node - 0 means same as hidden node size",
-    )
-
-    parser.add_argument(
-        "--clabels",
-        type=int,
-        default=0,
-        help="0 - no clabels, 1 - clabels with pt only, 2 - clabels with pt and eta",
-        choices=[0, 1, 2],
-    )
-    add_bool_arg(parser, "clabels-fl", "use conditional labels in first layer", default=True)
-    add_bool_arg(parser, "clabels-hl", "use conditional labels in hidden layers", default=True)
-
-    parser.add_argument(
-        "--fn", type=int, nargs="*", default=[256, 256], help="hidden fn layers e.g. 256 256"
-    )
-    parser.add_argument(
-        "--fe1g",
-        type=int,
-        nargs="*",
-        default=0,
-        help="hidden and output gen fe layers e.g. 64 128 in the first iteration - 0 means same as fe",
-    )
-    parser.add_argument(
-        "--fe1d",
-        type=int,
-        nargs="*",
-        default=0,
-        help="hidden and output disc fe layers e.g. 64 128 in the first iteration - 0 means same as fe",
-    )
-    parser.add_argument(
-        "--fe",
-        type=int,
-        nargs="+",
-        default=[96, 160, 192],
-        help="hidden and output fe layers e.g. 64 128",
-    )
-    parser.add_argument(
-        "--fmg",
-        type=int,
-        nargs="*",
-        default=[64],
-        help="mask network layers e.g. 64; input 0 for no intermediate layers",
-    )
-    parser.add_argument(
-        "--mp-iters-gen",
-        type=int,
-        default=0,
-        help="number of message passing iterations in the generator",
-    )
-    parser.add_argument(
-        "--mp-iters-disc",
-        type=int,
-        default=0,
-        help="number of message passing iterations in the discriminator (if applicable)",
-    )
-    parser.add_argument(
-        "--mp-iters",
-        type=int,
-        default=2,
-        help="number of message passing iterations in gen and disc both - will be overwritten by gen or disc specific args if given",
-    )
-    add_bool_arg(parser, "sum", "mean or sum in models", default=True, no_name="mean")
-
-    add_bool_arg(parser, "int-diffs", "use int diffs", default=False)
-    add_bool_arg(parser, "pos-diffs", "use pos diffs", default=False)
-    add_bool_arg(parser, "all-ef", "use all node features for edge distance", default=False)
-    # add_bool_arg(parser, "scalar-diffs", "use scalar diff (as opposed to vector)", default=True)
-    add_bool_arg(parser, "deltar", "use delta r as an edge feature", default=False)
-    add_bool_arg(parser, "deltacoords", "use delta coords as edge features", default=False)
-
-    parser.add_argument("--leaky-relu-alpha", type=float, default=0.2, help="leaky relu alpha")
-
-    add_bool_arg(parser, "dea", "use early averaging discriminator", default=True)
-    parser.add_argument(
-        "--fnd", type=int, nargs="*", default=[], help="hidden disc output layers e.g. 128 64"
-    )
-
-    add_bool_arg(
-        parser,
-        "lfc",
-        "use a fully connected network to go from noise vector to initial graph",
-        default=False,
-    )
-    parser.add_argument(
-        "--lfc-latent-size", type=int, default=128, help="size of lfc latent vector"
-    )
-
-    add_bool_arg(parser, "fully-connected", "use a fully connected graph", default=True)
-    parser.add_argument(
-        "--num-knn",
-        type=int,
-        default=10,
-        help="# of nearest nodes to connect to (if not fully connected)",
-    )
-    add_bool_arg(
-        parser,
-        "self-loops",
-        "use self loops in graph - always true for fully connected",
-        default=True,
-    )
-
-    parser.add_argument(
-        "--glorot", type=float, default=0, help="gain of glorot - if zero then glorot not used"
-    )
-
-    add_bool_arg(parser, "gtanh", "use tanh for g output", default=True)
-    # add_bool_arg(parser, "dearlysigmoid", "use early sigmoid in d", default=False)
+    parse_mpgan_args(args)
 
     ##########################################################
     # Masking
@@ -369,82 +232,8 @@ def parse_args():
         default=False,
     )
 
-    ##########################################################
-    # Optimization
-    ##########################################################
-
-    parser.add_argument(
-        "--optimizer",
-        type=str,
-        default="rmsprop",
-        help="pick optimizer",
-        choices=["adam", "rmsprop", "adadelta", "agcd"],
-    )
-    parser.add_argument(
-        "--loss",
-        type=str,
-        default="ls",
-        help="loss to use - options are og, ls, w, hinge",
-        choices=["og", "ls", "w", "hinge"],
-    )
-
-    parser.add_argument(
-        "--lr-disc",
-        type=float,
-        default=0,
-        help="learning rate for discriminator; defaults are 3e-5, 6e-5, and 1.5e-5 for gluon, top, and quark jet resp.",
-    )
-    parser.add_argument(
-        "--lr-gen",
-        type=float,
-        default=0,
-        help="learning rate for generator; defaults are 1e-5, 2e-5, and 0.5e-5 for gluon, top, and quark jet resp.",
-    )
-    parser.add_argument("--beta1", type=float, default=0.9, help="Adam optimizer beta1")
-    parser.add_argument("--beta2", type=float, default=0.999, help="Adam optimizer beta2")
-    parser.add_argument("--batch-size", type=int, default=0, help="batch size")
-
-    parser.add_argument(
-        "--num-critic",
-        type=int,
-        default=1,
-        help="number of critic updates for each generator update",
-    )
-    parser.add_argument(
-        "--num-gen",
-        type=int,
-        default=1,
-        help="number of generator updates for each critic update (num-critic must be 1 for this to apply)",
-    )
-
-    ##########################################################
-    # Regularization
-    ##########################################################
-
-    add_bool_arg(parser, "batch-norm-disc", "use batch normalization", default=False)
-    add_bool_arg(parser, "batch-norm-gen", "use batch normalization", default=False)
-    add_bool_arg(
-        parser, "spectral-norm-disc", "use spectral normalization in discriminator", default=False
-    )
-    add_bool_arg(
-        parser, "spectral-norm-gen", "use spectral normalization in generator", default=False
-    )
-
-    parser.add_argument(
-        "--disc-dropout", type=float, default=0.5, help="fraction of discriminator dropout"
-    )
-    parser.add_argument(
-        "--gen-dropout", type=float, default=0, help="fraction of generator dropout"
-    )
-
-    add_bool_arg(parser, "label-smoothing", "use label smoothing with discriminator", default=False)
-    parser.add_argument(
-        "--label-noise", type=float, default=0, help="discriminator label noise (between 0 and 1)"
-    )
-
-    parser.add_argument(
-        "--gp", type=float, default=0, help="WGAN generator penalty weight - 0 means not used"
-    )
+    parse_optimization_args(parser)
+    parse_regularization_args(parser)
 
     ##########################################################
     # Augmentation
@@ -627,6 +416,80 @@ def parse_args():
     return args
 
 
+def parse_optimization_args(parser):
+    parser.add_argument(
+        "--optimizer",
+        type=str,
+        default="rmsprop",
+        help="pick optimizer",
+        choices=["adam", "rmsprop", "adadelta", "agcd"],
+    )
+    parser.add_argument(
+        "--loss",
+        type=str,
+        default="ls",
+        help="loss to use - options are og, ls, w, hinge",
+        choices=["og", "ls", "w", "hinge"],
+    )
+
+    parser.add_argument(
+        "--lr-disc",
+        type=float,
+        default=0,
+        help="learning rate for discriminator; defaults are 3e-5, 6e-5, and 1.5e-5 for gluon, top, and quark jet resp.",
+    )
+    parser.add_argument(
+        "--lr-gen",
+        type=float,
+        default=0,
+        help="learning rate for generator; defaults are 1e-5, 2e-5, and 0.5e-5 for gluon, top, and quark jet resp.",
+    )
+    parser.add_argument("--beta1", type=float, default=0.9, help="Adam optimizer beta1")
+    parser.add_argument("--beta2", type=float, default=0.999, help="Adam optimizer beta2")
+    parser.add_argument("--batch-size", type=int, default=0, help="batch size")
+
+    parser.add_argument(
+        "--num-critic",
+        type=int,
+        default=1,
+        help="number of critic updates for each generator update",
+    )
+    parser.add_argument(
+        "--num-gen",
+        type=int,
+        default=1,
+        help="number of generator updates for each critic update (num-critic must be 1 for this to apply)",
+    )
+
+
+def parse_regularization_args(parser):
+    add_bool_arg(parser, "batch-norm-disc", "use batch normalization", default=False)
+    add_bool_arg(parser, "batch-norm-gen", "use batch normalization", default=False)
+    add_bool_arg(parser, "spectral-norm", "use spectral normalization in G and D", default=False)
+    add_bool_arg(
+        parser, "spectral-norm-disc", "use spectral normalization in discriminator", default=False
+    )
+    add_bool_arg(
+        parser, "spectral-norm-gen", "use spectral normalization in generator", default=False
+    )
+
+    parser.add_argument(
+        "--disc-dropout", type=float, default=0.5, help="fraction of discriminator dropout"
+    )
+    parser.add_argument(
+        "--gen-dropout", type=float, default=0, help="fraction of generator dropout"
+    )
+
+    add_bool_arg(parser, "label-smoothing", "use label smoothing with discriminator", default=False)
+    parser.add_argument(
+        "--label-noise", type=float, default=0, help="discriminator label noise (between 0 and 1)"
+    )
+
+    parser.add_argument(
+        "--gp", type=float, default=0, help="WGAN generator penalty weight - 0 means not used"
+    )
+
+
 def parse_mnist_args(parser):
     parser.add_argument(
         "--mnist-num", type=int, default=-1, help="mnist number to generate, -1 means all"
@@ -634,6 +497,143 @@ def parse_mnist_args(parser):
     parser.add_argument(
         "--fid-eval-samples", type=int, default=8192, help="# of samples for evaluating fid"
     )
+
+
+def parse_mpgan_args(parser):
+    parser.add_argument("--num-hits", type=int, default=30, help="number of hits")
+    parser.add_argument(
+        "--coords",
+        type=str,
+        default="polarrel",
+        help="cartesian, polarrel or polarrelabspt",
+        choices=["cartesian, polarrel, polarrelabspt"],
+    )
+
+    parser.add_argument(
+        "--norm", type=float, default=1, help="normalizing max value of features to this value"
+    )
+
+    parser.add_argument("--sd", type=float, default=0.2, help="standard deviation of noise")
+
+    parser.add_argument("--node-feat-size", type=int, default=3, help="node feature size")
+    parser.add_argument(
+        "--hidden-node-size",
+        type=int,
+        default=32,
+        help="hidden vector size of each node (incl node feature size)",
+    )
+    parser.add_argument(
+        "--latent-node-size",
+        type=int,
+        default=0,
+        help="latent vector size of each node - 0 means same as hidden node size",
+    )
+
+    parser.add_argument(
+        "--clabels",
+        type=int,
+        default=0,
+        help="0 - no clabels, 1 - clabels with pt only, 2 - clabels with pt and eta",
+        choices=[0, 1, 2],
+    )
+    add_bool_arg(parser, "clabels-fl", "use conditional labels in first layer", default=True)
+    add_bool_arg(parser, "clabels-hl", "use conditional labels in hidden layers", default=True)
+
+    parser.add_argument(
+        "--fn", type=int, nargs="*", default=[256, 256], help="hidden fn layers e.g. 256 256"
+    )
+    parser.add_argument(
+        "--fe1g",
+        type=int,
+        nargs="*",
+        default=0,
+        help="hidden and output gen fe layers e.g. 64 128 in the first iteration - 0 means same as fe",
+    )
+    parser.add_argument(
+        "--fe1d",
+        type=int,
+        nargs="*",
+        default=0,
+        help="hidden and output disc fe layers e.g. 64 128 in the first iteration - 0 means same as fe",
+    )
+    parser.add_argument(
+        "--fe",
+        type=int,
+        nargs="+",
+        default=[96, 160, 192],
+        help="hidden and output fe layers e.g. 64 128",
+    )
+    parser.add_argument(
+        "--fmg",
+        type=int,
+        nargs="*",
+        default=[64],
+        help="mask network layers e.g. 64; input 0 for no intermediate layers",
+    )
+    parser.add_argument(
+        "--mp-iters-gen",
+        type=int,
+        default=0,
+        help="number of message passing iterations in the generator",
+    )
+    parser.add_argument(
+        "--mp-iters-disc",
+        type=int,
+        default=0,
+        help="number of message passing iterations in the discriminator (if applicable)",
+    )
+    parser.add_argument(
+        "--mp-iters",
+        type=int,
+        default=2,
+        help="number of message passing iterations in gen and disc both - will be overwritten by gen or disc specific args if given",
+    )
+    add_bool_arg(parser, "sum", "mean or sum in models", default=True, no_name="mean")
+
+    add_bool_arg(parser, "int-diffs", "use int diffs", default=False)
+    add_bool_arg(parser, "pos-diffs", "use pos diffs", default=False)
+    add_bool_arg(parser, "all-ef", "use all node features for edge distance", default=False)
+    # add_bool_arg(parser, "scalar-diffs", "use scalar diff (as opposed to vector)", default=True)
+    add_bool_arg(parser, "deltar", "use delta r as an edge feature", default=False)
+    add_bool_arg(parser, "deltacoords", "use delta coords as edge features", default=False)
+
+    parser.add_argument("--leaky-relu-alpha", type=float, default=0.2, help="leaky relu alpha")
+
+    add_bool_arg(parser, "dea", "use early averaging discriminator", default=True)
+    parser.add_argument(
+        "--fnd", type=int, nargs="*", default=[], help="hidden disc output layers e.g. 128 64"
+    )
+
+    add_bool_arg(
+        parser,
+        "lfc",
+        "use a fully connected network to go from noise vector to initial graph",
+        default=False,
+    )
+    parser.add_argument(
+        "--lfc-latent-size", type=int, default=128, help="size of lfc latent vector"
+    )
+
+    add_bool_arg(parser, "fully-connected", "use a fully connected graph", default=True)
+    parser.add_argument(
+        "--num-knn",
+        type=int,
+        default=10,
+        help="# of nearest nodes to connect to (if not fully connected)",
+    )
+    add_bool_arg(
+        parser,
+        "self-loops",
+        "use self loops in graph - always true for fully connected",
+        default=True,
+    )
+
+    parser.add_argument(
+        "--glorot", type=float, default=0, help="gain of glorot - if zero then glorot not used"
+    )
+
+    # add_bool_arg(parser, "dearlysigmoid", "use early sigmoid in d", default=False)
+    add_bool_arg(parser, "gtanh", "use tanh for g output", default=True)
 
 
 def parse_gapt_args(parser):
@@ -664,7 +664,7 @@ def parse_gapt_args(parser):
     parser.add_argument(
         "--gapt-embed-dim",
         type=int,
-        default=32,
+        default=64,
         help="size of node, Q, K, V, embeddings",
     )
     parser.add_argument(
@@ -691,6 +691,7 @@ def parse_gapt_args(parser):
 
     add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
 
+    add_bool_arg(parser, "layer-norm", "use layer normalization in G and D", default=False)
     add_bool_arg(parser, "layer-norm-disc", "use layer normalization in generator", default=False)
     add_bool_arg(
         parser, "layer-norm-gen", "use layer normalization in discriminator", default=False
@@ -823,10 +824,15 @@ def process_args(args):
         if args.fmg == [0]:
             args.fmg = []
 
-    ##########################################################
-    # Optimization
-    ##########################################################
+    process_optimization_args(args)
+    process_regularization_args(args)
+    process_external_models_args(args)
+    process_gapt_args(args)
 
+    return args
+
+
+def process_optimization_args(args):
     if args.batch_size == 0:
         if args.model == "mpgan" or args.model_D == "mpgan":
             if args.multi_gpu:
@@ -858,20 +864,26 @@ def process_args(args):
                 args.batch_size = 32
 
     if args.lr_disc == 0:
-        if args.jets == "g":
-            args.lr_disc = 3e-5
-        elif args.jets == "t":
-            args.lr_disc = 6e-5
-        elif args.jets == "q":
-            args.lr_disc = 1.5e-5
+        if args.model == "mpgan":
+            if args.jets == "g":
+                args.lr_disc = 3e-5
+            elif args.jets == "t":
+                args.lr_disc = 6e-5
+            elif args.jets == "q":
+                args.lr_disc = 1.5e-5
+        elif args.model == "gapt":
+            args.lr_disc = 3e-4
 
     if args.lr_gen == 0:
-        if args.jets == "g":
-            args.lr_gen = 1e-5
-        elif args.jets == "t":
-            args.lr_gen = 2e-5
-        elif args.jets == "q":
-            args.lr_gen = 0.5e-5
+        if args.model == "mpgan":
+            if args.jets == "g":
+                args.lr_gen = 1e-5
+            elif args.jets == "t":
+                args.lr_gen = 2e-5
+            elif args.jets == "q":
+                args.lr_gen = 0.5e-5
+        elif args.model == "gapt":
+            args.lr_gen = 1e-4
 
     if args.aug_t or args.aug_f or args.aug_r90 or args.aug_s:
         args.augment = True
@@ -881,10 +893,25 @@ def process_args(args):
     if args.augment:
         logging.warning("augmentation is very experimental - try at your own risk")
 
-    ##########################################################
-    # External models
-    ##########################################################
 
+def process_regularization_args(args):
+    if args.spectral_norm:
+        args.spectral_norm_disc, args.spectral_norm_gen = True, True
+    if args.layer_norm:
+        args.layer_norm_disc, args.layer_norm_gen = True, True
+
+
+def process_gapt_args(args):
+    if args.gapt_mask:
+        args.mask = True
+
+    if not args.sab_layers_gen:
+        args.sab_layers_gen = args.sab_layers
+    if not args.sab_layers_disc:
+        args.sab_layers_disc = args.sab_layers
+
+
+def process_external_models_args(args):
     if args.model_D == "":
         if args.model == "mpgan":
             args.model_D = "mpgan"
@@ -979,22 +1006,6 @@ def process_args(args):
             args.rgand_sfc = [64, 128, 256, 512]
         if args.rgand_fc == 0:
             args.rgand_fc = [128, 64]
-
-    args = process_gapt_args(args)
-
-    return args
-
-
-def process_gapt_args(args):
-    if args.gapt_mask:
-        args.mask = True
-
-    if not args.sab_layers_gen:
-        args.sab_layers_gen = args.sab_layers
-    if not args.sab_layers_disc:
-        args.sab_layers_disc = args.sab_layers
-
-    return args
 
 
 def init_project_dirs(args):
