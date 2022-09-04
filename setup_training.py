@@ -97,13 +97,13 @@ def parse_args():
         type=str,
         default="mpgan",
         help="model to run",
-        choices=["mpgan", "rgan", "graphcnngan", "treegan", "pcgan"],
+        choices=["mpgan", "rgan", "graphcnngan", "treegan", "pcgan", "gapt"],
     )
     parser.add_argument(
         "--model-D",
         type=str,
         default="",
-        help="model discriminator, mpgan default is mpgan, rgan. graphcnngan, treegan default is rgan, pcgan default is pcgan",
+        help="model discriminator, mpgan default is mpgan, rgan. graphcnngan, treegan default is rgan, pcgan default is pcgan, gapt default is gapt",
         choices=["mpgan", "rgan", "pointnet", "pcgan"],
     )
 
@@ -615,9 +615,82 @@ def parse_args():
         help="PCGAN inference network pooling - has to be the same as the pre-trained network",
     )
 
+    parse_mnist_args(parser)
+    parse_gapt_args(parser)
+
     args = parser.parse_args()
 
     return args
+
+
+def parse_mnist_args(parser):
+    parser.add_argument(
+        "--mnist-num", type=int, default=-1, help="mnist number to generate, -1 means all"
+    )
+    parser.add_argument(
+        "--fid-eval-samples", type=int, default=8192, help="# of samples for evaluating fid"
+    )
+
+
+def parse_gapt_args(parser):
+    parser.add_argument(
+        "--sab-layers-gen",
+        type=int,
+        default=0,
+        help="number of attention layers in the generator",
+    )
+    parser.add_argument(
+        "--sab-layers-disc",
+        type=int,
+        default=0,
+        help="number of attention layers in the discriminator (if applicable)",
+    )
+    parser.add_argument(
+        "--sab-layers",
+        type=int,
+        default=2,
+        help="number of message passing iterations in gen and disc both - will be overwritten by gen or disc specific args if given",
+    )
+    parser.add_argument(
+        "--num-heads",
+        type=int,
+        default=4,
+        help="number of multi-head attention heads",
+    )
+    parser.add_argument(
+        "--gapt-embed-dim",
+        type=int,
+        default=32,
+        help="size of node, Q, K, V, embeddings",
+    )
+    parser.add_argument(
+        "--sab-fc-layers",
+        type=int,
+        nargs="*",
+        default=[],
+        help="self attention block's feedforward network's intermediate layers",
+    )
+    parser.add_argument(
+        "--final-fc-layers-gen",
+        type=int,
+        nargs="*",
+        default=[],
+        help="final FC in GAPT generator's intermediate layers",
+    )
+    parser.add_argument(
+        "--final-fc-layers-disc",
+        type=int,
+        nargs="*",
+        default=[],
+        help="final FC in GAPT discriminator's intermediate layers",
+    )
+
+    add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
+
+    add_bool_arg(parser, "layer-norm-disc", "use layer normalization in generator", default=False)
+    add_bool_arg(
+        parser, "layer-norm-gen", "use layer normalization in discriminator", default=False
+    )
 
 
 def check_args_errors(args):
@@ -727,6 +800,9 @@ def process_args(args):
         or args.mask_learn_sep
     ):
         args.mask = True
+    elif args.model == "gapt" and args.gapt_mask:
+        args.mask = True
+        args.mask_c = True
     else:
         args.mask = False
         args.mask_c = False
@@ -777,6 +853,12 @@ def process_args(args):
                         else:
                             args.batch_size = 32
 
+        elif args.model == "gapt" or args.model_D == "gapt":
+            if args.num_hits <= 30:
+                args.batch_size = 256
+            else:
+                args.batch_size = 32
+
     if args.lr_disc == 0:
         if args.jets == "g":
             args.lr_disc = 3e-5
@@ -810,6 +892,8 @@ def process_args(args):
             args.model_D = "mpgan"
         elif args.model == "pcgan":
             args.model_D = "pcgan"
+        elif args.model == "gapt":
+            args.model_D = "gapt"
         else:
             args.model_D = "rgan"
 
@@ -898,6 +982,20 @@ def process_args(args):
         if args.rgand_fc == 0:
             args.rgand_fc = [128, 64]
 
+    args = process_gapt_args(args)
+
+    return args
+
+
+def process_gapt_args(args):
+    if args.gapt_mask:
+        args.mask = True
+
+    if not args.sab_layers_gen:
+        args.sab_layers_gen = args.sab_layers
+    if not args.sab_layers_disc:
+        args.sab_layers_disc = args.sab_layers
+
     return args
 
 
@@ -915,13 +1013,21 @@ def init_project_dirs(args):
 
     os.system(f"mkdir -p {args.datasets_path}")
 
+    # if args.dir_path == "":
+    #     if args.n:
+    #         args.dir_path = "/graphganvol/MPGAN/outputs/"
+    #     elif args.lx:
+    #         args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs/"
+    #     else:
+    #         args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/outputs/"
+
     if args.dir_path == "":
         if args.n:
-            args.dir_path = "/graphganvol/MPGAN/outputs/"
+            args.dir_path = "/graphganvol/MPGAN/mnist_outputs/"
         elif args.lx:
-            args.dir_path = "/eos/user/r/rkansal/MPGAN/outputs/"
+            args.dir_path = "/eos/user/r/rkansal/MPGAN/mnist_outputs/"
         else:
-            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/outputs/"
+            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/mnist_outputs/"
 
     os.system(f"mkdir -p {args.dir_path}")
 
@@ -1132,10 +1238,67 @@ def setup_mpgan(args, gen):
         )
 
 
+def setup_gapt(args, gen):
+    """Setup MPGAN models"""
+    from gapt import GAPT_G, GAPT_D
+
+    print(args.gapt_mask)
+
+    # args for LinearNet layers
+    linear_args = {
+        "leaky_relu_alpha": args.leaky_relu_alpha,
+        "dropout_p": args.gen_dropout if gen else args.disc_dropout,
+        "batch_norm": args.batch_norm_gen if gen else args.batch_norm_disc,
+        "spectral_norm": args.spectral_norm_gen if gen else args.spectral_norm_disc,
+    }
+
+    common_args = {
+        "num_particles": args.num_hits,
+        "num_heads": args.num_heads,
+        "embed_dim": args.gapt_embed_dim,
+        "sab_fc_layers": args.sab_fc_layers,
+        "use_mask": args.gapt_mask,
+    }
+
+    # generator-specific args
+    gen_args = {
+        "sab_layers": args.sab_layers_gen,
+        "output_feat_size": args.node_feat_size,
+        "final_fc_layers": args.final_fc_layers_gen,
+        "dropout_p": args.gen_dropout,
+        "layer_norm": args.layer_norm_gen,
+    }
+
+    # discriminator-specific args
+    disc_args = {
+        "sab_layers": args.sab_layers_disc,
+        "input_feat_size": args.node_feat_size,
+        "final_fc_layers": args.final_fc_layers_disc,
+        "dropout_p": args.disc_dropout,
+        "layer_norm": args.layer_norm_disc,
+    }
+
+    if gen:
+        return GAPT_G(
+            **gen_args,
+            **common_args,
+            linear_args=linear_args,
+        )
+    else:
+        return GAPT_D(
+            **disc_args,
+            **common_args,
+            linear_args=linear_args,
+        )
+
+
 def models(args, gen_only=False):
     """Set up generator and discriminator models, either new or loaded from a state dict"""
     if args.model == "mpgan":
         G = setup_mpgan(args, gen=True)
+        logging.info(G)
+    elif args.model == "gapt":
+        G = setup_gapt(args, gen=True)
         logging.info(G)
     elif args.model == "rgan":
         from ext_models import rGANG
@@ -1164,6 +1327,9 @@ def models(args, gen_only=False):
 
     if args.model_D == "mpgan":
         D = setup_mpgan(args, gen=False)
+        logging.info(D)
+    elif args.model_D == "gapt":
+        D = setup_gapt(args, gen=False)
         logging.info(D)
     elif args.model_D == "rgan":
         from ext_models import rGAND
@@ -1259,6 +1425,8 @@ def get_model_args(args):
             if args.latent_node_size
             else args.hidden_node_size,
         }
+    elif args.model == "gapt":
+        model_args = {"embed_dim": args.gapt_embed_dim}
     elif args.model == "rgan" or args.model == "graphcnngan":
         model_args = {"latent_dim": args.latent_dim}
     elif args.model == "treegan":

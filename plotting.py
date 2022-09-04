@@ -394,3 +394,21 @@ def plot_eval(
         plt.show()
     else:
         plt.close()
+
+
+def plot_fid(losses, epoch, save_epochs, name=None, losses_path=None, show=False):
+    x = np.arange(0, epoch + 1, save_epochs)[-len(losses["fid"]) :]
+
+    plt.figure()
+    plt.plot(x, np.array(losses["fid"]))
+    plt.xlabel("Epoch")
+    plt.ylabel("FID")
+    plt.yscale("log")
+
+    if losses_path is not None and name is not None:
+        plt.savefig(losses_path + name + ".pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
