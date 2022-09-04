@@ -711,6 +711,8 @@ def eval_save_plot(
         zero_neg_pt=False,
     )
 
+    use_mask = args.mask_c or args.clabels or args.gapt_mask
+
     gen_output = gen_multi_batch(
         model_args,
         G,
@@ -720,13 +722,13 @@ def eval_save_plot(
         out_device="cpu",
         model=args.model,
         detach=True,
-        labels=X_test.jet_data[: args.eval_tot_samples]
-        if (args.mask_c or args.clabels or args.gapt_mask)
-        else None,
+        labels=X_test.jet_data[: args.eval_tot_samples] if use_mask else None,
         **extra_args,
     )
     gen_jets, gen_mask = jetnet.utils.gen_jet_corrections(
         X_test.particle_normalisation(gen_output, inverse=True),
+        ret_mask_separate=use_mask,
+        zero_mask_particles=use_mask,
     )
 
     gen_jets = gen_jets.numpy()

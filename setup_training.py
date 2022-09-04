@@ -1496,6 +1496,8 @@ def losses(args):
         keys.append("gp")
 
     eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "coverage", "mmd"]
+    # metrics which store more than a single value per epoch e.g. mean and std
+    multi_value_keys = ["w1p", "w1m", "w1efp"]
 
     if not args.fpnd:
         eval_keys.remove("fpnd")
@@ -1509,8 +1511,11 @@ def losses(args):
         if args.load_model:
             try:
                 losses[key] = np.loadtxt(f"{args.losses_path}/{key}.txt")
-                if losses[key].ndim == 1:
-                    np.expand_dims(losses[key], 0)
+                if (losses[key].ndim == 1 and key in multi_value_keys) or (
+                    losses[key].ndim == 0 and key not in multi_value_keys
+                ):
+                    losses[key] = np.expand_dims(losses[key], 0)
+
                 losses[key] = losses[key].tolist()
                 if key in eval_keys:
                     losses[key] = losses[key][: int(args.start_epoch / args.save_epochs) + 1]
