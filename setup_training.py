@@ -87,7 +87,11 @@ def parse_args():
         help="name or tag for model; will be appended with other info",
     )
     parser.add_argument(
-        "--dataset", type=str, default="jets", help="dataset to use", choices=["jets", "jets-lagan"]
+        "--dataset",
+        type=str,
+        default="jets",
+        help="dataset to use",
+        choices=["jets", "mnist"],
     )
 
     parser.add_argument("--ttsplit", type=float, default=0.7, help="ratio of train/test split")
@@ -769,9 +773,6 @@ def process_args(args):
         args.w1_num_samples = [100]
         args.num_samples = 1000
 
-    if args.dataset == "jets-lagan" and args.jets == "g":
-        args.jets = "sig"
-
     ##########################################################
     # Architecture
     ##########################################################
@@ -806,9 +807,6 @@ def process_args(args):
     else:
         args.mask = False
         args.mask_c = False
-
-    if args.dataset == "jets-lagan":
-        args.mask_c = True
 
     if args.mask_fnd_np:
         logging.info("setting dea true due to mask-fnd-np arg")
@@ -1021,13 +1019,18 @@ def init_project_dirs(args):
     #     else:
     #         args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/outputs/"
 
+    if args.dataset == "jets":
+        dataset_str = ""
+    elif args.dataset == "mnist":
+        dataset_str = "mnist_"
+
     if args.dir_path == "":
         if args.n:
-            args.dir_path = "/graphganvol/MPGAN/mnist_outputs/"
+            args.dir_path = f"/graphganvol/MPGAN/{dataset_str}outputs/"
         elif args.lx:
-            args.dir_path = "/eos/user/r/rkansal/MPGAN/mnist_outputs/"
+            args.dir_path = f"/eos/user/r/rkansal/MPGAN/{dataset_str}outputs/"
         else:
-            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + "/mnist_outputs/"
+            args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + f"/{dataset_str}outputs/"
 
     os.system(f"mkdir -p {args.dir_path}")
 
