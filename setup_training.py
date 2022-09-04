@@ -264,7 +264,7 @@ def parse_args():
     ##########################################################
 
     add_bool_arg(parser, "fpnd", "calc fpnd", default=True)
-    add_bool_arg(parser, "efp", "calc w1efp", default=True)
+    add_bool_arg(parser, "efp", "calc w1efp", default=False)
     # parser.add_argument("--fid-eval-size", type=int, default=8192, help="number of samples generated for evaluating fid")
     parser.add_argument(
         "--fpnd-batch-size",
@@ -758,7 +758,7 @@ def process_args(args):
             args.save_zero = True
 
     if args.save_epochs == 0:
-        if args.num_hits <= 30:
+        if args.num_hits <= 30 or args.model == "gapt":
             args.save_epochs = 5
         else:
             args.save_epochs = 1
