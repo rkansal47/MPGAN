@@ -183,7 +183,7 @@ def parse_args():
 
     parser.add_argument("--seed", type=int, default=4, help="torch seed")
 
-    parse_mpgan_args(args)
+    parse_mpgan_args(parser)
 
     ##########################################################
     # Masking
