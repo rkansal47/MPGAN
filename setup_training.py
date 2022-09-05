@@ -864,10 +864,7 @@ def process_optimization_args(args):
 
         elif args.model == "gapt" or args.model_D == "gapt":
             if args.dataset == "jets":
-                if args.num_hits <= 30:
-                    args.batch_size = 256
-                else:
-                    args.batch_size = 128
+                args.batch_size = 512
 
             elif args.dataset == "mnist":
                 if args.gapt_embed_dim < 64:
