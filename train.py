@@ -33,8 +33,14 @@ def main():
     logging.info("Args initalized")
 
     # as used for arXiv:2106.11535
+    feature_maxes = JetNet.fpnd_norm.feature_maxes
+    if args.mask:
+        feature_maxes = feature_maxes + [1]
+
     particle_norm = FeaturewiseLinearBounded(
-        feature_norms=1.0, feature_shifts=[0.0, 0.0, -0.5, -0.5] if args.mask else [0.0, 0.0, -0.5]
+        feature_norms=1.0,
+        feature_shifts=[0.0, 0.0, -0.5, -0.5] if args.mask else [0.0, 0.0, -0.5],
+        feature_maxes=feature_maxes,
     )
     jet_norm = FeaturewiseLinear(feature_scales=1.0 / args.num_hits)
 
@@ -56,9 +62,16 @@ def main():
     X_train = JetNet(**data_args, split="train")
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
+    print(particle_norm.feature_maxes)
+
     X_test = JetNet(**data_args, split="valid")
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info(f"Data loaded \n X_train \n {X_train} \n X_test \n {X_test}")
+
+    print(particle_norm.feature_maxes)
+
+    # print(torch.max(X_train.view(-1, 30 * 4), axis=0))
+    # print(torch.max(X_test.view(-1, 30 * 4), axis=0))
 
     G, D = setup_training.models(args)
     model_train_args, model_eval_args, extra_args = setup_training.get_model_args(args)
