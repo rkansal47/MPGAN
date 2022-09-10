@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from .spectral_normalization import SpectralNorm
 
 import logging
+from typing import Optional
 
 
 class LinearNet(nn.Module):
@@ -170,6 +171,17 @@ class PMA(nn.Module):
         return self.mab(self.S.repeat(x.size(0), 1, 1), x, mask)
 
 
+def _attn_mask(mask: Tensor) -> Optional[Tensor]:
+    """
+    Convert JetNet mask scheme (1 - real, 0 -padded) to nn.MultiHeadAttention mask scheme
+    (True - ignore, False - attend)
+    """
+    if mask is None:
+        return None
+    else:
+        return (1 - mask).bool()
+
+
 class GAPT_G(nn.Module):
     def __init__(
         self,
@@ -237,7 +249,7 @@ class GAPT_G(nn.Module):
             mask = None
 
         for sab in self.sabs:
-            x = sab(x, (1 - mask).bool() if self.use_mask else None)
+            x = sab(x, _attn_mask(mask))
 
         x = torch.tanh(self.final_fc(x))
 
@@ -307,7 +319,6 @@ class GAPT_D(nn.Module):
     def forward(self, x: Tensor, labels: Tensor = None):
         if self.use_mask:
             mask = x[..., -1:] + 0.5
-            mask = (1 - mask).bool()
             x = x[..., :-1]
         else:
             mask = None
@@ -315,6 +326,6 @@ class GAPT_D(nn.Module):
         x = self.input_embedding(x)
 
         for sab in self.sabs:
-            x = sab(x, mask)
+            x = sab(x, _attn_mask(mask))
 
-        return torch.sigmoid(self.final_fc(self.pma(x, mask).squeeze()))
+        return torch.sigmoid(self.final_fc(self.pma(x, _attn_mask(mask)).squeeze()))
