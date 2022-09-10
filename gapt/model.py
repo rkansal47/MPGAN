@@ -307,6 +307,7 @@ class GAPT_D(nn.Module):
     def forward(self, x: Tensor, labels: Tensor = None):
         if self.use_mask:
             mask = x[..., -1:] + 0.5
+            mask = (1 - mask).bool()
             x = x[..., :-1]
         else:
             mask = None
@@ -316,4 +317,4 @@ class GAPT_D(nn.Module):
         for sab in self.sabs:
             x = sab(x, mask)
 
-        return torch.sigmoid(self.final_fc(self.pma(x).squeeze()))
+        return torch.sigmoid(self.final_fc(self.pma(x, mask).squeeze()))
