@@ -168,6 +168,9 @@ class PMA(nn.Module):
         self.mab = MAB(dim, **mab_args)
 
     def forward(self, x: Tensor, mask: Tensor = None):
+        if mask is not None:
+            mask = mask.transpose(-2, -1)
+
         return self.mab(self.S.repeat(x.size(0), 1, 1), x, mask)
 
 
