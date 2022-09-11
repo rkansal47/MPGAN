@@ -62,13 +62,9 @@ def main():
     X_train = JetNet(**data_args, split="train")
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
-    print(particle_norm.feature_maxes)
-
     X_test = JetNet(**data_args, split="valid")
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info(f"Data loaded \n X_train \n {X_train} \n X_test \n {X_test}")
-
-    print(particle_norm.feature_maxes)
 
     # print(torch.max(X_train.view(-1, 30 * 4), axis=0))
     # print(torch.max(X_test.view(-1, 30 * 4), axis=0))
