@@ -173,6 +173,7 @@ class PMA(nn.Module):
 
         return self.mab(self.S.repeat(x.size(0), 1, 1), x, mask)
 
+
 # Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
 class ISAB(nn.Module):
     def __init__(self, **mab_args):
@@ -185,6 +186,7 @@ class ISAB(nn.Module):
     def forward(self, X):
         H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
         return self.mab1(X, H)
+
 
 def _attn_mask(mask: Tensor) -> Optional[Tensor]:
     """
