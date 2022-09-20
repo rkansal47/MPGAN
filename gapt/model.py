@@ -173,6 +173,18 @@ class PMA(nn.Module):
 
         return self.mab(self.S.repeat(x.size(0), 1, 1), x, mask)
 
+# Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
+class ISAB(nn.Module):
+    def __init__(self, **mab_args):
+        super(ISAB, self).__init__()
+        self.I = nn.Parameter(torch.Tensor(1, **mab_args))
+        nn.init.xavier_uniform_(self.I)
+        self.mab0 = MAB(**mab_args)
+        self.mab1 = MAB(**mab_args)
+
+    def forward(self, X):
+        H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
+        return self.mab1(X, H)
 
 def _attn_mask(mask: Tensor) -> Optional[Tensor]:
     """
@@ -216,7 +228,7 @@ class GAPT_G(nn.Module):
         # intermediate layers
         for _ in range(sab_layers):
             self.sabs.append(
-                SAB(
+                ISAB(
                     embed_dim=embed_dim,
                     ff_layers=sab_fc_layers,
                     final_linear=False,
@@ -294,7 +306,7 @@ class GAPT_D(nn.Module):
         # intermediate layers
         for _ in range(sab_layers):
             self.sabs.append(
-                SAB(
+                ISAB(
                     embed_dim=embed_dim,
                     ff_layers=sab_fc_layers,
                     final_linear=False,
