@@ -688,8 +688,15 @@ def parse_gapt_args(parser):
         default=[],
         help="final FC in GAPT discriminator's intermediate layers",
     )
+    parser.add_argument(
+        "--num-isab-nodes",
+        type=int,
+        default=10,
+        help="number of induced nodes in ISAB blocks, if using ISAB blocks",
+    )
 
     add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
+    add_bool_arg(parser, "use-isab", "use ISAB in GAPT", default=False)
 
     add_bool_arg(parser, "layer-norm", "use layer normalization in G and D", default=False)
     add_bool_arg(parser, "layer-norm-disc", "use layer normalization in generator", default=False)
@@ -1283,6 +1290,8 @@ def setup_gapt(args, gen):
         "embed_dim": args.gapt_embed_dim,
         "sab_fc_layers": args.sab_fc_layers,
         "use_mask": args.gapt_mask,
+        "use_isab": args.use_isab,
+        "num_isab_nodes": args.num_isab_nodes,
     }
 
     # generator-specific args

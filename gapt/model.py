@@ -158,14 +158,14 @@ class SAB(nn.Module):
 class PMA(nn.Module):
     def __init__(
         self,
-        dim: int,
+        embed_dim: int,
         num_seeds: int,
         **mab_args,
     ):
         super(PMA, self).__init__()
-        self.S = nn.Parameter(torch.Tensor(1, num_seeds, dim))
+        self.S = nn.Parameter(torch.Tensor(1, num_seeds, embed_dim))
         nn.init.xavier_uniform_(self.S)
-        self.mab = MAB(dim, **mab_args)
+        self.mab = MAB(embed_dim, **mab_args)
 
     def forward(self, x: Tensor, mask: Tensor = None):
         if mask is not None:
@@ -173,18 +173,20 @@ class PMA(nn.Module):
 
         return self.mab(self.S.repeat(x.size(0), 1, 1), x, mask)
 
+
 # Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
 class ISAB(nn.Module):
     def __init__(self, num_inds, embed_dim, **mab_args):
         super(ISAB, self).__init__()
         self.I = nn.Parameter(torch.Tensor(1, num_inds, embed_dim))
         nn.init.xavier_uniform_(self.I)
-        self.mab0 = MAB(**mab_args)
-        self.mab1 = MAB(**mab_args)
+        self.mab0 = MAB(embed_dim=embed_dim, **mab_args)
+        self.mab1 = MAB(embed_dim=embed_dim, **mab_args)
 
-    def forward(self, X):
+    def forward(self, X, mask: Tensor = None):
         H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
         return self.mab1(X, H)
+
 
 def _attn_mask(mask: Tensor) -> Optional[Tensor]:
     """
@@ -204,13 +206,14 @@ class GAPT_G(nn.Module):
         output_feat_size: int,
         sab_layers: int = 2,
         num_heads: int = 4,
-        num_inds: int = 10
         embed_dim: int = 32,
         sab_fc_layers: list = [],
         layer_norm: bool = False,
         dropout_p: float = 0.0,
         final_fc_layers: list = [],
         use_mask: bool = True,
+        use_isab: bool = False,
+        num_isab_nodes: int = 10,
         linear_args: dict = {},
     ):
         super(GAPT_G, self).__init__()
@@ -220,23 +223,19 @@ class GAPT_G(nn.Module):
 
         self.sabs = nn.ModuleList()
 
-        mab_args = {
+        sab_args = {
+            "embed_dim": embed_dim,
+            "ff_layers": sab_fc_layers,
+            "final_linear": False,
             "num_heads": num_heads,
             "layer_norm": layer_norm,
             "dropout_p": dropout_p,
+            "linear_args": linear_args,
         }
 
         # intermediate layers
         for _ in range(sab_layers):
-            self.sabs.append(
-                ISAB(
-                    embed_dim=embed_dim,
-                    ff_layers=sab_fc_layers,
-                    final_linear=False,
-                    **mab_args,
-                    linear_args=linear_args,
-                )
-            )
+            self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
 
         self.final_fc = LinearNet(
             final_fc_layers,
@@ -285,6 +284,8 @@ class GAPT_D(nn.Module):
         dropout_p: float = 0.0,
         final_fc_layers: list = [],
         use_mask: bool = True,
+        use_isab: bool = False,
+        num_isab_nodes: int = 10,
         linear_args: dict = {},
     ):
         super(GAPT_D, self).__init__()
@@ -294,10 +295,14 @@ class GAPT_D(nn.Module):
 
         self.sabs = nn.ModuleList()
 
-        mab_args = {
+        sab_args = {
+            "embed_dim": embed_dim,
+            "ff_layers": sab_fc_layers,
+            "final_linear": False,
             "num_heads": num_heads,
             "layer_norm": layer_norm,
             "dropout_p": dropout_p,
+            "linear_args": linear_args,
         }
 
         self.input_embedding = LinearNet(
@@ -306,22 +311,11 @@ class GAPT_D(nn.Module):
 
         # intermediate layers
         for _ in range(sab_layers):
-            self.sabs.append(
-                ISAB(
-                    embed_dim=embed_dim,
-                    ff_layers=sab_fc_layers,
-                    final_linear=False,
-                    **mab_args,
-                    linear_args=linear_args,
-                )
-            )
+            self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
 
         self.pma = PMA(
-            embed_dim,
-            1,
-            final_linear=False,
-            **mab_args,
-            linear_args=linear_args,
+            num_seeds=1,
+            **sab_args,
         )
 
         self.final_fc = LinearNet(
