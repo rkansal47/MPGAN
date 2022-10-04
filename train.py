@@ -216,6 +216,9 @@ def gen(
 
     gen_data = G(noise, labels)
 
+    ste = BucketizeSTE() 
+    gen_data = ste(gen_data)
+
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
         # TODO: add pt_cutoff to extra_args
         gen_data = mask_manual(model_args, gen_data, extra_args["pt_cutoff"])
