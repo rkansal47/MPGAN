@@ -132,7 +132,9 @@ class BucketizeFunction(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input):
         # Three valid outputs for z are, 0.166666 or 1/6, 0.5, 0.833333 or 5/6
-        boundaries = torch.tensor([0.3333,0.6666]) 
+        # probably can use device as param here
+        boundaries = torch.tensor([0.3333,0.6666]).to("cuda" if input.is_cuda else "cpu")
+ 
         input[:, :, 2] = torch.bucketize(input[:, :, 2], boundaries)
         # them map 0 (values < 0.3333) to 1/6; 1 (0.3333 < values < 0.6666) to 0.5; 2 (values > 0.6666) to 5/6
         input[:, :, 2] *= 1.0/3
