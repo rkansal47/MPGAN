@@ -677,20 +677,20 @@ def eval_save_plot(
             except:
                 logging.info("Couldn't remove previous eval curves")
 
-    # save model state and sample generated jets if this is the lowest w1m score yet
-    if epoch > 0 and losses["fid"][-1] < best_epoch[-1][1]:
-        best_epoch.append([epoch, losses["fid"][-1]])
-        np.savetxt(f"{args.outs_path}/best_epoch.txt", np.array(best_epoch))
+        # save model state and sample generated jets if this is the lowest w1m score yet
+        if epoch > 0 and losses["fid"][-1] < best_epoch[-1][1]:
+            best_epoch.append([epoch, losses["fid"][-1]])
+            np.savetxt(f"{args.outs_path}/best_epoch.txt", np.array(best_epoch))
 
-        np.save(f"{args.outs_path}/best_epoch_gen_outputs", gen_output)
+            np.save(f"{args.outs_path}/best_epoch_gen_outputs", gen_output)
 
-        with open(f"{args.outs_path}/best_epoch_losses.txt", "w") as f:
-            f.write(str({key: losses[key][-1] for key in losses}))
+            with open(f"{args.outs_path}/best_epoch_losses.txt", "w") as f:
+                f.write(str({key: losses[key][-1] for key in losses}))
 
-        if args.multi_gpu:
-            torch.save(G.module.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
-        else:
-            torch.save(G.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
+            if args.multi_gpu:
+                torch.save(G.module.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
+            else:
+                torch.save(G.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
 
 
 def train_loop(
