@@ -1120,10 +1120,15 @@ def load_args(args):
     if args.load_model:
         if args.start_epoch == -1:
             # find the last saved model and start from there
-            prev_models = [int(f[:-3].split("_")[-1]) for f in listdir(args.models_path)]
+            d_prev_models = [
+                int(f[:-3].split("_")[-1]) for f in listdir(args.models_path) if f.startswith("D")
+            ]
+            g_prev_models = [
+                int(f[:-3].split("_")[-1]) for f in listdir(args.models_path) if f.startswith("G")
+            ]
 
-            if len(prev_models):
-                args.start_epoch = max(prev_models)
+            if len(d_prev_models) and len(g_prev_models):
+                args.start_epoch = max(set(d_prev_models) & set(g_prev_models))
             else:
                 logging.debug("No model to load from")
                 args.start_epoch = 0
@@ -1273,8 +1278,6 @@ def setup_mpgan(args, gen):
 def setup_gapt(args, gen):
     """Setup MPGAN models"""
     from gapt import GAPT_G, GAPT_D
-
-    print(args.gapt_mask)
 
     # args for LinearNet layers
     linear_args = {
