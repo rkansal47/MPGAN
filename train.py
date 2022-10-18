@@ -130,10 +130,10 @@ def get_gen_noise(
 # Maybe not necessary? Can use the forward directly in Bucketize?
 class BucketizeFunction(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, input):
+    def forward(ctx, input, device):
         # Three valid outputs for z are, 0.166666 or 1/6, 0.5, 0.833333 or 5/6
         # probably can use device as param here
-        boundaries = torch.tensor([0.3333,0.6666]).to("cuda" if input.is_cuda else "cpu")
+        boundaries = torch.tensor([0.3333,0.6666]).to(device)
  
         input[:, :, 2] = torch.bucketize(input[:, :, 2], boundaries)
         # them map 0 (values < 0.3333) to 1/6; 1 (0.3333 < values < 0.6666) to 0.5; 2 (values > 0.6666) to 5/6
@@ -147,11 +147,12 @@ class BucketizeFunction(torch.autograd.Function):
         return torch.nn.functional.hardtanh(grad_output)
 
 class BucketizeSTE(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, device):
+        self.device = device
         super(BucketizeSTE, self).__init__()
 
     def forward(self, x):
-        x = BucketizeFunction.apply(x)
+        x = BucketizeFunction.apply(x, self.device)
         return x
 
 def gen(
@@ -218,7 +219,7 @@ def gen(
 
     gen_data = G(noise, labels)
 
-    ste = BucketizeSTE() 
+    ste = BucketizeSTE(device) 
     gen_data = ste(gen_data)
 
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
