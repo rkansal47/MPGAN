@@ -133,7 +133,7 @@ class BucketizeFunction(torch.autograd.Function):
     def forward(ctx, input, device):
         # Three valid outputs for z are, 0.166666 or 1/6, 0.5, 0.833333 or 5/6
         # probably can use device as param here
-        boundaries = torch.tensor([0.3333,0.6666], requires_grad=True).to(device)
+        boundaries = torch.tensor([0.3333,0.6666], requires_grad=False).to(device)
  
         input[:, :, 2] = torch.bucketize(input[:, :, 2], boundaries)
         # them map 0 (values < 0.3333) to 1/6; 1 (0.3333 < values < 0.6666) to 0.5; 2 (values > 0.6666) to 5/6
