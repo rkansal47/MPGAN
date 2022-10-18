@@ -640,21 +640,21 @@ def parse_gapt_args(parser):
     parser.add_argument(
         "--sab-layers-gen",
         type=int,
-        default=0,
+        default=4,
         help="number of attention layers in the generator",
     )
     parser.add_argument(
         "--sab-layers-disc",
         type=int,
-        default=0,
+        default=2,
         help="number of attention layers in the discriminator (if applicable)",
     )
-    parser.add_argument(
-        "--sab-layers",
-        type=int,
-        default=2,
-        help="number of message passing iterations in gen and disc both - will be overwritten by gen or disc specific args if given",
-    )
+    # parser.add_argument(
+    #     "--sab-layers",
+    #     type=int,
+    #     default=2,
+    #     help="number of message passing iterations in gen and disc both - will be overwritten by gen or disc specific args if given",
+    # )
     parser.add_argument(
         "--num-heads",
         type=int,
@@ -890,7 +890,7 @@ def process_optimization_args(args):
             elif args.jets == "q":
                 args.lr_disc = 1.5e-5
         elif args.model == "gapt":
-            args.lr_disc = 3e-4
+            args.lr_disc = 1.5e-4
 
     if args.lr_gen == 0:
         if args.model == "mpgan":
@@ -901,7 +901,7 @@ def process_optimization_args(args):
             elif args.jets == "q":
                 args.lr_gen = 0.5e-5
         elif args.model == "gapt":
-            args.lr_gen = 1e-4
+            args.lr_gen = 0.5e-4
 
     if args.aug_t or args.aug_f or args.aug_r90 or args.aug_s:
         args.augment = True
@@ -923,10 +923,10 @@ def process_gapt_args(args):
     if args.gapt_mask:
         args.mask = True
 
-    if not args.sab_layers_gen:
-        args.sab_layers_gen = args.sab_layers
-    if not args.sab_layers_disc:
-        args.sab_layers_disc = args.sab_layers
+    # if not args.sab_layers_gen:
+    #     args.sab_layers_gen = args.sab_layers
+    # if not args.sab_layers_disc:
+    #     args.sab_layers_disc = args.sab_layers
 
 
 def process_external_models_args(args):
@@ -1128,6 +1128,7 @@ def load_args(args):
             ]
 
             if len(d_prev_models) and len(g_prev_models):
+                # make sure G and D are both saved
                 args.start_epoch = max(set(d_prev_models) & set(g_prev_models))
             else:
                 logging.debug("No model to load from")
