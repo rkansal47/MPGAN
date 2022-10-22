@@ -1,6 +1,7 @@
 from calogan_dataset import CaloGANDataset
 
 
+from jetnet import evaluation
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
