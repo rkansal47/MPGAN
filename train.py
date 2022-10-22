@@ -12,6 +12,7 @@ from torch.autograd import Variable
 from torch.autograd import grad as torch_grad
 from torch.distributions.normal import Normal
 
+
 import numpy as np
 
 from os import remove
@@ -126,6 +127,32 @@ def get_gen_noise(
 
     return noise, point_noise
 
+# Maybe not necessary? Can use the forward directly in Bucketize?
+class BucketizeFunction(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input):
+        # Three valid outputs for z are, 0.166666 or 1/6, 0.5, 0.833333 or 5/6
+        boundaries = torch.tensor([0.3333,0.6666], requires_grad=False).contiguous().to(input.device)
+ 
+        input[:, :, 2] = torch.bucketize(input[:, :, 2], boundaries)
+        # them map 0 (values < 0.3333) to 1/6; 1 (0.3333 < values < 0.6666) to 0.5; 2 (values > 0.6666) to 5/6
+        input[:, :, 2] *= 1.0/3
+        input[:, :, 2] += 1.0/6
+        
+        return input 
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return torch.nn.functional.hardtanh(grad_output)
+
+class BucketizeSTE(torch.nn.Module):
+    def __init__(self, device):
+        self.device = device
+        super(BucketizeSTE, self).__init__()
+
+    def forward(self, x):
+        x = BucketizeFunction.apply(x)
+        return x
 
 def gen(
     model_args,
@@ -190,6 +217,9 @@ def gen(
         )
 
     gen_data = G(noise, labels)
+
+    ste = BucketizeSTE(device) 
+    gen_data = ste(gen_data)
 
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
         # TODO: add pt_cutoff to extra_args
