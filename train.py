@@ -128,23 +128,30 @@ def get_gen_noise(
 
     return noise, point_noise
 
+
 # Maybe not necessary? Can use the forward directly in Bucketize?
 class BucketizeFunction(torch.autograd.Function):
+    LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
+    num_layers = len(LAYER_SPECS)
+    shift = -0.5  # from normalisation
+    z_idx = 2
+
+    # edges for binning z values
+    z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
+
     @staticmethod
     def forward(ctx, input):
-        # Three valid outputs for z are, 0.166666 or 1/6, 0.5, 0.833333 or 5/6
-        boundaries = torch.tensor([0.3333,0.6666], requires_grad=False).contiguous().to(input.device)
- 
-        input[:, :, 2] = torch.bucketize(input[:, :, 2], boundaries)
-        # them map 0 (values < 0.3333) to 1/6; 1 (0.3333 < values < 0.6666) to 0.5; 2 (values > 0.6666) to 5/6
-        input[:, :, 2] *= 1.0/3
-        input[:, :, 2] += 1.0/6
-        
-        return input 
+        z_bins = torch.bucketize(input[:, :, ctx.z_idx], ctx.z_boundaries.to(input.device))
+
+        # set values to bin centers, taking care of normalisation
+        input[:, :, 2] = ((z_bins + 0.5) / ctx.num_layers) + ctx.shift
+
+        return input
 
     @staticmethod
     def backward(ctx, grad_output):
         return torch.nn.functional.hardtanh(grad_output)
+
 
 class BucketizeSTE(torch.nn.Module):
     def __init__(self, device):
@@ -154,6 +161,7 @@ class BucketizeSTE(torch.nn.Module):
     def forward(self, x):
         x = BucketizeFunction.apply(x)
         return x
+
 
 def gen(
     model_args,
@@ -219,7 +227,7 @@ def gen(
 
     gen_data = G(noise, labels)
 
-    ste = BucketizeSTE(device) 
+    ste = BucketizeSTE(device)
     gen_data = ste(gen_data)
 
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
@@ -331,7 +339,7 @@ def gradient_penalty(gp_lambda, D, real_data, generated_data, batch_size, device
 
     # Derivatives of the gradient close to 0 can cause problems because of
     # the square root, so manually calculate norm and add epsilon
-    gradients_norm = torch.sqrt(torch.sum(gradients ** 2, dim=1) + 1e-12)
+    gradients_norm = torch.sqrt(torch.sum(gradients**2, dim=1) + 1e-12)
 
     # Return gradient penalty
     gp = gp_lambda * ((gradients_norm - 1) ** 2).mean()
