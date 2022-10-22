@@ -52,6 +52,8 @@ class CaloGANDataset(torch.utils.data.Dataset):
         self.data = dataset[:tcut] if train else dataset[tcut:]
         self.jet_features = jet_features[:tcut] if train else jet_features[tcut:]
 
+        print(self.data[0, :10])
+
         logging.info("Dataset processed")
 
     def get_jet_features(self, dataset: Tensor) -> Tensor:
