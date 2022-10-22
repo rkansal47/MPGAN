@@ -26,6 +26,13 @@ import logging
 from guppy import hpy
 
 h = hpy()
+LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
+num_layers = len(LAYER_SPECS)
+shift = -0.5  # from normalisation
+z_idx = 2
+
+# edges for binning z values
+z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
 
 
 def main():
@@ -131,20 +138,14 @@ def get_gen_noise(
 
 # Maybe not necessary? Can use the forward directly in Bucketize?
 class BucketizeFunction(torch.autograd.Function):
-    LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
-    num_layers = len(LAYER_SPECS)
-    shift = -0.5  # from normalisation
-    z_idx = 2
-
-    # edges for binning z values
-    z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
+    
 
     @staticmethod
     def forward(ctx, input):
-        z_bins = torch.bucketize(input[:, :, ctx.z_idx], ctx.z_boundaries.to(input.device))
+        z_bins = torch.bucketize(input[:, :, z_idx], z_boundaries.to(input.device))
 
         # set values to bin centers, taking care of normalisation
-        input[:, :, 2] = ((z_bins + 0.5) / ctx.num_layers) + ctx.shift
+        input[:, :, 2] = ((z_bins + 0.5) / num_layers) + shift
 
         return input
 
@@ -463,10 +464,10 @@ def train_D(
         data = augment.augment(augment_args, data, p)
         gen_data = augment.augment(augment_args, gen_data, p)
 
-    log(f"G output: \n {gen_data[:2, :10]}")
+    #log(f"G output: \n {gen_data[:2, :10]}")
 
     D_fake_output = D(gen_data, labels)
-    log(f"D fake output: \n {D_fake_output[:10]}")
+    #log(f"D fake output: \n {D_fake_output[:10]}")
 
     D_loss, D_loss_items = calc_D_loss(
         loss,
