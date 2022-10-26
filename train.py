@@ -640,7 +640,7 @@ def make_plots(
             jet_type,
             real_efps,
             gen_efps,
-            name=name + "pm",
+            name=name + "efp",
             figs_path=figs_path,
             show=False,
         )
