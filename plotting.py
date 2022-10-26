@@ -197,7 +197,7 @@ def plot_efps(
     figs_path=None,
     show=False,
 ):
-    """Plot 5 EFPs and jet mass histograms"""
+    """Plot 6 EFPs"""
     if jet_type == "g":
         binranges = [0.2, 0.06, 0.04, 0.003, 0.003, 0.0015]
     elif jet_type == "q":
@@ -205,7 +205,7 @@ def plot_efps(
     else:
         binranges = [0.22, 0.075, 0.05, 0.008, 0.01, 0.004]
 
-    efp_indices = [0, 1, 2, 5, 8, 13, 18]
+    efp_indices = [1, 2, 5, 8, 13, 18, 32]
 
     bins = [np.linspace(0, binr, 101) for binr in binranges]
 
