@@ -417,7 +417,6 @@ def plot_eval(
         stds = np.array(losses["fpd"])[:, 1]
         plt.plot(x, means, marker="o", linestyle="--")
         plt.fill_between(x, means - stds, means + stds, alpha=0.2)
-        plt.legend(loc=1)
         plt.xlabel("Epoch")
         plt.ylabel("FPD")
         plt.yscale("log")
