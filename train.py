@@ -1,7 +1,10 @@
+import re
 import jetnet
 from jetnet.datasets import JetNet
 from jetnet import evaluation
 from jetnet.datasets.normalisations import FeaturewiseLinearBounded, FeaturewiseLinear
+
+from fpd import fpd_infinity
 
 import setup_training
 from mpgan import augment, mask_manual
@@ -17,6 +20,7 @@ from torch.distributions.normal import Normal
 import numpy as np
 
 from os import remove
+from os.path import exists
 
 from tqdm import tqdm
 
@@ -548,6 +552,8 @@ def evaluate(
     num_fpnd_eval_samples=50000,
     fpnd_batch_size=16,
     efp_jobs=None,
+    real_efps=None,
+    gen_efps=None,
 ):
     """Calculate evaluation metrics using the JetNet library and add them to the losses dict"""
 
@@ -596,6 +602,9 @@ def evaluate(
             )
         )
 
+    if "fpd" in losses:
+        losses["fpd"].append(fpd_infinity(real_efps, gen_efps))
+
     if "coverage" in losses and "mmd" in losses:
         cov, mmd = evaluation.cov_mmd(real_jets, gen_jets, num_cov_mmd_eval_samples)
         losses["coverage"].append(cov)
@@ -619,59 +628,40 @@ def make_plots(
     coords="polarrel",
     dataset="jetnet",
     loss="ls",
+    real_efps=None,
+    gen_efps=None,
 ):
     """Plot histograms, jet images, loss curves, and evaluation curves"""
     real_masses = jetnet.utils.jet_features(real_jets)["mass"]
     gen_masses = jetnet.utils.jet_features(gen_jets)["mass"]
 
-    if "w1efp" in losses:
-        real_efps = jetnet.utils.efps(real_jets)
-        gen_efps = jetnet.utils.efps(gen_jets)
-
-        plotting.plot_part_feats(
+    if "fpd" in losses:
+        plotting.plot_efps(
             jet_type,
-            real_jets,
-            gen_jets,
-            real_mask,
-            gen_mask,
-            name=name + "p",
-            figs_path=figs_path,
-            losses=losses,
-            num_particles=num_particles,
-            coords=coords,
-            dataset=dataset,
-            const_ylim=const_ylim,
-            show=False,
-        )
-        plotting.plot_jet_feats(
-            jet_type,
-            real_masses,
-            gen_masses,
             real_efps,
             gen_efps,
-            name=name + "j",
-            figs_path=figs_path,
-            losses=losses,
-            show=False,
-        )
-    else:
-        plotting.plot_part_feats_jet_mass(
-            jet_type,
-            real_jets,
-            gen_jets,
-            real_mask,
-            gen_mask,
-            real_masses,
-            gen_masses,
             name=name + "pm",
             figs_path=figs_path,
-            losses=losses,
-            num_particles=num_particles,
-            coords=coords,
-            dataset=dataset,
-            const_ylim=const_ylim,
             show=False,
         )
+
+    plotting.plot_part_feats_jet_mass(
+        jet_type,
+        real_jets,
+        gen_jets,
+        real_mask,
+        gen_mask,
+        real_masses,
+        gen_masses,
+        name=name + "pm",
+        figs_path=figs_path,
+        losses=losses,
+        num_particles=num_particles,
+        coords=coords,
+        dataset=dataset,
+        const_ylim=const_ylim,
+        show=False,
+    )
 
     if len(losses["G"]) > 1:
         plotting.plot_losses(losses, loss=loss, name=name, losses_path=losses_path, show=False)
@@ -756,6 +746,21 @@ def eval_save_plot(
     if gen_mask is not None:
         gen_mask = gen_mask.numpy()
 
+    if "fpd" in losses:
+        logging.info("Calculating EFPs")
+        efp_file = f"{args.efps_path}/{args.jets}.npy"
+        if exists(efp_file):
+            real_efps = np.load(efp_file)
+        else:
+            real_efps = jetnet.utils.efps(
+                real_jets, efpset_args=[("d<=", 4)], efp_jobs=args.efp_jobs
+            )
+            np.save(efp_file, real_efps)
+
+        gen_efps = jetnet.utils.efps(gen_jets, efpset_args=[("d<=", 4)], efp_jobs=args.efp_jobs)
+    else:
+        real_efps, gen_efps = None, None
+
     evaluate(
         losses,
         real_jets,
@@ -766,6 +771,8 @@ def eval_save_plot(
         num_cov_mmd_eval_samples=args.cov_mmd_num_samples,
         fpnd_batch_size=args.fpnd_batch_size,
         efp_jobs=args.efp_jobs if hasattr(args, "efp_jobs") else None,
+        real_efps=real_efps,
+        gen_efps=gen_efps,
     )
     save_losses(losses, args.losses_path)
 
@@ -785,23 +792,26 @@ def eval_save_plot(
         const_ylim=args.const_ylim,
         coords=args.coords,
         loss=args.loss,
+        real_efps=real_efps,
+        gen_efps=gen_efps,
     )
 
-    # save model state and sample generated jets if this is the lowest w1m score yet
-    if epoch > 0 and losses["w1m"][-1][0] < best_epoch[-1][1]:
-        best_epoch.append([epoch, losses["w1m"][-1][0]])
-        np.savetxt(f"{args.outs_path}/best_epoch.txt", np.array(best_epoch))
+    if "fpd" in losses:
+        # save model state and sample generated jets if this is the lowest fpd score yet
+        if epoch > 0 and losses["fpd"][-1][0] < best_epoch[-1][1]:
+            best_epoch.append([epoch, losses["fpd"][-1][0]])
+            np.savetxt(f"{args.outs_path}/best_epoch.txt", np.array(best_epoch))
 
-        np.save(f"{args.outs_path}/best_epoch_gen_jets", gen_jets)
-        np.save(f"{args.outs_path}/best_epoch_gen_mask", gen_mask)
+            np.save(f"{args.outs_path}/best_epoch_gen_jets", gen_jets)
+            np.save(f"{args.outs_path}/best_epoch_gen_mask", gen_mask)
 
-        with open(f"{args.outs_path}/best_epoch_losses.txt", "w") as f:
-            f.write(str({key: losses[key][-1] for key in losses}))
+            with open(f"{args.outs_path}/best_epoch_losses.txt", "w") as f:
+                f.write(str({key: losses[key][-1] for key in losses}))
 
-        if args.multi_gpu:
-            torch.save(G.module.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
-        else:
-            torch.save(G.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
+            if args.multi_gpu:
+                torch.save(G.module.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
+            else:
+                torch.save(G.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
 
 
 def train_loop(
@@ -848,9 +858,8 @@ def train_loop(
                 labels=labels,
                 model=args.model,
                 epoch=epoch - 1,
-                print_output=(
-                    batch_ndx == lenX - 1
-                ),  # print outputs for the last iteration of each epoch
+                # print outputs for the last iteration of each epoch
+                print_output=(batch_ndx == lenX - 1),
                 **extra_args,
             )
 
