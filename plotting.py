@@ -420,12 +420,14 @@ def plot_eval(
         plt.xlabel("Epoch")
         plt.ylabel(r"$\overline{\mathrm{FGD}}_{\infty}$")
         plt.yscale("log")
+        plt.ylim(top=10)
 
         fig.add_subplot(3, 3, 6)
         plt.plot(x, means + stds)
         plt.xlabel("Epoch")
         plt.ylabel(r"$\overline{\mathrm{FGD}}_{\infty}^{+\sigma}$")
         plt.yscale("log")
+        plt.ylim(top=10)
 
     if "mmd" in losses and "coverage" in losses:
         # x = x[-len(losses['mmd']):]
@@ -444,6 +446,7 @@ def plot_eval(
         plt.xlabel("Epoch")
         plt.ylabel("FPND")
         plt.yscale("log")
+        plt.ylim(top=10)
 
     if losses_path is not None and name is not None:
         plt.savefig(losses_path + name + ".pdf", bbox_inches="tight")
