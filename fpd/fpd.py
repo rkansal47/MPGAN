@@ -30,7 +30,7 @@ def fpd_infinity(
     X: ArrayLike,
     Y: ArrayLike,
     num_samples: int = 50_000,
-    num_points: int = 15,
+    num_points: int = 101,
     seed: int = 42,
     normalise: bool = True,
 ):

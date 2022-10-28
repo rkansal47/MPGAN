@@ -402,23 +402,29 @@ def plot_eval(
         plt.ylabel("Jet Relative Mass $W_1$")
         plt.yscale("log")
 
-    if "w1efp" in losses:
-        fig.add_subplot(3, 3, 5)
-        for i in range(5):
-            plt.plot(x, np.array(losses["w1p"])[:, i], label="EFP " + str(i + 1), color=colors[i])
-        plt.legend(loc=1)
-        plt.xlabel("Epoch")
-        plt.ylabel("Jet EFPs $W_1$")
-        plt.yscale("log")
+    # if "w1efp" in losses:
+    #     fig.add_subplot(3, 3, 5)
+    #     for i in range(5):
+    #         plt.plot(x, np.array(losses["w1p"])[:, i], label="EFP " + str(i + 1), color=colors[i])
+    #     plt.legend(loc=1)
+    #     plt.xlabel("Epoch")
+    #     plt.ylabel("Jet EFPs $W_1$")
+    #     plt.yscale("log")
 
     if "fpd" in losses:
-        fig.add_subplot(3, 3, 6)
         means = np.array(losses["fpd"])[:, 0]
         stds = np.array(losses["fpd"])[:, 1]
-        plt.plot(x, means, marker="o", linestyle="--")
-        plt.fill_between(x, means - stds, means + stds, alpha=0.2)
+
+        fig.add_subplot(3, 3, 5)
+        plt.plot(x, means)
         plt.xlabel("Epoch")
-        plt.ylabel("FPD")
+        plt.ylabel(r"$\overline{\mathrm{FGD}}_{\infty}$")
+        plt.yscale("log")
+
+        fig.add_subplot(3, 3, 6)
+        plt.plot(x, means + stds)
+        plt.xlabel("Epoch")
+        plt.ylabel(r"$\overline{\mathrm{FGD}}_{\infty}^{+\sigma}$")
         plt.yscale("log")
 
     if "mmd" in losses and "coverage" in losses:

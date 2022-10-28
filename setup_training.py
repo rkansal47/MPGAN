@@ -766,7 +766,7 @@ def process_args(args):
 
     if args.efp_jobs == 0:
         if args.n:
-            args.efp_jobs = 1  # otherwise leads to a spike in memory usage on PRP
+            args.efp_jobs = 6  # otherwise leads to a spike in memory usage on PRP
         else:
             args.efp_jobs = None
 

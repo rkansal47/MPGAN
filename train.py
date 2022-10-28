@@ -798,8 +798,8 @@ def eval_save_plot(
 
     if "fpd" in losses:
         # save model state and sample generated jets if this is the lowest fpd score yet
-        if epoch > 0 and losses["fpd"][-1][0] < best_epoch[-1][1]:
-            best_epoch.append([epoch, losses["fpd"][-1][0]])
+        if epoch > 0 and (losses["fpd"][-1][0] + losses["fpd"][-1][1]) < best_epoch[-1][1]:
+            best_epoch.append([epoch, losses["fpd"][-1][0] + losses["fpd"][-1][1]])
             np.savetxt(f"{args.outs_path}/best_epoch.txt", np.array(best_epoch))
 
             np.save(f"{args.outs_path}/best_epoch_gen_jets", gen_jets)
