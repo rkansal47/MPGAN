@@ -185,7 +185,9 @@ class ISAB(nn.Module):
 
     def forward(self, X, mask: Tensor = None):
         H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
-        return self.mab1(X, H)
+        if mask is not None:
+            mask = mask.transpose(-2, -1).repeat((1, mask.shape[-2], 1))
+        return self.mab1(X, H, mask)
 
 
 def _attn_mask(mask: Tensor) -> Optional[Tensor]:
