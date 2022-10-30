@@ -27,6 +27,9 @@ trained_models/*/**
 !.pre-commit-config.yaml
 !pyproject.toml
 
+!fpd
+!fpd/*
+
 setup.py
 **/__pycache__
 **/.DS_Store

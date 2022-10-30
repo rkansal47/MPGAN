@@ -184,54 +184,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=4, help="torch seed")
 
     parse_mpgan_args(parser)
-
-    ##########################################################
-    # Masking
-    ##########################################################
-
-    add_bool_arg(parser, "mask-feat", "add mask as continuous fourth feature", default=False)
-    add_bool_arg(parser, "mask-feat-bin", "add mask as binary fourth feature", default=False)
-    add_bool_arg(parser, "mask-weights", "weight D nodes by mask", default=False)
-    add_bool_arg(
-        parser,
-        "mask-manual",
-        "manually mask generated nodes with pT less than cutoff",
-        default=False,
-    )
-    add_bool_arg(
-        parser,
-        "mask-exp",
-        "exponentially decaying or binary mask; relevant only if mask-manual is true",
-        default=False,
-    )
-    add_bool_arg(parser, "mask-real-only", "only use masking for real jets", default=False)
-    add_bool_arg(
-        parser, "mask-learn", "learn mask from latent vars only use during gen", default=False
-    )
-    add_bool_arg(parser, "mask-learn-bin", "binary or continuous learnt mask", default=True)
-    add_bool_arg(parser, "mask-learn-sep", "learn mask from separate noise vector", default=False)
-    add_bool_arg(parser, "mask-disc-sep", "separate disc network for # particles", default=False)
-    add_bool_arg(
-        parser,
-        "mask-fnd-np",
-        "use num masked particles as an additional arg in D (dea will automatically be set true)",
-        default=False,
-    )
-    add_bool_arg(parser, "mask-c", "conditional mask", default=True)
-    add_bool_arg(
-        parser, "mask-fne-np", "pass num particles as features into fn and fe", default=False
-    )
-    parser.add_argument(
-        "--mask-epoch", type=int, default=0, help="# of epochs after which to start masking"
-    )
-
-    add_bool_arg(
-        parser,
-        "noise-padding",
-        "use Gaussian noise instead of zero-padding for fake particles",
-        default=False,
-    )
-
+    parse_masking_args(parser)
     parse_optimization_args(parser)
     parse_regularization_args(parser)
 
@@ -259,55 +212,7 @@ def parse_args():
         "--aug-prob", type=float, default=1.0, help="probability of being augmented"
     )
 
-    ##########################################################
-    # Evaluation
-    ##########################################################
-
-    add_bool_arg(parser, "fpnd", "calc fpnd", default=True)
-    add_bool_arg(parser, "efp", "calc w1efp", default=False)
-    # parser.add_argument("--fid-eval-size", type=int, default=8192, help="number of samples generated for evaluating fid")
-    parser.add_argument(
-        "--fpnd-batch-size",
-        type=int,
-        default=256,
-        help="batch size when generating samples for fpnd eval",
-    )
-    parser.add_argument("--gpu-batch", type=int, default=50, help="")
-
-    add_bool_arg(
-        parser, "eval", "calculate the evaluation metrics: W1, FNPD, coverage, mmd", default=True
-    )
-    parser.add_argument(
-        "--eval-tot-samples",
-        type=int,
-        default=50000,
-        help="tot # of jets to generate to sample from",
-    )
-
-    parser.add_argument(
-        "--w1-num-samples",
-        type=int,
-        nargs="+",
-        default=[10000],
-        help="array of # of jet samples to test",
-    )
-
-    parser.add_argument(
-        "--cov-mmd-num-samples",
-        type=int,
-        default=100,
-        help="size of samples to use for calculating coverage and MMD",
-    )
-    parser.add_argument(
-        "--cov-mmd-num-batches",
-        type=int,
-        default=10,
-        help="# of batches to average coverage and MMD over",
-    )
-
-    parser.add_argument(
-        "--jf", type=str, nargs="*", default=["mass", "pt"], help="jet level features to evaluate"
-    )
+    parse_evaluation_args(parser)
 
     ##########################################################
     # External models
@@ -490,6 +395,108 @@ def parse_regularization_args(parser):
     )
 
 
+def parse_evaluation_args(parser):
+    add_bool_arg(parser, "fpnd", "calc fpnd", default=True)
+    add_bool_arg(parser, "fpd", "calc fpd", default=True)
+    add_bool_arg(parser, "efp", "calc w1efp", default=False)
+    # parser.add_argument("--fid-eval-size", type=int, default=8192, help="number of samples generated for evaluating fid")
+    parser.add_argument(
+        "--fpnd-batch-size",
+        type=int,
+        default=256,
+        help="batch size when generating samples for fpnd eval",
+    )
+
+    parser.add_argument(
+        "--efp-jobs",
+        type=int,
+        default=0,
+        help="batch size when generating samples for fpnd eval",
+    )
+
+    parser.add_argument("--gpu-batch", type=int, default=50, help="")
+
+    add_bool_arg(
+        parser, "eval", "calculate the evaluation metrics: W1, FNPD, coverage, mmd", default=True
+    )
+    parser.add_argument(
+        "--eval-tot-samples",
+        type=int,
+        default=50000,
+        help="tot # of jets to generate to sample from",
+    )
+
+    parser.add_argument(
+        "--w1-num-samples",
+        type=int,
+        nargs="+",
+        default=[10000],
+        help="array of # of jet samples to test",
+    )
+
+    parser.add_argument(
+        "--cov-mmd-num-samples",
+        type=int,
+        default=100,
+        help="size of samples to use for calculating coverage and MMD",
+    )
+    parser.add_argument(
+        "--cov-mmd-num-batches",
+        type=int,
+        default=10,
+        help="# of batches to average coverage and MMD over",
+    )
+
+    parser.add_argument(
+        "--jf", type=str, nargs="*", default=["mass", "pt"], help="jet level features to evaluate"
+    )
+
+
+def parse_masking_args(parser):
+    add_bool_arg(parser, "mask-feat", "add mask as continuous fourth feature", default=False)
+    add_bool_arg(parser, "mask-feat-bin", "add mask as binary fourth feature", default=False)
+    add_bool_arg(parser, "mask-weights", "weight D nodes by mask", default=False)
+    add_bool_arg(
+        parser,
+        "mask-manual",
+        "manually mask generated nodes with pT less than cutoff",
+        default=False,
+    )
+    add_bool_arg(
+        parser,
+        "mask-exp",
+        "exponentially decaying or binary mask; relevant only if mask-manual is true",
+        default=False,
+    )
+    add_bool_arg(parser, "mask-real-only", "only use masking for real jets", default=False)
+    add_bool_arg(
+        parser, "mask-learn", "learn mask from latent vars only use during gen", default=False
+    )
+    add_bool_arg(parser, "mask-learn-bin", "binary or continuous learnt mask", default=True)
+    add_bool_arg(parser, "mask-learn-sep", "learn mask from separate noise vector", default=False)
+    add_bool_arg(parser, "mask-disc-sep", "separate disc network for # particles", default=False)
+    add_bool_arg(
+        parser,
+        "mask-fnd-np",
+        "use num masked particles as an additional arg in D (dea will automatically be set true)",
+        default=False,
+    )
+    add_bool_arg(parser, "mask-c", "conditional mask", default=True)
+    add_bool_arg(
+        parser, "mask-fne-np", "pass num particles as features into fn and fe", default=False
+    )
+    parser.add_argument(
+        "--mask-epoch", type=int, default=0, help="# of epochs after which to start masking"
+    )
+
+    add_bool_arg(
+        parser,
+        "noise-padding",
+        "use Gaussian noise instead of zero-padding for fake particles",
+        default=False,
+    )
+
+
 def parse_mnist_args(parser):
     parser.add_argument(
         "--mnist-num", type=int, default=-1, help="mnist number to generate, -1 means all"
@@ -640,21 +647,21 @@ def parse_gapt_args(parser):
     parser.add_argument(
         "--sab-layers-gen",
         type=int,
-        default=0,
+        default=4,
         help="number of attention layers in the generator",
     )
     parser.add_argument(
         "--sab-layers-disc",
         type=int,
-        default=0,
+        default=2,
         help="number of attention layers in the discriminator (if applicable)",
     )
-    parser.add_argument(
-        "--sab-layers",
-        type=int,
-        default=2,
-        help="number of message passing iterations in gen and disc both - will be overwritten by gen or disc specific args if given",
-    )
+    # parser.add_argument(
+    #     "--sab-layers",
+    #     type=int,
+    #     default=2,
+    #     help="number of message passing iterations in gen and disc both - will be overwritten by gen or disc specific args if given",
+    # )
     parser.add_argument(
         "--num-heads",
         type=int,
@@ -756,9 +763,12 @@ def process_args(args):
     if args.n:
         if not (args.no_save_zero_or or args.num_hits == 100):
             args.save_zero = True
-        args.efp_jobs = 1  # otherwise leads to a spike in memory usage on PRP
-    else:
-        args.efp_jobs = None
+
+    if args.efp_jobs == 0:
+        if args.n:
+            args.efp_jobs = 6  # otherwise leads to a spike in memory usage on PRP
+        else:
+            args.efp_jobs = None
 
     if args.lx:
         if not args.no_save_zero_or:
@@ -890,7 +900,7 @@ def process_optimization_args(args):
             elif args.jets == "q":
                 args.lr_disc = 1.5e-5
         elif args.model == "gapt":
-            args.lr_disc = 3e-4
+            args.lr_disc = 1.5e-4
 
     if args.lr_gen == 0:
         if args.model == "mpgan":
@@ -901,7 +911,7 @@ def process_optimization_args(args):
             elif args.jets == "q":
                 args.lr_gen = 0.5e-5
         elif args.model == "gapt":
-            args.lr_gen = 1e-4
+            args.lr_gen = 0.5e-4
 
     if args.aug_t or args.aug_f or args.aug_r90 or args.aug_s:
         args.augment = True
@@ -923,10 +933,10 @@ def process_gapt_args(args):
     if args.gapt_mask:
         args.mask = True
 
-    if not args.sab_layers_gen:
-        args.sab_layers_gen = args.sab_layers
-    if not args.sab_layers_disc:
-        args.sab_layers_disc = args.sab_layers
+    # if not args.sab_layers_gen:
+    #     args.sab_layers_gen = args.sab_layers
+    # if not args.sab_layers_disc:
+    #     args.sab_layers_disc = args.sab_layers
 
 
 def process_external_models_args(args):
@@ -1063,6 +1073,9 @@ def init_project_dirs(args):
 
     os.system(f"mkdir -p {args.dir_path}")
 
+    args.efps_path = str(pathlib.Path(args.dir_path).parent.resolve()) + "/efps/"
+    os.system(f"mkdir -p {args.efps_path}")
+
     return args
 
 
@@ -1120,10 +1133,16 @@ def load_args(args):
     if args.load_model:
         if args.start_epoch == -1:
             # find the last saved model and start from there
-            prev_models = [int(f[:-3].split("_")[-1]) for f in listdir(args.models_path)]
+            d_prev_models = [
+                int(f[:-3].split("_")[-1]) for f in listdir(args.models_path) if f.startswith("D")
+            ]
+            g_prev_models = [
+                int(f[:-3].split("_")[-1]) for f in listdir(args.models_path) if f.startswith("G")
+            ]
 
-            if len(prev_models):
-                args.start_epoch = max(prev_models)
+            if len(d_prev_models) and len(g_prev_models):
+                # make sure G and D are both saved
+                args.start_epoch = max(set(d_prev_models) & set(g_prev_models))
             else:
                 logging.debug("No model to load from")
                 args.start_epoch = 0
@@ -1273,8 +1292,6 @@ def setup_mpgan(args, gen):
 def setup_gapt(args, gen):
     """Setup MPGAN models"""
     from gapt import GAPT_G, GAPT_D
-
-    print(args.gapt_mask)
 
     # args for LinearNet layers
     linear_args = {
@@ -1526,12 +1543,15 @@ def losses(args):
     if args.gp:
         keys.append("gp")
 
-    eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "coverage", "mmd"]
+    eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd", "coverage", "mmd"]
     # metrics which store more than a single value per epoch e.g. mean and std
     multi_value_keys = ["w1p", "w1m", "w1efp"]
 
     if not args.fpnd:
         eval_keys.remove("fpnd")
+
+    if not args.fpd:
+        eval_keys.remove("fpd")
 
     if not args.efp:
         eval_keys.remove("w1efp")
@@ -1568,6 +1588,6 @@ def losses(args):
             logging.info("best epoch file not found")
             best_epoch = [[0, 10.0]]
     else:
-        best_epoch = [[0, 10.0]]  # saves the best model [epoch, w1m score]
+        best_epoch = [[0, 10.0]]  # saves the best model [epoch, fpd score]
 
     return losses, best_epoch
