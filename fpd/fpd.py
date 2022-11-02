@@ -11,12 +11,13 @@ from numpy.typing import ArrayLike
 import numpy as np
 from scipy import linalg
 from scipy.stats import linregress
+from scipy.optimize import curve_fit
+
+from concurrent.futures import ThreadPoolExecutor
 
 import logging
 
 # from jetnet.datasets.normalisations import FeaturewiseLinearBounded
-
-rng = np.random.default_rng()
 
 
 def normalise_features(X: ArrayLike, Y: ArrayLike = None):
@@ -25,43 +26,65 @@ def normalise_features(X: ArrayLike, Y: ArrayLike = None):
     return (X / maxes, Y / maxes) if Y is not None else X / maxes
 
 
-# based on https://github.com/mchong6/FID_IS_infinity/blob/master/score_infinity.py
-def fpd_infinity(
-    X: ArrayLike,
-    Y: ArrayLike,
-    num_samples: int = 50_000,
-    num_points: int = 101,
-    seed: int = 42,
-    normalise: bool = True,
-):
-    if normalise:
-        X, Y = normalise_features(X, Y)
+def linear(x, intercept, slope):
+    return intercept + slope * x
 
-    # Choose the number of images to evaluate FID_N at regular intervals over N
-    batches = np.linspace(5000, num_samples, num_points).astype("int32")
 
+def _average_batches(X, Y, batch_size, num_batches, seed):
     np.random.seed(seed)
 
-    vals = []
-
-    # Evaluate for different Ns
-    for batch_size in batches:
-        rand1 = rng.choice(len(X), size=batch_size)
-        rand2 = rng.choice(len(Y), size=batch_size)
+    vals_point = []
+    for _ in range(num_batches):
+        rand1 = np.random.choice(len(X), size=batch_size)
+        rand2 = np.random.choice(len(Y), size=batch_size)
 
         rand_sample1 = X[rand1]
         rand_sample2 = Y[rand2]
 
         val = frechet_gaussian_distance(rand_sample1, rand_sample2, normalise=False)
-        vals.append(val)
+        vals_point.append(val)
+
+    return [np.mean(vals_point), np.std(vals_point)]
+
+
+# based on https://github.com/mchong6/FID_IS_infinity/blob/master/score_infinity.py
+def fpd_infinity(
+    X: ArrayLike,
+    Y: ArrayLike,
+    min_samples: int = 5_000,
+    max_samples: int = 50_000,
+    num_batches: int = 10,
+    num_points: int = 200,
+    seed: int = 42,
+    normalise: bool = True,
+    n_jobs: int = 1,
+):
+    if normalise:
+        X, Y = normalise_features(X, Y)
+
+    # Choose the number of images to evaluate FID_N at regular intervals over N
+    batches = (1 / np.linspace(1.0 / min_samples, 1.0 / max_samples, num_points)).astype("int32")
+    # batches = np.linspace(min_samples, max_samples, num_points).astype("int32")
+
+    if n_jobs is None:
+        n_jobs = 1
+
+    with ThreadPoolExecutor(max_workers=n_jobs) as executor:
+        threads = []
+
+        # Evaluate for different Ns
+        for i, batch_size in enumerate(batches):
+            threads.append(
+                executor.submit(_average_batches, X, Y, batch_size, num_batches, seed + i * 1000)
+            )
+
+        vals = [t.result() for t in threads]
 
     vals = np.array(vals)
 
-    # return vals
+    params, covs = curve_fit(linear, 1 / batches, vals[:, 0], bounds=([0, 0], [np.inf, np.inf]))
 
-    # Fit linear regression
-    result = linregress(1 / batches, vals)
-    return [result.intercept, result.intercept_stderr]
+    return (params[0], np.sqrt(np.diag(covs)[0]))
 
 
 # from https://github.com/mseitzer/pytorch-fid

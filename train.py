@@ -603,7 +603,7 @@ def evaluate(
         )
 
     if "fpd" in losses:
-        losses["fpd"].append(fpd_infinity(real_efps, gen_efps))
+        losses["fpd"].append(fpd_infinity(real_efps, gen_efps, n_jobs=efp_jobs))
 
     if "coverage" in losses and "mmd" in losses:
         cov, mmd = evaluation.cov_mmd(real_jets, gen_jets, num_cov_mmd_eval_samples)
