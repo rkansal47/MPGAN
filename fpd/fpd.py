@@ -66,23 +66,24 @@ def fpd_infinity(
     batches = (1 / np.linspace(1.0 / min_samples, 1.0 / max_samples, num_points)).astype("int32")
     # batches = np.linspace(min_samples, max_samples, num_points).astype("int32")
 
-    if n_jobs is None:
-        n_jobs = 1
 
-    with ThreadPoolExecutor(max_workers=n_jobs) as executor:
-        threads = []
+    for i, batch_size in enumerate(batches):
+        vals_point = []
+        for _ in range(num_batches):
+            rand1 = np.random.choice(len(X), size=batch_size)
+            rand2 = np.random.choice(len(Y), size=batch_size)
 
-        # Evaluate for different Ns
-        for i, batch_size in enumerate(batches):
-            threads.append(
-                executor.submit(_average_batches, X, Y, batch_size, num_batches, seed + i * 1000)
-            )
+            rand_sample1 = X[rand1]
+            rand_sample2 = Y[rand2]
 
-        vals = [t.result() for t in threads]
+            val = frechet_gaussian_distance(rand_sample1, rand_sample2, normalise=False)
+            vals_point.append(val)
+
+        vals.append(np.mean(vals_point))
 
     vals = np.array(vals)
 
-    params, covs = curve_fit(linear, 1 / batches, vals[:, 0], bounds=([0, 0], [np.inf, np.inf]))
+    params, covs = curve_fit(linear, 1 / batches, vals, bounds=([0, 0], [np.inf, np.inf]))
 
     return (params[0], np.sqrt(np.diag(covs)[0]))
 
