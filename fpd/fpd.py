@@ -66,6 +66,8 @@ def fpd_infinity(
     batches = (1 / np.linspace(1.0 / min_samples, 1.0 / max_samples, num_points)).astype("int32")
     # batches = np.linspace(min_samples, max_samples, num_points).astype("int32")
 
+    np.random.seed(seed)
+
     vals = []
 
     for i, batch_size in enumerate(batches):
