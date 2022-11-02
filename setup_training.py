@@ -349,6 +349,12 @@ def parse_optimization_args(parser):
         default=0,
         help="learning rate for generator; defaults are 1e-5, 2e-5, and 0.5e-5 for gluon, top, and quark jet resp.",
     )
+    parser.add_argument(
+        "--lr-x",
+        type=float,
+        default=1,
+        help="multiply default learning rates by this amount (doesn't do anything if LRs are already specified explicitly)",
+    )
     parser.add_argument("--beta1", type=float, default=0.9, help="Adam optimizer beta1")
     parser.add_argument("--beta2", type=float, default=0.999, help="Adam optimizer beta2")
     parser.add_argument("--batch-size", type=int, default=0, help="batch size")
@@ -902,6 +908,8 @@ def process_optimization_args(args):
         elif args.model == "gapt":
             args.lr_disc = 1.5e-4
 
+        args.lr_disc *= args.lr_x
+
     if args.lr_gen == 0:
         if args.model == "mpgan":
             if args.jets == "g":
@@ -912,6 +920,8 @@ def process_optimization_args(args):
                 args.lr_gen = 0.5e-5
         elif args.model == "gapt":
             args.lr_gen = 0.5e-4
+
+        args.lr_gen *= args.lr_x
 
     if args.aug_t or args.aug_f or args.aug_r90 or args.aug_s:
         args.augment = True
