@@ -154,3 +154,64 @@ def frechet_gaussian_distance(X: ArrayLike, Y: ArrayLike, normalise: bool = True
     sigma2 = np.cov(Y, rowvar=False)
 
     return _calculate_frechet_distance(mu1, sigma1, mu2, sigma2)
+
+
+def _mmd_quadratic_unbiased(XX: ArrayLike, YY: ArrayLike, XY: ArrayLike):
+    m, n = XX.shape[0], YY.shape[0]
+    # subtract diagonal 1s
+    return (
+        (XX.sum() - XX.trace()) / (m * (m - 1))
+        + (YY.sum() - YY.trace()) / (n * (n - 1))
+        - 2 * XY.mean()
+    )
+
+
+def _get_mmd_quadratic_arrays(X: ArrayLike, Y: ArrayLike, kernel_func: Callable, **kernel_args):
+    XX = kernel_func(X, X, **kernel_args)
+    YY = kernel_func(Y, Y, **kernel_args)
+    XY = kernel_func(X, Y, **kernel_args)
+    return XX, YY, XY
+
+
+def _poly_kernel_pairwise(X: ArrayLike, Y: ArrayLike, degree: int) -> np.ndarray:
+    gamma = 1.0 / X.shape[-1]
+    return (X @ Y.T * gamma + 1.0) ** degree
+
+
+def mmd_poly_quadratic_unbiased(
+    X: ArrayLike, Y: ArrayLike, degree: int = 4, normalise: bool = True
+) -> float:
+
+    if normalise:
+        X, Y = normalise_features(X, Y)
+
+    XX, YY, XY = _get_mmd_quadratic_arrays(X, Y, _poly_kernel_pairwise, degree=degree)
+    return _mmd_quadratic_unbiased(XX, YY, XY)
+
+
+def multi_batch_evaluation(
+    X: ArrayLike,
+    Y: ArrayLike,
+    num_batches: int,
+    batch_size: int,
+    metric: Callable,
+    seed: int = 42,
+    normalise: bool = True,
+    **metric_args,
+):
+    np.random.seed(seed)
+
+    vals = []
+    for _ in range(num_batches):
+        rand1 = np.random.choice(len(X), size=batch_size)
+        rand2 = np.random.choice(len(Y), size=batch_size)
+
+        rand_sample1 = X[rand1]
+        rand_sample2 = Y[rand2]
+
+        val = metric(rand_sample1, rand_sample2, normalise=normalise, **metric_args)
+        vals.append(val)
+
+    mean_std = (np.mean(vals, axis=0), np.std(vals, axis=0))
+
+    return mean_std

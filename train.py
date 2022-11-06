@@ -145,7 +145,7 @@ def get_gen_noise(
 
 
 def gen(
-    model_args,
+    model_args: dict,
     G: torch.nn.Module,
     num_samples: int,
     num_particles: int,
