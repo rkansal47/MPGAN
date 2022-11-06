@@ -79,7 +79,7 @@ for i in range(start_idx, 4001, 5):
         30,
         model="gapt",
         out_device="cpu",
-        label=real_jf[:50000],
+        labels=real_jf[:50000],
         detach=True,
     )
     gen_efps = jetnet.utils.efps(gen_jets, efpset_args=[("d<=", 4)], efp_jobs=6)
