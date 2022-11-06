@@ -69,8 +69,12 @@ with open(f"{output_dir}/{args.name}_args.txt", "r") as f:
 G = setup_training.models(model_args, gen_only=True).to("cuda")
 
 if os.path.exists(kpd_path):
-    kpds = list(np.loadtxt(kpd_path))
-    start_idx = len(kpds)
+    kpds = np.loadtxt(kpd_path)
+    if kpds.ndim == 1:
+        kpds = np.expand_dims(kpds, 0)
+
+    kpds = list(kpds)
+    start_idx = len(kpds) * 5
 else:
     kpds = []
     start_idx = 0
