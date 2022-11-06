@@ -50,7 +50,7 @@ data_args = {
     "jet_normalisation": jet_norm,
     "split_fraction": [0.7, 0.3, 0],
 }
-real_jf = JetNet.getData(**data_args, split="valid")
+real_jf = JetNet(**data_args, split="valid").jet_data
 
 # load args
 with open(f"{output_dir}/{args.name}_args.txt", "r") as f:
