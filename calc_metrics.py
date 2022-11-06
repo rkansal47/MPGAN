@@ -48,7 +48,7 @@ data_args = {
     "particle_features": None,
     "jet_features": "num_particles",
     "jet_normalisation": jet_norm,
-    "split_fraction": [args.ttsplit, 1 - args.ttsplit, 0],
+    "split_fraction": [0.7, 0.3, 0],
 }
 real_jf = JetNet.getData(**data_args, split="valid")
 
