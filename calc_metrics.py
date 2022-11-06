@@ -50,13 +50,14 @@ data_args = {
     "jet_normalisation": jet_norm,
     "split_fraction": [0.7, 0.3, 0],
 }
-real_jf = JetNet(**data_args, split="valid").jet_data
+X = JetNet(**data_args, split="valid")
+real_jf = X.jet_data
 
 # load args
 with open(f"{output_dir}/{args.name}_args.txt", "r") as f:
     model_args = setup_training.objectview(eval(f.read()))
 
-G = setup_training.models(model_args, gen_only=True)
+G = setup_training.models(model_args, gen_only=True).to("cuda")
 
 if os.path.exists(kpd_path):
     kpds = list(np.loadtxt(kpd_path))
@@ -74,7 +75,7 @@ for i in range(start_idx, 4001, 5):
     gen_jets = train.gen_multi_batch(
         {"embed_dim": model_args.gapt_embed_dim},
         G,
-        1024,
+        2048,
         50000,
         30,
         model="gapt",
@@ -82,6 +83,21 @@ for i in range(start_idx, 4001, 5):
         labels=real_jf[:50000],
         detach=True,
     )
+
+    gen_jets = jetnet.utils.gen_jet_corrections(
+        X.particle_normalisation(gen_jets, inverse=True),
+        ret_mask_separate=True,
+        zero_mask_particles=True,
+    )
+
+    gen_mask = gen_jets[1]
+    gen_jets = gen_jets[0]
+    real_mask = real_jets[1]
+    real_jets = real_jets[0]
+
+    gen_jets = gen_jets.numpy()
+    gen_mask = gen_mask.numpy()
+
     gen_efps = jetnet.utils.efps(gen_jets, efpset_args=[("d<=", 4)], efp_jobs=6)
 
     print(f"{datetime.datetime.now()} Calculating KPD")
