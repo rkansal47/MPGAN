@@ -40,6 +40,15 @@ losses_dir = f"{mpgan_dir}/outputs/{args.name}/losses/"
 
 kpd_path = f"{losses_dir}/kpd.txt"
 
+feature_maxes = JetNet.fpnd_norm.feature_maxes
+feature_maxes = feature_maxes + [1]
+
+particle_norm = FeaturewiseLinearBounded(
+    feature_norms=1.0,
+    feature_shifts=[0.0, 0.0, -0.5, -0.5],
+    feature_maxes=feature_maxes,
+)
+
 jet_norm = FeaturewiseLinear(feature_scales=1.0 / 30)
 data_args = {
     "jet_type": args.jets,
@@ -85,7 +94,7 @@ for i in range(start_idx, 4001, 5):
     )
 
     gen_jets = jetnet.utils.gen_jet_corrections(
-        X.particle_normalisation(gen_jets, inverse=True),
+        particle_norm(gen_jets, inverse=True),
         ret_mask_separate=True,
         zero_mask_particles=True,
     )
