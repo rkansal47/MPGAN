@@ -1,10 +1,9 @@
-import re
 import jetnet
 from jetnet.datasets import JetNet
 from jetnet import evaluation
 from jetnet.datasets.normalisations import FeaturewiseLinearBounded, FeaturewiseLinear
 
-from fpd import fpd_infinity
+from metrics import fpd_infinity
 
 import setup_training
 from mpgan import augment, mask_manual
