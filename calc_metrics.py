@@ -101,11 +101,9 @@ for i in range(start_idx, 4001, 5):
 
     gen_mask = gen_jets[1]
     gen_jets = gen_jets[0]
-    real_mask = real_jets[1]
-    real_jets = real_jets[0]
 
-    gen_jets = gen_jets.numpy()
     gen_mask = gen_mask.numpy()
+    gen_jets = gen_jets.numpy()
 
     gen_efps = jetnet.utils.efps(gen_jets, efpset_args=[("d<=", 4)], efp_jobs=6)
 
