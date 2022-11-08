@@ -198,7 +198,8 @@ def _attn_mask(mask: Tensor) -> Optional[Tensor]:
     if mask is None:
         return None
     else:
-        return (1 - mask).bool()
+        return mask
+        "return (1 - mask).bool()"
 
 
 class GAPT_G(nn.Module):
