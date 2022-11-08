@@ -190,15 +190,15 @@ class ISAB(nn.Module):
         return self.mab1(X, H, inducedmask)
 
 
-def _attn_mask(mask: Tensor) -> Optional[Tensor]:
+def _attn_mask(inducedmask: Tensor) -> Optional[Tensor]:
     """
     Convert JetNet mask scheme (1 - real, 0 -padded) to nn.MultiHeadAttention mask scheme
     (True - ignore, False - attend)
     """
-    if mask is None:
+    if inducedmask is None:
         return None
     else:
-        return (1 - mask).bool()
+        return (1 - inducedmask).bool()
 
 
 class GAPT_G(nn.Module):
