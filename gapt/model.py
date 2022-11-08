@@ -183,22 +183,22 @@ class ISAB(nn.Module):
         self.mab0 = MAB(embed_dim=embed_dim, **mab_args)
         self.mab1 = MAB(embed_dim=embed_dim, **mab_args)
 
-    def forward(self, X, num_inds, inducedmask: Tensor = None):
+    def forward(self, X, num_inds, mask: Tensor = None):
         H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
-        if inducedmask is not None:
-            inducedmask = inducedmask.transpose(-2, -1).repeat((1, inducedmask.shape[-2], num_inds))
-        return self.mab1(X, H, inducedmask)
+        if mask is not None:
+            mask = mask.repeat((1, 1, num_inds))
+        return self.mab1(X, H, mask)
 
 
-def _attn_mask(inducedmask: Tensor) -> Optional[Tensor]:
+def _attn_mask(mask: Tensor) -> Optional[Tensor]:
     """
     Convert JetNet mask scheme (1 - real, 0 -padded) to nn.MultiHeadAttention mask scheme
     (True - ignore, False - attend)
     """
-    if inducedmask is None:
+    if mask is None:
         return None
     else:
-        return (1 - inducedmask).bool()
+        return (1 - mask).bool()
 
 
 class GAPT_G(nn.Module):
