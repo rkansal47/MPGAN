@@ -183,10 +183,10 @@ class ISAB(nn.Module):
         self.mab0 = MAB(embed_dim=embed_dim, **mab_args)
         self.mab1 = MAB(embed_dim=embed_dim, **mab_args)
 
-    def forward(self, X, num_inds, mask: Tensor = None):
+    def forward(self, X, mask: Tensor = None):
         H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
         if mask is not None:
-            mask = mask
+            mask = mask.repeat(1,1,30)
         return self.mab1(X, H, mask)
 
 
