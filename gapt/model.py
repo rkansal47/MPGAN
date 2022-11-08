@@ -187,7 +187,6 @@ class ISAB(nn.Module):
         H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
         if mask is not None:
             mask = mask.transpose(-2,-1)
-            mask = torch.split(mask,1,0)[0]
         return self.mab1(X, H, mask)
 
 
