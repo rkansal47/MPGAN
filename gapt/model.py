@@ -183,11 +183,11 @@ class ISAB(nn.Module):
         self.mab0 = MAB(embed_dim=embed_dim, **mab_args)
         self.mab1 = MAB(embed_dim=embed_dim, **mab_args)
 
-    def forward(self, X, num_inds, mask: Tensor = None):
+    def forward(self, X, num_inds, inducedmask: Tensor = None):
         H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
-        if mask is not None:
-            mask = mask.transpose(-2, -1).repeat((1, mask.shape[-2], num_inds))
-        return self.mab1(X, H, mask)
+        if inducedmask is not None:
+            inducedmask = inducedmask.transpose(-2, -1).repeat((1, inducedmask.shape[-2], num_inds))
+        return self.mab1(X, H, inducedmask)
 
 
 def _attn_mask(mask: Tensor) -> Optional[Tensor]:
@@ -198,8 +198,7 @@ def _attn_mask(mask: Tensor) -> Optional[Tensor]:
     if mask is None:
         return None
     else:
-        return mask
-        "return (1 - mask).bool()"
+        return (1 - mask).bool()
 
 
 class GAPT_G(nn.Module):
