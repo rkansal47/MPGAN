@@ -1,10 +1,9 @@
-import re
 import jetnet
 from jetnet.datasets import JetNet
 from jetnet import evaluation
 from jetnet.datasets.normalisations import FeaturewiseLinearBounded, FeaturewiseLinear
 
-from fpd import fpd_infinity
+from metrics import fpd_infinity
 
 import setup_training
 from mpgan import augment, mask_manual
@@ -145,7 +144,7 @@ def get_gen_noise(
 
 
 def gen(
-    model_args,
+    model_args: dict,
     G: torch.nn.Module,
     num_samples: int,
     num_particles: int,

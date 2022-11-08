@@ -27,8 +27,8 @@ trained_models/*/**
 !.pre-commit-config.yaml
 !pyproject.toml
 
-!fpd
-!fpd/*
+!metrics
+!metrics/*
 
 setup.py
 **/__pycache__
