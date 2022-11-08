@@ -179,15 +179,15 @@ class ISAB(nn.Module):
     def __init__(self, num_inds, embed_dim, **mab_args):
         super(ISAB, self).__init__()
         self.I = nn.Parameter(torch.Tensor(1, num_inds, embed_dim))
+        self.num_inds = num_inds
         nn.init.xavier_uniform_(self.I)
         self.mab0 = MAB(embed_dim=embed_dim, **mab_args)
         self.mab1 = MAB(embed_dim=embed_dim, **mab_args)
 
-    def forward(self, X, num_inds, mask: Tensor = None):
-        H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
+    def forward(self, X, mask: Tensor = None):
         if mask is not None:
-            mask = mask.tanspose(-2,-1).repeat((1,mask.shape[-2], 1))
-            mask = torch.split(mask,num_inds,2)[0]
+            mask = mask.tanspose(-2,-1).repeat((1, self.num_inds, 1))
+        H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
         return self.mab1(X, H, mask)
 
 
