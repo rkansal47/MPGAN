@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import logging
 
-from numba import njit, prange
+from numba import njit, prange, set_num_threads
 
 
 def normalise_features(X: ArrayLike, Y: ArrayLike = None):
@@ -227,7 +227,7 @@ def _average_batches_mmd(X, Y, num_batches, batch_size, seed):
         rand_sample1 = X[rand1]
         rand_sample2 = Y[rand2]
 
-        val = mmd_poly_quadratic_unbiased(rand_sample1, rand_sample2, normalise=False, degree=4)
+        val = mmd_poly_quadratic_unbiased(rand_sample1, rand_sample2, degree=4)
         vals_point.append(val)
 
     return vals_point
@@ -240,9 +240,11 @@ def multi_batch_evaluation_mmd(
     batch_size: int = 5000,
     seed: int = 42,
     normalise: bool = True,
+    num_threads: int = 6,
 ):
     if normalise:
         X, Y = normalise_features(X, Y)
 
+    set_num_threads(num_threads)
     vals_point = _average_batches_mmd(X, Y, num_batches, batch_size, seed)
     return [np.median(vals_point), iqr(vals_point, rng=(16.275, 83.725))]
