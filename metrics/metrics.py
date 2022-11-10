@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import logging
 
-from numpy import njit, prange
+from numba import njit, prange
 
 
 def normalise_features(X: ArrayLike, Y: ArrayLike = None):
