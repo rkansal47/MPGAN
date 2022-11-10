@@ -218,7 +218,7 @@ def multi_batch_evaluation(
 
 @njit(parallel=True)
 def _average_batches_mmd(X, Y, num_batches, batch_size, seed):
-    vals_point = []
+    vals_point = np.zeros(num_batches, dtype=float)
     for i in prange(num_batches):
         np.random.seed(seed + i * 1000)  # in case of multi-threading
         rand1 = np.random.choice(len(X), size=batch_size)
@@ -228,7 +228,7 @@ def _average_batches_mmd(X, Y, num_batches, batch_size, seed):
         rand_sample2 = Y[rand2]
 
         val = mmd_poly_quadratic_unbiased(rand_sample1, rand_sample2, degree=4)
-        vals_point.append(val)
+        vals_point[i] = val
 
     return vals_point
 
