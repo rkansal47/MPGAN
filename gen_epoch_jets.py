@@ -53,7 +53,7 @@ X = JetNet(**data_args, split="valid")
 real_jf = X.jet_data
 
 # load args
-with open(f"{output_dir}/{name}_txt", "r") as f:
+with open(f"{output_dir}/{name}_args.txt", "r") as f:
     model_args = setup_training.objectview(eval(f.read()))
 
 G = setup_training.models(model_args, gen_only=True).to("cuda")

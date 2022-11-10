@@ -113,9 +113,7 @@ for i in range(start_idx, 4001, 5):
 
     print(f"{datetime.datetime.now()} Calculating KPD")
 
-    kpd = metrics.multi_batch_evaluation(
-        real_efps, gen_efps, 10, 5000, metrics.mmd_poly_quadratic_unbiased
-    )
+    kpd = metrics.multi_batch_evaluation_mmd(real_efps, gen_efps)
 
     print(kpd)
     kpds.append(kpd)
