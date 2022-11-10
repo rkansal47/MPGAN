@@ -37,6 +37,9 @@ real_efps = np.load(f"{mpgan_dir}/efps/{args.jets}.npy")
 output_dir = f"{mpgan_dir}/outputs/{args.name}/"
 models_dir = f"{mpgan_dir}/outputs/{args.name}/models/"
 losses_dir = f"{mpgan_dir}/outputs/{args.name}/losses/"
+jets_dir = f"{mpgan_dir}/outputs/{args.name}/jets/"
+
+_ = os.system(f"mkdir -p {jets_dir}")
 
 kpd_path = f"{losses_dir}/kpd.txt"
 
@@ -110,6 +113,9 @@ for i in range(start_idx, 4001, 5):
     gen_jets = gen_jets.numpy()
 
     gen_efps = jetnet.utils.efps(gen_jets, efpset_args=[("d<=", 4)], efp_jobs=6)
+
+    np.save(f"{jets_dir}/{i}_gen_jets.npy", gen_jets)
+    np.save(f"{jets_dir}/{i}_gen_efps.npy", gen_efps)
 
     print(f"{datetime.datetime.now()} Calculating KPD")
 
