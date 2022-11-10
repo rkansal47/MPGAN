@@ -220,7 +220,7 @@ def multi_batch_evaluation(
 def _average_batches_mmd(X, Y, num_batches, batch_size, seed):
     # can't use list.append with numba prange
     # https://github.com/numba/numba/issues/4206#issuecomment-503947050
-    vals_point = np.zeros(num_batches, dtype=float)
+    vals_point = np.zeros(num_batches, dtype=np.float64)
     for i in prange(num_batches):
         np.random.seed(seed + i * 1000)  # in case of multi-threading
         rand1 = np.random.choice(len(X), size=batch_size)
