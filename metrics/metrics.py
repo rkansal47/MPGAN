@@ -10,14 +10,14 @@ from numpy.typing import ArrayLike
 
 import numpy as np
 from scipy import linalg
-from scipy.stats import linregress
+from scipy.stats import iqr
 from scipy.optimize import curve_fit
 
 from concurrent.futures import ThreadPoolExecutor
 
 import logging
 
-# from jetnet.datasets.normalisations import FeaturewiseLinearBounded
+from numba import njit, prange, set_num_threads
 
 
 def normalise_features(X: ArrayLike, Y: ArrayLike = None):
@@ -156,13 +156,14 @@ def frechet_gaussian_distance(X: ArrayLike, Y: ArrayLike, normalise: bool = True
     return _calculate_frechet_distance(mu1, sigma1, mu2, sigma2)
 
 
+@njit
 def _mmd_quadratic_unbiased(XX: ArrayLike, YY: ArrayLike, XY: ArrayLike):
     m, n = XX.shape[0], YY.shape[0]
     # subtract diagonal 1s
     return (
-        (XX.sum() - XX.trace()) / (m * (m - 1))
-        + (YY.sum() - YY.trace()) / (n * (n - 1))
-        - 2 * XY.mean()
+        (XX.sum() - np.trace(XX)) / (m * (m - 1))
+        + (YY.sum() - np.trace(YY)) / (n * (n - 1))
+        - 2 * np.mean(XY)
     )
 
 
@@ -173,19 +174,17 @@ def _get_mmd_quadratic_arrays(X: ArrayLike, Y: ArrayLike, kernel_func: Callable,
     return XX, YY, XY
 
 
+@njit
 def _poly_kernel_pairwise(X: ArrayLike, Y: ArrayLike, degree: int) -> np.ndarray:
     gamma = 1.0 / X.shape[-1]
     return (X @ Y.T * gamma + 1.0) ** degree
 
 
-def mmd_poly_quadratic_unbiased(
-    X: ArrayLike, Y: ArrayLike, degree: int = 4, normalise: bool = True
-) -> float:
-
-    if normalise:
-        X, Y = normalise_features(X, Y)
-
-    XX, YY, XY = _get_mmd_quadratic_arrays(X, Y, _poly_kernel_pairwise, degree=degree)
+@njit
+def mmd_poly_quadratic_unbiased(X: ArrayLike, Y: ArrayLike, degree: int = 4) -> float:
+    XX = _poly_kernel_pairwise(X, X, degree=degree)
+    YY = _poly_kernel_pairwise(Y, Y, degree=degree)
+    XY = _poly_kernel_pairwise(X, Y, degree=degree)
     return _mmd_quadratic_unbiased(XX, YY, XY)
 
 
@@ -215,3 +214,39 @@ def multi_batch_evaluation(
     mean_std = (np.mean(vals, axis=0), np.std(vals, axis=0))
 
     return mean_std
+
+
+@njit(parallel=True)
+def _average_batches_mmd(X, Y, num_batches, batch_size, seed):
+    # can't use list.append with numba prange
+    # https://github.com/numba/numba/issues/4206#issuecomment-503947050
+    vals_point = np.zeros(num_batches, dtype=np.float64)
+    for i in prange(num_batches):
+        np.random.seed(seed + i * 1000)  # in case of multi-threading
+        rand1 = np.random.choice(len(X), size=batch_size)
+        rand2 = np.random.choice(len(Y), size=batch_size)
+
+        rand_sample1 = X[rand1]
+        rand_sample2 = Y[rand2]
+
+        val = mmd_poly_quadratic_unbiased(rand_sample1, rand_sample2, degree=4)
+        vals_point[i] = val
+
+    return vals_point
+
+
+def multi_batch_evaluation_mmd(
+    X: ArrayLike,
+    Y: ArrayLike,
+    num_batches: int = 10,
+    batch_size: int = 5000,
+    seed: int = 42,
+    normalise: bool = True,
+    num_threads: int = 6,
+):
+    if normalise:
+        X, Y = normalise_features(X, Y)
+
+    set_num_threads(num_threads)
+    vals_point = _average_batches_mmd(X, Y, num_batches, batch_size, seed)
+    return [np.median(vals_point), iqr(vals_point, rng=(16.275, 83.725))]
