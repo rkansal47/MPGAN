@@ -186,8 +186,7 @@ class ISAB(nn.Module):
 
     def forward(self, X, mask: Tensor = None):
         if mask is not None:
-            mask = mask.transpose(-2,-1).repeat((1, mask.shape[-2], 1))
-            mask = torch.split(mask, self.num_inds,-1)[0]
+            mask = mask.transpose(-2,-1).repeat((1, self.num_inds, 1))
         H = self.mab0(self.I.repeat(X.size(0), 1, 1), X, mask)
         return self.mab1(X, H)
 
