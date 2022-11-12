@@ -37,6 +37,9 @@ real_efps = np.load(f"{mpgan_dir}/efps/{args.jets}.npy")
 output_dir = f"{mpgan_dir}/outputs/{args.name}/"
 models_dir = f"{mpgan_dir}/outputs/{args.name}/models/"
 losses_dir = f"{mpgan_dir}/outputs/{args.name}/losses/"
+jets_dir = f"{mpgan_dir}/outputs/{args.name}/jets/"
+
+_ = os.system(f"mkdir -p {jets_dir}")
 
 kpd_path = f"{losses_dir}/kpd.txt"
 
@@ -85,37 +88,42 @@ for i in range(start_idx, 4001, 5):
     G.load_state_dict(torch.load(f"{models_dir}/G_{i}.pt", map_location="cuda"))
     G.eval()
 
-    gen_jets = train.gen_multi_batch(
-        {"embed_dim": model_args.gapt_embed_dim},
-        G,
-        2048,
-        50000,
-        30,
-        model="gapt",
-        out_device="cpu",
-        labels=real_jf[:50000],
-        detach=True,
-    )
+    if os.path.exists(f"{jets_dir}/{i}_gen_efps.npy"):
+        gen_efps = np.load(f"{jets_dir}/{i}_gen_efps.npy")
 
-    gen_jets = jetnet.utils.gen_jet_corrections(
-        particle_norm(gen_jets, inverse=True),
-        ret_mask_separate=True,
-        zero_mask_particles=True,
-    )
+    else:
+        gen_jets = train.gen_multi_batch(
+            {"embed_dim": model_args.gapt_embed_dim},
+            G,
+            2048,
+            50000,
+            30,
+            model="gapt",
+            out_device="cpu",
+            labels=real_jf[:50000],
+            detach=True,
+        )
 
-    gen_mask = gen_jets[1]
-    gen_jets = gen_jets[0]
+        gen_jets = jetnet.utils.gen_jet_corrections(
+            particle_norm(gen_jets, inverse=True),
+            ret_mask_separate=True,
+            zero_mask_particles=True,
+        )
 
-    gen_mask = gen_mask.numpy()
-    gen_jets = gen_jets.numpy()
+        gen_mask = gen_jets[1]
+        gen_jets = gen_jets[0]
 
-    gen_efps = jetnet.utils.efps(gen_jets, efpset_args=[("d<=", 4)], efp_jobs=6)
+        gen_mask = gen_mask.numpy()
+        gen_jets = gen_jets.numpy()
+
+        gen_efps = jetnet.utils.efps(gen_jets, efpset_args=[("d<=", 4)], efp_jobs=6)
+
+        np.save(f"{jets_dir}/{i}_gen_jets.npy", gen_jets)
+        np.save(f"{jets_dir}/{i}_gen_efps.npy", gen_efps)
 
     print(f"{datetime.datetime.now()} Calculating KPD")
 
-    kpd = metrics.multi_batch_evaluation(
-        real_efps, gen_efps, 10, 5000, metrics.mmd_poly_quadratic_unbiased
-    )
+    kpd = metrics.multi_batch_evaluation_mmd(real_efps, gen_efps)
 
     print(kpd)
     kpds.append(kpd)
