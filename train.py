@@ -36,6 +36,7 @@ z_idx = 2
 # edges for binning z values
 # eta and phi are also mapped from layer_specs with pattern, can be represented by range
 # eta and phi boundaries should be 2 dimentional, depends on z value
+# TODO create eta and phi list of tensors, use LAYER_SPECS
 eta_ranges = [[1/64 + (i - 1) * 1/96 for i in range(96)],
                   [1/8 + (i - 1) / 12 for i in range(12)],
                   [1/4 + (i - 1) * 1/6 for i in range(6)]]
@@ -155,17 +156,36 @@ class BucketizeFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input):
-        # lambda function to map eta and phi to different z
-        for i, z_b in enumerate(z_ranges):
-            filter = input[:,:,z_idx] == z_b
-            phi_boundaries = torch.Tensor(phi_ranges[i])
-            input[filter][:,phi_idx] = torch.bucketize(input[filter][:,phi_idx], phi_boundaries.to(input.device))
-            eta_boundaries = torch.Tensor(eta_ranges[i])
-            input[filter][:,eta_idx] = torch.bucketize(input[filter][:,eta_idx], eta_boundaries.to(input.device))
-
         # set values to bin centers, taking care of normalisation
         z_bins = torch.bucketize(input[:, :, z_idx], z_boundaries.to(input.device))
         input[:, :, z_idx] = ((z_bins + 0.5) / num_layers) + shift
+
+        # lambda function to map eta and phi to different z
+        for i, z_b in enumerate(z_ranges):  #need to check whether z_b corresponds to current z values
+            filter = input[:,:,z_idx] == z_b
+            phi_boundaries = torch.Tensor(phi_ranges[i])
+            print("min and max of phi at layer" + str(i))
+            print(torch.min(input[filter][:,phi_idx]))
+            print(torch.max(input[filter][:,phi_idx]))
+            print("expected")
+            print(min(phi_ranges[i]))
+            print(max(phi_ranges[i]))
+            print()
+            input[filter][:,phi_idx] = torch.bucketize(input[filter][:,phi_idx], phi_boundaries.to(input.device))
+            # TODO normalize phi_idx then deduce 0.5
+            # moves bins to the center, then divide by corresponding number of values from LAYERSPEC 
+            # look at histograms
+
+            eta_boundaries = torch.Tensor(eta_ranges[i])
+            print("min and max of eta at layer" + str(i))
+            print(torch.min(input[filter][:,eta_idx]))
+            print(torch.max(input[filter][:,eta_idx]))
+            print("expected")
+            print(min(eta_ranges[i]))
+            print(max(eta_ranges[i]))
+            input[filter][:,eta_idx] = torch.bucketize(input[filter][:,eta_idx], eta_boundaries.to(input.device))
+            # TODO normalize phi_idx
+
         return input
 
     @staticmethod
