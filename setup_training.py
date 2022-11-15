@@ -107,7 +107,8 @@ def parse_args():
         choices=["mpgan", "rgan", "pointnet", "pcgan"],
     )
 
-    add_bool_arg(parser, "load-model", "load a pretrained model", default=True)
+    # Chenged load-model so that without the flag the model will not be loaded
+    add_bool_arg(parser, "load-model", "load a pretrained model", default=False)
     add_bool_arg(
         parser,
         "override-load-check",

@@ -51,8 +51,8 @@ class CaloGANDataset(torch.utils.data.Dataset):
 
         self.data = dataset[:tcut] if train else dataset[tcut:]
         self.jet_features = jet_features[:tcut] if train else jet_features[tcut:]
-
-        print(self.data[0, :10])
+        print(self.data.shape)
+        print("Real data is ", self.data[0:10, :, 2])
 
         logging.info("Dataset processed")
 

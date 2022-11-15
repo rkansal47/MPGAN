@@ -1,6 +1,7 @@
 from calogan_dataset import CaloGANDataset
 
 
+from jetnet import evaluation
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
@@ -25,7 +26,40 @@ import logging
 from guppy import hpy
 
 h = hpy()
+LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
+num_layers = len(LAYER_SPECS)
+shift = -0.5  # from normalisation
+eta_idx = 0
+phi_idx = 1
+z_idx = 2
 
+# edges for binning z values
+# eta and phi are also mapped from layer_specs with pattern, can be represented by range
+# eta and phi boundaries should be 2 dimentional, depends on z value
+# TODO create eta and phi list of tensors, use LAYER_SPECS
+eta_shifts = [-1/64, -1/8, -1/4]
+# eta_ranges = [[1/64 + (i - 1) * 1/96 for i in range(96)],
+#                   [1/8 + (i - 1) / 12 for i in range(12)],
+#                   [1/4 + (i - 1) * 1/6 for i in range(6)]]
+eta_boundaries = [
+    (torch.range(-1, LAYER_SPECS[i][1] - 1) / LAYER_SPECS[i][1])  - eta_shifts[i] for i in range(3)
+]
+phi_shifts = [-1/2, -1/8, -1,8]
+# phi_ranges = [[1/2 + (i - 1) * 1/3 for i in range(3)],
+#                   [1/8 + (i - 1) / 12 for i in range(12)],
+#                   [1/8 + (i - 1) / 12 for i in range(12)]]
+phi_boundaries = [
+    (torch.range(-1, LAYER_SPECS[i][0] - 1) / LAYER_SPECS[i][0])  - phi_shifts[i] for i in range(3)
+]
+z_ranges = [1/2 + (i - 1) * 1/3 for i in range(3)]
+
+# TODO don't know why should be num_layers - 1, this will have only 1 and 2, is it because mix of range and arange?
+# and why shift is -0.5
+# Raghav version
+# z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
+
+# Tina version
+z_boundaries = (torch.range(-1, num_layers -1) / num_layers) - shift
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -130,20 +164,32 @@ def get_gen_noise(
 
 # Maybe not necessary? Can use the forward directly in Bucketize?
 class BucketizeFunction(torch.autograd.Function):
-    LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
-    num_layers = len(LAYER_SPECS)
-    shift = -0.5  # from normalisation
-    z_idx = 2
-
-    # edges for binning z values
-    z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
+    
 
     @staticmethod
     def forward(ctx, input):
-        z_bins = torch.bucketize(input[:, :, ctx.z_idx], ctx.z_boundaries.to(input.device))
-
         # set values to bin centers, taking care of normalisation
-        input[:, :, 2] = ((z_bins + 0.5) / ctx.num_layers) + ctx.shift
+        z_bins = torch.bucketize(input[:, :, z_idx], z_boundaries.to(input.device))
+        # TODO don't know why add 0.5, not - 0.5
+        input[:, :, z_idx] = ((z_bins + 0.5) / num_layers) + shift
+        # Tina's version
+        # input[:, :, z_idx] = ((z_bins + shift) / num_layers) - shift
+        
+        # lambda function to map eta and phi to different z
+        for i, z_b in enumerate(z_ranges):  #need to check whether z_b corresponds to current z values
+            filter = input[:,:,z_idx] == z_b
+            #phi_boundaries = torch.Tensor(phi_ranges[i])
+            
+            phi_bins = torch.bucketize(input[filter][:,phi_idx], phi_boundaries[i].to(input.device))
+            input[filter][:,phi_idx] = ((phi_bins - phi_shifts[i]) / LAYER_SPECS[i][0]) + phi_shifts[i]
+            # TODO normalize phi_idx then deduce 0.5
+            # moves bins to the center, then divide by corresponding number of values from LAYERSPEC 
+            # look at histograms
+
+            #eta_boundaries = torch.Tensor(eta_ranges[i])
+            eta_bins = torch.bucketize(input[filter][:,eta_idx], eta_boundaries[i].to(input.device))
+            input[filter][:,eta_idx] = ((eta_bins - eta_shifts[i]) / LAYER_SPECS[i][1]) + eta_shifts[i]
+
 
         return input
 
@@ -462,10 +508,10 @@ def train_D(
         data = augment.augment(augment_args, data, p)
         gen_data = augment.augment(augment_args, gen_data, p)
 
-    log(f"G output: \n {gen_data[:2, :10]}")
+    #log(f"G output: \n {gen_data[:2, :10]}")
 
     D_fake_output = D(gen_data, labels)
-    log(f"D fake output: \n {D_fake_output[:10]}")
+    #log(f"D fake output: \n {D_fake_output[:10]}")
 
     D_loss, D_loss_items = calc_D_loss(
         loss,

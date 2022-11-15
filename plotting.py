@@ -420,44 +420,44 @@ def plot_jet_feats(
         plt.close()
 
 
-# def plot_jet_mass_pt(realjf, genjf, dataset="jetnet", name=None, figs_path=None, show=False):
-#     if dataset == "jetnet":
-#         jlabels = ["Jet Relative Mass", "Jet Relative $p_T$"]
-#         binsm = np.linspace(0, 0.225, 101)
-#         binspt = np.linspace(0.5, 1.2, 101)
-#     elif dataset == "jets-lagan":
-#         jlabels = ["Jet Mass (GeV)", "Jet $p_T$ (GeV)"]
-#         binsm = np.linspace(40, 120, 51)
-#         binspt = np.linspace(220, 340, 51)
-#
-#     fig = plt.figure(figsize=(16, 8))
-#
-#     fig.add_subplot(1, 2, 1)
-#     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-#     # plt.ticklabel_format(axis='x', scilimits=(0, 0), useMathText=True)
-#     _ = plt.hist(realjf[:, 0], bins=binsm, histtype="step", label="Real", color="red")
-#     _ = plt.hist(genjf[:, 0], bins=binsm, histtype="step", label="Generated", color="blue")
-#     plt.xlabel(jlabels[0])
-#     plt.ylabel("Jets")
-#     plt.legend(loc=1, prop={"size": 18})
-#
-#     fig.add_subplot(1, 2, 2)
-#     plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
-#     plt.ticklabel_format(axis="x", scilimits=(0, 0), useMathText=True)
-#     _ = plt.hist(realjf[:, 1], bins=binspt, histtype="step", label="Real", color="red")
-#     _ = plt.hist(genjf[:, 1], bins=binspt, histtype="step", label="Generated", color="blue")
-#     plt.xlabel(jlabels[1])
-#     plt.ylabel("Jets")
-#     plt.legend(loc=1, prop={"size": 18})
-#
-#     plt.tight_layout(pad=2)
-#     if figs_path is not None and name is not None:
-#         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
-#
-#     if show:
-#         plt.show()
-#     else:
-#         plt.close()
+def plot_jet_mass_pt(realjf, genjf, dataset="jetnet", name=None, figs_path=None, show=False):
+    if dataset == "jetnet":
+        jlabels = ["Jet Relative Mass", "Jet Relative $p_T$"]
+        binsm = np.linspace(0, 0.225, 101)
+        binspt = np.linspace(0.5, 1.2, 101)
+    elif dataset == "jets-lagan":
+        jlabels = ["Jet Mass (GeV)", "Jet $p_T$ (GeV)"]
+        binsm = np.linspace(40, 120, 51)
+        binspt = np.linspace(220, 340, 51)
+
+    fig = plt.figure(figsize=(16, 8))
+
+    fig.add_subplot(1, 2, 1)
+    plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
+    # plt.ticklabel_format(axis='x', scilimits=(0, 0), useMathText=True)
+    _ = plt.hist(realjf[:, 0], bins=binsm, histtype="step", label="Real", color="red")
+    _ = plt.hist(genjf[:, 0], bins=binsm, histtype="step", label="Generated", color="blue")
+    plt.xlabel(jlabels[0])
+    plt.ylabel("Jets")
+    plt.legend(loc=1, prop={"size": 18})
+
+    fig.add_subplot(1, 2, 2)
+    plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
+    plt.ticklabel_format(axis="x", scilimits=(0, 0), useMathText=True)
+    _ = plt.hist(realjf[:, 1], bins=binspt, histtype="step", label="Real", color="red")
+    _ = plt.hist(genjf[:, 1], bins=binspt, histtype="step", label="Generated", color="blue")
+    plt.xlabel(jlabels[1])
+    plt.ylabel("Jets")
+    plt.legend(loc=1, prop={"size": 18})
+
+    plt.tight_layout(pad=2)
+    if figs_path is not None and name is not None:
+        plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
 
 
 def plot_losses(losses, loss="lg", name=None, losses_path=None, show=False):
