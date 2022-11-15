@@ -42,14 +42,14 @@ eta_shifts = [-1/64, -1/8, -1/4]
 #                   [1/8 + (i - 1) / 12 for i in range(12)],
 #                   [1/4 + (i - 1) * 1/6 for i in range(6)]]
 eta_boundaries = [
-    (torch.arange(LAYER_SPECS[i][1]) / LAYER_SPECS[i][1])  - eta_shifts[i] for i in range(3)
+    (torch.range(-1, LAYER_SPECS[i][1] - 1) / LAYER_SPECS[i][1])  - eta_shifts[i] for i in range(3)
 ]
 phi_shifts = [-1/2, -1/8, -1,8]
 # phi_ranges = [[1/2 + (i - 1) * 1/3 for i in range(3)],
 #                   [1/8 + (i - 1) / 12 for i in range(12)],
 #                   [1/8 + (i - 1) / 12 for i in range(12)]]
 phi_boundaries = [
-    (torch.arange(LAYER_SPECS[i][0]) / LAYER_SPECS[i][0])  - phi_shifts[i] for i in range(3)
+    (torch.range(-1, LAYER_SPECS[i][0] - 1) / LAYER_SPECS[i][0])  - phi_shifts[i] for i in range(3)
 ]
 z_ranges = [1/2 + (i - 1) * 1/3 for i in range(3)]
 
@@ -59,7 +59,7 @@ z_ranges = [1/2 + (i - 1) * 1/3 for i in range(3)]
 # z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
 
 # Tina version
-z_boundaries = (torch.arange(num_layers) / num_layers) - shift
+z_boundaries = (torch.range(-1, num_layers -1) / num_layers) - shift
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -171,9 +171,9 @@ class BucketizeFunction(torch.autograd.Function):
         # set values to bin centers, taking care of normalisation
         z_bins = torch.bucketize(input[:, :, z_idx], z_boundaries.to(input.device))
         # TODO don't know why add 0.5, not - 0.5
-        #input[:, :, z_idx] = ((z_bins + 0.5) / num_layers) + shift
+        input[:, :, z_idx] = ((z_bins + 0.5) / num_layers) + shift
         # Tina's version
-        input[:, :, z_idx] = ((z_bins + shift) / num_layers) - shift
+        # input[:, :, z_idx] = ((z_bins + shift) / num_layers) - shift
         
         # lambda function to map eta and phi to different z
         for i, z_b in enumerate(z_ranges):  #need to check whether z_b corresponds to current z values
@@ -181,14 +181,14 @@ class BucketizeFunction(torch.autograd.Function):
             #phi_boundaries = torch.Tensor(phi_ranges[i])
             
             phi_bins = torch.bucketize(input[filter][:,phi_idx], phi_boundaries[i].to(input.device))
-            input[filter][:,phi_idx] = ((phi_bins + phi_shifts[i]) / LAYER_SPECS[i][0]) - phi_shifts[i]
+            input[filter][:,phi_idx] = ((phi_bins - phi_shifts[i]) / LAYER_SPECS[i][0]) + phi_shifts[i]
             # TODO normalize phi_idx then deduce 0.5
             # moves bins to the center, then divide by corresponding number of values from LAYERSPEC 
             # look at histograms
 
             #eta_boundaries = torch.Tensor(eta_ranges[i])
             eta_bins = torch.bucketize(input[filter][:,eta_idx], eta_boundaries[i].to(input.device))
-            input[filter][:,eta_idx] = ((eta_bins + eta_shifts[i]) / LAYER_SPECS[i][1]) - eta_shifts[i]
+            input[filter][:,eta_idx] = ((eta_bins - eta_shifts[i]) / LAYER_SPECS[i][1]) + eta_shifts[i]
 
 
         return input
