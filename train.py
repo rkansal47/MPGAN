@@ -37,17 +37,29 @@ z_idx = 2
 # eta and phi are also mapped from layer_specs with pattern, can be represented by range
 # eta and phi boundaries should be 2 dimentional, depends on z value
 # TODO create eta and phi list of tensors, use LAYER_SPECS
-eta_ranges = [[1/64 + (i - 1) * 1/96 for i in range(96)],
-                  [1/8 + (i - 1) / 12 for i in range(12)],
-                  [1/4 + (i - 1) * 1/6 for i in range(6)]]
-
-phi_ranges = [[1/2 + (i - 1) * 1/3 for i in range(3)],
-                  [1/8 + (i - 1) / 12 for i in range(12)],
-                  [1/8 + (i - 1) / 12 for i in range(12)]]
+eta_shifts = [-1/64, -1/8, -1/4]
+# eta_ranges = [[1/64 + (i - 1) * 1/96 for i in range(96)],
+#                   [1/8 + (i - 1) / 12 for i in range(12)],
+#                   [1/4 + (i - 1) * 1/6 for i in range(6)]]
+eta_boundaries = [
+    (torch.arange(LAYER_SPECS[i][1]) / LAYER_SPECS[i][1])  - eta_shifts[i] for i in range(3)
+]
+phi_shifts = [-1/2, -1/8, -1,8]
+# phi_ranges = [[1/2 + (i - 1) * 1/3 for i in range(3)],
+#                   [1/8 + (i - 1) / 12 for i in range(12)],
+#                   [1/8 + (i - 1) / 12 for i in range(12)]]
+phi_boundaries = [
+    (torch.arange(LAYER_SPECS[i][0]) / LAYER_SPECS[i][0])  - phi_shifts[i] for i in range(3)
+]
 z_ranges = [1/2 + (i - 1) * 1/3 for i in range(3)]
 
-z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
+# TODO don't know why should be num_layers - 1, this will have only 1 and 2, is it because mix of range and arange?
+# and why shift is -0.5
+# Raghav version
+# z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
 
+# Tina version
+z_boundaries = (torch.arange(num_layers) / num_layers) - shift
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -158,33 +170,26 @@ class BucketizeFunction(torch.autograd.Function):
     def forward(ctx, input):
         # set values to bin centers, taking care of normalisation
         z_bins = torch.bucketize(input[:, :, z_idx], z_boundaries.to(input.device))
-        input[:, :, z_idx] = ((z_bins + 0.5) / num_layers) + shift
-
+        # TODO don't know why add 0.5, not - 0.5
+        #input[:, :, z_idx] = ((z_bins + 0.5) / num_layers) + shift
+        # Tina's version
+        input[:, :, z_idx] = ((z_bins + shift) / num_layers) - shift
+        
         # lambda function to map eta and phi to different z
         for i, z_b in enumerate(z_ranges):  #need to check whether z_b corresponds to current z values
             filter = input[:,:,z_idx] == z_b
-            phi_boundaries = torch.Tensor(phi_ranges[i])
-            print("min and max of phi at layer" + str(i))
-            print(torch.min(input[filter][:,phi_idx]))
-            print(torch.max(input[filter][:,phi_idx]))
-            print("expected")
-            print(min(phi_ranges[i]))
-            print(max(phi_ranges[i]))
-            print()
-            input[filter][:,phi_idx] = torch.bucketize(input[filter][:,phi_idx], phi_boundaries.to(input.device))
+            #phi_boundaries = torch.Tensor(phi_ranges[i])
+            
+            phi_bins = torch.bucketize(input[filter][:,phi_idx], phi_boundaries[i].to(input.device))
+            input[filter][:,phi_idx] = ((phi_bins + phi_shifts[i]) / LAYER_SPECS[i][0]) - phi_shifts[i]
             # TODO normalize phi_idx then deduce 0.5
             # moves bins to the center, then divide by corresponding number of values from LAYERSPEC 
             # look at histograms
 
-            eta_boundaries = torch.Tensor(eta_ranges[i])
-            print("min and max of eta at layer" + str(i))
-            print(torch.min(input[filter][:,eta_idx]))
-            print(torch.max(input[filter][:,eta_idx]))
-            print("expected")
-            print(min(eta_ranges[i]))
-            print(max(eta_ranges[i]))
-            input[filter][:,eta_idx] = torch.bucketize(input[filter][:,eta_idx], eta_boundaries.to(input.device))
-            # TODO normalize phi_idx
+            #eta_boundaries = torch.Tensor(eta_ranges[i])
+            eta_bins = torch.bucketize(input[filter][:,eta_idx], eta_boundaries[i].to(input.device))
+            input[filter][:,eta_idx] = ((eta_bins + eta_shifts[i]) / LAYER_SPECS[i][1]) - eta_shifts[i]
+
 
         return input
 
