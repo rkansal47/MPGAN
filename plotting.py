@@ -14,9 +14,9 @@ plt.style.use(hep.style.CMS)
 
 LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
 
-from guppy import hpy
+# from guppy import hpy
 
-h = hpy()
+# h = hpy()
 
 
 def plot_hit_feats(
@@ -49,9 +49,6 @@ def plot_hit_feats(
         parts_real = real_jets.reshape(-1, real_jets.shape[2])
         parts_gen = gen_jets.reshape(-1, gen_jets.shape[2])
 
-    print("pre plot")
-    print(h.heap())
-
     # plt.switch_backend("agg")
 
     fig = plt.figure(figsize=(16, 16))
@@ -71,17 +68,11 @@ def plot_hit_feats(
     if figs_path is not None and name is not None:
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
 
-    print("before close")
-    print(h.heap())
-
     if show:
         plt.show()
     else:
         plt.close()
         # gc.collect()
-
-        print("after close")
-        print(h.heap())
 
 
 def plot_layerwise_hit_feats(
@@ -129,11 +120,11 @@ def plot_layerwise_hit_feats(
         # create 1x3 subplots per subfig
         axs = subfig.subplots(nrows=1, ncols=3)
         axs[0].hist(
-            real_layer_etas[i], bins=np.arange(LAYER_SPECS[i][1] + 1), histtype="step", label="Real"
+            real_layer_etas[i], bins=np.linspace(0, LAYER_SPECS[i][1] + 1, 101), histtype="step", label="Real"
         )
         axs[0].hist(
             gen_layer_etas[i],
-            bins=np.arange(LAYER_SPECS[i][1] + 1),
+            bins=np.linspace(0, LAYER_SPECS[i][1] + 1, 101),
             histtype="step",
             label="Generated",
         )
@@ -143,11 +134,11 @@ def plot_layerwise_hit_feats(
         axs[0].legend()
 
         axs[1].hist(
-            real_layer_phis[i], bins=np.arange(LAYER_SPECS[i][0] + 1), histtype="step", label="Real"
+            real_layer_phis[i], bins=np.linspace(0, LAYER_SPECS[i][0] + 1, 101), histtype="step", label="Real"
         )
         axs[1].hist(
             gen_layer_phis[i],
-            bins=np.arange(LAYER_SPECS[i][0] + 1),
+            bins=np.linspace(0, LAYER_SPECS[i][0] + 1, 101),
             histtype="step",
             label="Generated",
         )
@@ -228,9 +219,9 @@ def plot_shower_ims(
                 gen_ims[i][j],
                 aspect="auto",
                 cmap="binary",
-                vmin=vmins[i],
-                vmax=vmaxs[i],
-                norm=LogNorm(),
+                # vmin=vmins[i],
+                # vmax=vmaxs[i],
+                norm=LogNorm(vmins[i], vmaxs[i]),
                 extent=(0, LAYER_SPECS[i][1], 0, LAYER_SPECS[i][0]),
             )
             axs[j].set_xlabel(r"$\eta$")
@@ -243,9 +234,9 @@ def plot_shower_ims(
             np.mean(np.array(gen_ims[i]), axis=0),
             aspect="auto",
             cmap="binary",
-            vmin=vmins[i],
-            vmax=vmaxs[i],
-            norm=LogNorm(),
+            # vmin=vmins[i],
+            # vmax=vmaxs[i],
+            norm=LogNorm(vmins[i], vmaxs[i]),
             extent=(0, LAYER_SPECS[i][1], 0, LAYER_SPECS[i][0]),
         )
         axs[j].set_xlabel(r"$\eta$")

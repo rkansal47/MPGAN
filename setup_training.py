@@ -108,7 +108,7 @@ def parse_args():
     )
 
     # Chenged load-model so that without the flag the model will not be loaded
-    add_bool_arg(parser, "load-model", "load a pretrained model", default=False)
+    add_bool_arg(parser, "load-model", "load a pretrained model", default=True)
     add_bool_arg(
         parser,
         "override-load-check",
@@ -166,7 +166,7 @@ def parse_args():
     add_bool_arg(parser, "real-only", "use jets with ony real particles", default=False)
 
     add_bool_arg(parser, "make-plots", "make plots", default=True)
-    add_bool_arg(parser, "shower-ims", "make shower ims", default=True)
+    add_bool_arg(parser, "shower-ims", "make shower ims", default=False)
 
     add_bool_arg(parser, "multi-gpu", "use multiple gpus if possible", default=False)
 

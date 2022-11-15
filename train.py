@@ -1,7 +1,7 @@
 from calogan_dataset import CaloGANDataset
 
 
-from jetnet import evaluation
+# from jetnet import evaluation
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
@@ -23,9 +23,10 @@ from tqdm import tqdm
 import logging
 
 
-from guppy import hpy
+# from guppy import hpy
 
-h = hpy()
+# h = hpy()
+
 LAYER_SPECS = [(3, 96), (12, 12), (12, 6)]
 num_layers = len(LAYER_SPECS)
 shift = -0.5  # from normalisation
@@ -36,30 +37,24 @@ z_idx = 2
 # edges for binning z values
 # eta and phi are also mapped from layer_specs with pattern, can be represented by range
 # eta and phi boundaries should be 2 dimentional, depends on z value
-# TODO create eta and phi list of tensors, use LAYER_SPECS
-eta_shifts = [-1/64, -1/8, -1/4]
-# eta_ranges = [[1/64 + (i - 1) * 1/96 for i in range(96)],
-#                   [1/8 + (i - 1) / 12 for i in range(12)],
-#                   [1/4 + (i - 1) * 1/6 for i in range(6)]]
+
+
 eta_boundaries = [
-    (torch.range(-1, LAYER_SPECS[i][1] - 1) / LAYER_SPECS[i][1])  - eta_shifts[i] for i in range(3)
+    (torch.range(1, LAYER_SPECS[i][1] - 1) / LAYER_SPECS[i][1]) + shift for i in range(3)
 ]
-phi_shifts = [-1/2, -1/8, -1,8]
-# phi_ranges = [[1/2 + (i - 1) * 1/3 for i in range(3)],
-#                   [1/8 + (i - 1) / 12 for i in range(12)],
-#                   [1/8 + (i - 1) / 12 for i in range(12)]]
+
 phi_boundaries = [
-    (torch.range(-1, LAYER_SPECS[i][0] - 1) / LAYER_SPECS[i][0])  - phi_shifts[i] for i in range(3)
+    (torch.range(1, LAYER_SPECS[i][0] - 1) / LAYER_SPECS[i][0]) + shift for i in range(3)
 ]
-z_ranges = [1/2 + (i - 1) * 1/3 for i in range(3)]
 
 # TODO don't know why should be num_layers - 1, this will have only 1 and 2, is it because mix of range and arange?
 # and why shift is -0.5
 # Raghav version
-# z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
+z_boundaries = (torch.range(1, num_layers - 1) / num_layers) + shift
 
 # Tina version
-z_boundaries = (torch.range(-1, num_layers -1) / num_layers) - shift
+# z_boundaries = (torch.range(-1, num_layers -1) / num_layers) - shift
+
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -164,8 +159,6 @@ def get_gen_noise(
 
 # Maybe not necessary? Can use the forward directly in Bucketize?
 class BucketizeFunction(torch.autograd.Function):
-    
-
     @staticmethod
     def forward(ctx, input):
         # set values to bin centers, taking care of normalisation
@@ -174,22 +167,28 @@ class BucketizeFunction(torch.autograd.Function):
         input[:, :, z_idx] = ((z_bins + 0.5) / num_layers) + shift
         # Tina's version
         # input[:, :, z_idx] = ((z_bins + shift) / num_layers) - shift
-        
+
+        print(f"{z_bins = }")
+
         # lambda function to map eta and phi to different z
-        for i, z_b in enumerate(z_ranges):  #need to check whether z_b corresponds to current z values
-            filter = input[:,:,z_idx] == z_b
-            #phi_boundaries = torch.Tensor(phi_ranges[i])
-            
-            phi_bins = torch.bucketize(input[filter][:,phi_idx], phi_boundaries[i].to(input.device))
-            input[filter][:,phi_idx] = ((phi_bins - phi_shifts[i]) / LAYER_SPECS[i][0]) + phi_shifts[i]
+        for i in range(num_layers):
+            # need to check whether z_b corresponds to current z values
+            filter = z_bins == i
+
+            phi_bins = torch.bucketize(
+                input[filter][:, phi_idx], phi_boundaries[i].to(input.device)
+            )
+            input[filter][:, phi_idx] = ((phi_bins + 0.5) / LAYER_SPECS[i][0]) + shift
+
             # TODO normalize phi_idx then deduce 0.5
-            # moves bins to the center, then divide by corresponding number of values from LAYERSPEC 
+            # moves bins to the center, then divide by corresponding number of values from LAYERSPEC
             # look at histograms
 
-            #eta_boundaries = torch.Tensor(eta_ranges[i])
-            eta_bins = torch.bucketize(input[filter][:,eta_idx], eta_boundaries[i].to(input.device))
-            input[filter][:,eta_idx] = ((eta_bins - eta_shifts[i]) / LAYER_SPECS[i][1]) + eta_shifts[i]
-
+            # eta_boundaries = torch.Tensor(eta_ranges[i])
+            eta_bins = torch.bucketize(
+                input[filter][:, eta_idx], eta_boundaries[i].to(input.device)
+            )
+            input[filter][:, eta_idx] = ((eta_bins + 0.5) / LAYER_SPECS[i][1]) + shift
 
         return input
 
@@ -508,10 +507,10 @@ def train_D(
         data = augment.augment(augment_args, data, p)
         gen_data = augment.augment(augment_args, gen_data, p)
 
-    #log(f"G output: \n {gen_data[:2, :10]}")
+    # log(f"G output: \n {gen_data[:2, :10]}")
 
     D_fake_output = D(gen_data, labels)
-    #log(f"D fake output: \n {D_fake_output[:10]}")
+    # log(f"D fake output: \n {D_fake_output[:10]}")
 
     D_loss, D_loss_items = calc_D_loss(
         loss,
@@ -705,9 +704,6 @@ def make_plots(
         show=False,
     )
 
-    print("hit feats")
-    print(h.heap())
-
     plotting.plot_layerwise_hit_feats(
         real_jets,
         gen_jets,
@@ -719,9 +715,6 @@ def make_plots(
         show=False,
     )
 
-    print("layerwise hit feats")
-    print(h.heap())
-
     if shower_ims:
         plotting.plot_shower_ims(
             gen_jets,
@@ -730,9 +723,6 @@ def make_plots(
             show=False,
         )
 
-        print("shower ims")
-        print(h.heap())
-
     if len(losses["G"]) > 1:
         plotting.plot_losses(losses, loss=loss, name=name, losses_path=losses_path, show=False)
 
@@ -740,9 +730,6 @@ def make_plots(
             remove(losses_path + "/" + str(epoch - save_epochs) + ".pdf")
         except:
             logging.info("Couldn't remove previous loss curves")
-
-    print("losses")
-    print(h.heap())
 
     # if len(losses["w1p"]) > 1:
     #     plotting.plot_eval(
@@ -816,9 +803,6 @@ def eval_save_plot(
     if gen_mask is not None:
         gen_mask = gen_mask.numpy()
 
-    print("jets")
-    print(h.heap())
-
     # evaluate(
     #     losses,
     #     real_jets,
@@ -831,9 +815,6 @@ def eval_save_plot(
     #     efp_jobs=args.efp_jobs if hasattr(args, "efp_jobs") else None,
     # )
     save_losses(losses, args.losses_path)
-
-    print("saved losses")
-    print(h.heap())
 
     if args.make_plots:
         make_plots(
@@ -854,9 +835,6 @@ def eval_save_plot(
             loss=args.loss,
             shower_ims=args.shower_ims,
         )
-
-        print("made plots")
-        print(h.heap())
 
     # save model state and sample generated jets if this is the lowest w1m score yet
     # if epoch > 0 and losses["w1m"][-1][0] < best_epoch[-1][1]:
@@ -967,9 +945,6 @@ def train(
     model_eval_args,
     extra_args,
 ):
-    print("train start")
-    print(h.heap())
-
     if args.start_epoch == 0 and args.save_zero:
         eval_save_plot(
             args,
@@ -984,9 +959,6 @@ def train(
             best_epoch,
             **extra_args,
         )
-
-    print("after eval save plot")
-    print(h.heap())
 
     D_losses = ["Dr", "Df", "D"]
     if args.gp:
@@ -1028,9 +1000,6 @@ def train(
         )
         logging.info(f"Epoch {epoch} Training Over")
 
-        print("train loop")
-        print(h.heap())
-
         for key in D_losses:
             losses[key].append(epoch_loss[key] / (lenX / args.num_gen))
         losses["G"].append(epoch_loss["G"] / (lenX / args.num_critic))
@@ -1039,9 +1008,6 @@ def train(
             logging.info("{} loss: {:.3f}".format(key, losses[key][-1]))
 
         if (epoch) % args.save_epochs == 0:
-            print("pre eval save plot")
-            print(h.heap())
-
             eval_save_plot(
                 args,
                 X_test,
@@ -1055,9 +1021,6 @@ def train(
                 best_epoch,
                 **extra_args,
             )
-
-            print("post eval save plot")
-            print(h.heap())
         elif (epoch) % args.save_model_epochs == 0:
             save_models(
                 D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu
