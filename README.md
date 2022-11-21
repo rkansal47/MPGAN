@@ -7,8 +7,8 @@
 Code for models in:
 
 
-[1] Kansal et. al., *Graph Generative Adversarial Networks for Sparse Data Generation in High Energy Physics*, ML4PS @ NeurIPS 2020 [`arXiv:2012.00173`](https://arxiv.org/abs/2012.00173) \
-[2] Kansal et. al., *Particle Cloud Generation with Message Passing Generative Adversarial Networks*, NeurIPS 2021 [`arXiv:2106.11535`](https://arxiv.org/abs/2106.11535), and \
+[1] Kansal et. al., *Graph Generative Adversarial Networks for Sparse Data Generation in High Energy Physics*, [ML4PS @ NeurIPS 2020](https://ml4physicalsciences.github.io/2020/) [`arXiv:2012.00173`](https://arxiv.org/abs/2012.00173) \
+[2] Kansal et. al., *Particle Cloud Generation with Message Passing Generative Adversarial Networks*, [NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/c8512d142a2d849725f31a9a7a361ab9-Abstract.html) [`arXiv:2106.11535`](https://arxiv.org/abs/2106.11535) \
 [3] Kansal et. al., *On the Evaluation of Generative Models in High Energy Physics*, [`arXiv:2211.10295`](https://arxiv.org/abs/2211.10295)
 
 
@@ -19,9 +19,11 @@ We include also [weights](trained_models) of fully trained models discussed in [
 
 Additionally, we release the standalone [JetNet](https://github.com/jet-net/JetNet) library, which provides a PyTorch Dataset class for our JetNet dataset, implementations of the evaluation metrics discussed in the paper, and some more useful utilities for development in machine learning + jets.
 
-A complete list of talks on this work can be found [here](https://www.raghavkansal.com/project/graph-gan/).
-
 *For the exact code and scripts used for [2], please see the [neurips21](https://github.com/rkansal47/MPGAN/tree/neurips21) branch.*
+
+## Talks
+
+A complete list of talks can be found [here](https://www.raghavkansal.com/project/graph-gan/).
 
 ## Dependencies
 
