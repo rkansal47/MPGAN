@@ -187,134 +187,10 @@ def parse_args():
     parse_masking_args(parser)
     parse_optimization_args(parser)
     parse_regularization_args(parser)
-
-    ##########################################################
-    # Augmentation
-    ##########################################################
-
-    # remember to add any new args to the if statement below
-    add_bool_arg(parser, "aug-t", "augment with translations", default=False)
-    add_bool_arg(parser, "aug-f", "augment with flips", default=False)
-    add_bool_arg(parser, "aug-r90", "augment with 90 deg rotations", default=False)
-    add_bool_arg(parser, "aug-s", "augment with scalings", default=False)
-    parser.add_argument(
-        "--translate-ratio", type=float, default=0.125, help="random translate ratio"
-    )
-    parser.add_argument(
-        "--scale-sd", type=float, default=0.125, help="random scale lognormal standard deviation"
-    )
-    parser.add_argument(
-        "--translate-pn-ratio", type=float, default=0.05, help="random translate per node ratio"
-    )
-
-    add_bool_arg(parser, "adaptive-prob", "adaptive augment probability", default=False)
-    parser.add_argument(
-        "--aug-prob", type=float, default=1.0, help="probability of being augmented"
-    )
-
     parse_evaluation_args(parser)
-
-    ##########################################################
-    # External models
-    ##########################################################
-
-    parser.add_argument("--latent-dim", type=int, default=128, help="")
-
-    parser.add_argument(
-        "--rgang-fc", type=int, nargs="+", default=[64, 128], help="rGAN generator layer node sizes"
-    )
-    parser.add_argument(
-        "--rgand-sfc",
-        type=int,
-        nargs="*",
-        default=0,
-        help="rGAN discriminator convolutional layer node sizes",
-    )
-    parser.add_argument(
-        "--rgand-fc", type=int, nargs="*", default=0, help="rGAN discriminator layer node sizes"
-    )
-
-    parser.add_argument(
-        "--pointnetd-pointfc",
-        type=int,
-        nargs="*",
-        default=[64, 128, 1024],
-        help="pointnet discriminator point layer node sizes",
-    )
-    parser.add_argument(
-        "--pointnetd-fc",
-        type=int,
-        nargs="*",
-        default=[512],
-        help="pointnet discriminator final layer node sizes",
-    )
-
-    parser.add_argument(
-        "--graphcnng-layers",
-        type=int,
-        nargs="+",
-        default=[32, 24],
-        help="GraphCNN-GAN generator layer node sizes",
-    )
-    add_bool_arg(
-        parser,
-        "graphcnng-tanh",
-        "use tanh activation for final graphcnn generator output",
-        default=False,
-    )
-
-    parser.add_argument(
-        "--treegang-degrees",
-        type=int,
-        nargs="+",
-        default=[2, 2, 2, 2, 2],
-        help="TreeGAN generator upsampling per layer",
-    )
-    parser.add_argument(
-        "--treegang-features",
-        type=int,
-        nargs="+",
-        default=[96, 64, 64, 64, 64, 3],
-        help="TreeGAN generator features per node per layer",
-    )
-    parser.add_argument(
-        "--treegang-support", type=int, default=10, help="Support value for TreeGCN loop term."
-    )
-
-    parser.add_argument(
-        "--pcgan-latent-dim",
-        type=int,
-        default=128,
-        help="Latent dim for object representation sampling",
-    )
-    parser.add_argument(
-        "--pcgan-z1-dim",
-        type=int,
-        default=256,
-        help="Object representation latent dim - has to be the same as the pre-trained point sampling network",
-    )
-    parser.add_argument(
-        "--pcgan-z2-dim",
-        type=int,
-        default=10,
-        help="Point latent dim - has to be the same as the pre-trained point sampling network",
-    )
-    parser.add_argument(
-        "--pcgan-d-dim",
-        type=int,
-        default=256,
-        help="PCGAN hidden dim - has to be the same as the pre-trained network",
-    )
-    parser.add_argument(
-        "--pcgan-pool",
-        type=str,
-        default="max1",
-        choices=["max", "max1", "mean"],
-        help="PCGAN inference network pooling - has to be the same as the pre-trained network",
-    )
-
     parse_mnist_args(parser)
     parse_gapt_args(parser)
+    parse_ext_models_args(parser)
 
     args = parser.parse_args()
 
@@ -402,8 +278,8 @@ def parse_regularization_args(parser):
 
 
 def parse_evaluation_args(parser):
-    add_bool_arg(parser, "fpnd", "calc fpnd", default=True)
-    add_bool_arg(parser, "fpd", "calc fpd", default=True)
+    add_bool_arg(parser, "fpnd", "calc fpnd", default=False)
+    add_bool_arg(parser, "fpd", "calc fpd (coming soon)", default=False)
     add_bool_arg(parser, "efp", "calc w1efp", default=False)
     # parser.add_argument("--fid-eval-size", type=int, default=8192, help="number of samples generated for evaluating fid")
     parser.add_argument(
@@ -417,7 +293,7 @@ def parse_evaluation_args(parser):
         "--efp-jobs",
         type=int,
         default=0,
-        help="batch size when generating samples for fpnd eval",
+        help="# of processes to use for calculating EFPs - by default it will use the # of CPU cores",
     )
 
     parser.add_argument("--gpu-batch", type=int, default=50, help="")
@@ -436,7 +312,7 @@ def parse_evaluation_args(parser):
         "--w1-num-samples",
         type=int,
         nargs="+",
-        default=[10000],
+        default=[50000],
         help="array of # of jet samples to test",
     )
 
@@ -718,6 +594,103 @@ def parse_gapt_args(parser):
     )
 
 
+def parse_ext_models_args(parser):
+    parser.add_argument("--latent-dim", type=int, default=128, help="")
+
+    parser.add_argument(
+        "--rgang-fc", type=int, nargs="+", default=[64, 128], help="rGAN generator layer node sizes"
+    )
+    parser.add_argument(
+        "--rgand-sfc",
+        type=int,
+        nargs="*",
+        default=0,
+        help="rGAN discriminator convolutional layer node sizes",
+    )
+    parser.add_argument(
+        "--rgand-fc", type=int, nargs="*", default=0, help="rGAN discriminator layer node sizes"
+    )
+
+    parser.add_argument(
+        "--pointnetd-pointfc",
+        type=int,
+        nargs="*",
+        default=[64, 128, 1024],
+        help="pointnet discriminator point layer node sizes",
+    )
+    parser.add_argument(
+        "--pointnetd-fc",
+        type=int,
+        nargs="*",
+        default=[512],
+        help="pointnet discriminator final layer node sizes",
+    )
+
+    parser.add_argument(
+        "--graphcnng-layers",
+        type=int,
+        nargs="+",
+        default=[32, 24],
+        help="GraphCNN-GAN generator layer node sizes",
+    )
+    add_bool_arg(
+        parser,
+        "graphcnng-tanh",
+        "use tanh activation for final graphcnn generator output",
+        default=False,
+    )
+
+    parser.add_argument(
+        "--treegang-degrees",
+        type=int,
+        nargs="+",
+        default=[2, 2, 2, 2, 2],
+        help="TreeGAN generator upsampling per layer",
+    )
+    parser.add_argument(
+        "--treegang-features",
+        type=int,
+        nargs="+",
+        default=[96, 64, 64, 64, 64, 3],
+        help="TreeGAN generator features per node per layer",
+    )
+    parser.add_argument(
+        "--treegang-support", type=int, default=10, help="Support value for TreeGCN loop term."
+    )
+
+    parser.add_argument(
+        "--pcgan-latent-dim",
+        type=int,
+        default=128,
+        help="Latent dim for object representation sampling",
+    )
+    parser.add_argument(
+        "--pcgan-z1-dim",
+        type=int,
+        default=256,
+        help="Object representation latent dim - has to be the same as the pre-trained point sampling network",
+    )
+    parser.add_argument(
+        "--pcgan-z2-dim",
+        type=int,
+        default=10,
+        help="Point latent dim - has to be the same as the pre-trained point sampling network",
+    )
+    parser.add_argument(
+        "--pcgan-d-dim",
+        type=int,
+        default=256,
+        help="PCGAN hidden dim - has to be the same as the pre-trained network",
+    )
+    parser.add_argument(
+        "--pcgan-pool",
+        type=str,
+        default="max1",
+        choices=["max", "max1", "mean"],
+        help="PCGAN inference network pooling - has to be the same as the pre-trained network",
+    )
+
+
 def check_args_errors(args):
     if args.real_only and (not args.jets == "t" or not args.num_hits == 30):
         logging.error("real only arg works only with 30p jets - exiting")
@@ -802,60 +775,12 @@ def process_args(args):
             args.fpnd = False
             logging.warn(f"FPND is not possible for this dataset currently - setting to False")
 
-    ##########################################################
-    # Architecture
-    ##########################################################
-
-    if not args.mp_iters_gen:
-        args.mp_iters_gen = args.mp_iters
-    if not args.mp_iters_disc:
-        args.mp_iters_disc = args.mp_iters
-
-    args.clabels_first_layer = args.clabels if args.clabels_fl else 0
-    args.clabels_hidden_layers = args.clabels if args.clabels_hl else 0
-
-    if args.latent_node_size == 0:
-        args.latent_node_size = args.hidden_node_size
-
-    ##########################################################
-    # Masking
-    ##########################################################
-
-    if args.model == "mpgan" and (
-        args.mask_feat
-        or args.mask_manual
-        or args.mask_learn
-        or args.mask_real_only
-        or args.mask_c
-        or args.mask_learn_sep
-    ):
-        args.mask = True
-    elif args.model == "gapt" and args.gapt_mask:
-        args.mask = True
-        args.mask_c = True
-    else:
-        args.mask = False
-        args.mask_c = False
-
-    if args.mask_fnd_np:
-        logging.info("setting dea true due to mask-fnd-np arg")
-        args.dea = True
-
-    if args.noise_padding and not args.mask:
-        logging.error("noise padding only works with masking - exiting")
-        sys.exit()
-
-    if args.mask_feat:
-        args.node_feat_size += 1
-
-    if args.mask_learn:
-        if args.fmg == [0]:
-            args.fmg = []
-
     process_optimization_args(args)
     process_regularization_args(args)
-    process_external_models_args(args)
+    process_mpgan_args(args)
     process_gapt_args(args)
+    process_masking_args(args)
+    process_external_models_args(args)
 
     return args
 
@@ -939,6 +864,19 @@ def process_regularization_args(args):
         args.layer_norm_disc, args.layer_norm_gen = True, True
 
 
+def process_mpgan_args(args):
+    if not args.mp_iters_gen:
+        args.mp_iters_gen = args.mp_iters
+    if not args.mp_iters_disc:
+        args.mp_iters_disc = args.mp_iters
+
+    args.clabels_first_layer = args.clabels if args.clabels_fl else 0
+    args.clabels_hidden_layers = args.clabels if args.clabels_hl else 0
+
+    if args.latent_node_size == 0:
+        args.latent_node_size = args.hidden_node_size
+
+
 def process_gapt_args(args):
     if args.gapt_mask:
         args.mask = True
@@ -947,6 +885,39 @@ def process_gapt_args(args):
     #     args.sab_layers_gen = args.sab_layers
     # if not args.sab_layers_disc:
     #     args.sab_layers_disc = args.sab_layers
+
+
+def process_masking_args(args):
+    if args.model == "mpgan" and (
+        args.mask_feat
+        or args.mask_manual
+        or args.mask_learn
+        or args.mask_real_only
+        or args.mask_c
+        or args.mask_learn_sep
+    ):
+        args.mask = True
+    elif args.model == "gapt" and args.gapt_mask:
+        args.mask = True
+        args.mask_c = True
+    else:
+        args.mask = False
+        args.mask_c = False
+
+    if args.mask_fnd_np:
+        logging.info("setting dea true due to mask-fnd-np arg")
+        args.dea = True
+
+    if args.noise_padding and not args.mask:
+        logging.error("noise padding only works with masking - exiting")
+        sys.exit()
+
+    if args.mask_feat:
+        args.node_feat_size += 1
+
+    if args.mask_learn:
+        if args.fmg == [0]:
+            args.fmg = []
 
 
 def process_external_models_args(args):
@@ -1553,7 +1524,8 @@ def losses(args):
     if args.gp:
         keys.append("gp")
 
-    eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd", "coverage", "mmd"]
+    # eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd", "coverage", "mmd"]
+    eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd"]
     # metrics which store more than a single value per epoch e.g. mean and std
     multi_value_keys = ["w1p", "w1m", "w1efp"]
 

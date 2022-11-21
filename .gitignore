@@ -14,11 +14,9 @@ trained_models/*/**
 !trained_models/*/args.txt
 !trained_models/*/G_best_epoch.pt
 
-!datasets
-!datasets/*.py
-
 !mnist
 !mnist/**
+mnist/*.csv
 
 !*.py
 !LICENSE

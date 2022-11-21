@@ -3,8 +3,6 @@ from jetnet.datasets import JetNet
 from jetnet import evaluation
 from jetnet.datasets.normalisations import FeaturewiseLinearBounded, FeaturewiseLinear
 
-from metrics import fpd_infinity
-
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
@@ -601,13 +599,9 @@ def evaluate(
             )
         )
 
-    if "fpd" in losses:
-        losses["fpd"].append(fpd_infinity(real_efps, gen_efps, n_jobs=efp_jobs))
-
-    if "coverage" in losses and "mmd" in losses:
-        cov, mmd = evaluation.cov_mmd(real_jets, gen_jets, num_cov_mmd_eval_samples)
-        losses["coverage"].append(cov)
-        losses["mmd"].append(mmd)
+    # coming soon
+    # if "fpd" in losses:
+    #     losses["fpd"].append(evaluation.fpd(real_efps, gen_efps, n_jobs=efp_jobs))
 
 
 def make_plots(

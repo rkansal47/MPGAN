@@ -2,17 +2,17 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 
+import logging
+
 
 class MNISTGraphDataset(Dataset):
     def __init__(self, data_dir, num_thresholded, train=True, intensities=True, num=-1):
         if train:
-            dataset_tr = np.loadtxt(data_dir + "/mnist_train.csv", delimiter=",", dtype=np.float32)
-            dataset_te = np.loadtxt(data_dir + "/mnist_test.csv", delimiter=",", dtype=np.float32)
-            dataset = np.concatenate((dataset_tr, dataset_te), axis=0)
+            dataset = np.loadtxt(data_dir + "/mnist_train.csv", delimiter=",", dtype=np.float32)
         else:
-            dataset = np.loadtxt(data_dir + "mnist_test.csv", delimiter=",", dtype=np.float32)
+            dataset = np.loadtxt(data_dir + "/mnist_test.csv", delimiter=",", dtype=np.float32)
 
-        print("MNIST CSV Loaded")
+        logging.info("MNIST CSV Loaded")
 
         if isinstance(num, list):
             map1 = list(map(lambda x: x in num, dataset[:, 0]))
@@ -20,7 +20,7 @@ class MNISTGraphDataset(Dataset):
         elif num > -1:
             dataset = dataset[dataset[:, 0] == num]
 
-        print(dataset.shape)
+        logging.debug(f"{dataset.shape = }")
 
         X_pre = (dataset[:, 1:] - 127.5) / 255.0
 
@@ -42,9 +42,9 @@ class MNISTGraphDataset(Dataset):
 
         self.X = torch.FloatTensor(self.X)
 
-        print(self.X.shape)
+        logging.debug(f"{self.X.shape = }")
         # print(self.X[0])
-        print("Data Processed")
+        logging.info("Data Processed")
 
     def __len__(self):
         return len(self.X)

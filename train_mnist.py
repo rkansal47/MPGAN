@@ -1,9 +1,8 @@
-from datasets import MNISTGraphDataset
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
 
-from mnist import evaluation
+from mnist import evaluation, MNISTGraphDataset
 
 import torch
 from torch import Tensor
