@@ -188,6 +188,7 @@ def parse_args():
     parse_optimization_args(parser)
     parse_regularization_args(parser)
     parse_evaluation_args(parser)
+    parse_augmentation_args(parser)
     parse_mnist_args(parser)
     parse_gapt_args(parser)
     parse_ext_models_args(parser)
@@ -376,6 +377,28 @@ def parse_masking_args(parser):
         "noise-padding",
         "use Gaussian noise instead of zero-padding for fake particles",
         default=False,
+    )
+
+
+def parse_augmentation_args(parser):
+    # remember to add any new args to the if statement below
+    add_bool_arg(parser, "aug-t", "augment with translations", default=False)
+    add_bool_arg(parser, "aug-f", "augment with flips", default=False)
+    add_bool_arg(parser, "aug-r90", "augment with 90 deg rotations", default=False)
+    add_bool_arg(parser, "aug-s", "augment with scalings", default=False)
+    parser.add_argument(
+        "--translate-ratio", type=float, default=0.125, help="random translate ratio"
+    )
+    parser.add_argument(
+        "--scale-sd", type=float, default=0.125, help="random scale lognormal standard deviation"
+    )
+    parser.add_argument(
+        "--translate-pn-ratio", type=float, default=0.05, help="random translate per node ratio"
+    )
+
+    add_bool_arg(parser, "adaptive-prob", "adaptive augment probability", default=False)
+    parser.add_argument(
+        "--aug-prob", type=float, default=1.0, help="probability of being augmented"
     )
 
 
@@ -847,6 +870,14 @@ def process_optimization_args(args):
             args.lr_gen = 0.5e-4
 
         args.lr_gen *= args.lr_x
+
+    if args.aug_t or args.aug_f or args.aug_r90 or args.aug_s:
+        args.augment = True
+    else:
+        args.augment = False
+
+    if args.augment:
+        logging.warning("augmentation is very experimental - try at your own risk")
 
 
 def process_regularization_args(args):
