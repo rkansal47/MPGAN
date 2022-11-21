@@ -85,7 +85,9 @@ def gen_multi_batch(
         num_samples_in_batch = min(batch_size, num_samples - (i * batch_size))
 
         if num_samples_in_batch > 0:
-            labels = all_labels[(i * batch_size) : (i * batch_size) + num_samples_in_batch].to(device)
+            labels = all_labels[(i * batch_size) : (i * batch_size) + num_samples_in_batch].to(
+                device
+            )
             noise = all_noise[(i * batch_size) : (i * batch_size) + num_samples_in_batch].to(device)
 
             gen_data = G(noise, labels)
@@ -96,9 +98,24 @@ def gen_multi_batch(
     print(f"Time for batch size {batch_size}: {t:.2f}s")
 
     return t
-    
 
-batch_sizes = [256, 512, 1024, 2048, 3072, 4096, 5120, 6144, 8192, 10240, 12288, 14336, 18432, 22528]
+
+batch_sizes = [
+    256,
+    512,
+    1024,
+    2048,
+    3072,
+    4096,
+    5120,
+    6144,
+    8192,
+    10240,
+    12288,
+    14336,
+    18432,
+    22528,
+]
 timings = {}
 
 for i, name in enumerate(names):
@@ -117,7 +134,11 @@ for i, name in enumerate(names):
         print(batch_size)
         try:
             t = gen_jets = gen_multi_batch(
-                {"embed_dim": model_args.gapt_embed_dim, "lfc": False, "latent_node_size": model_args.latent_node_size},
+                {
+                    "embed_dim": model_args.gapt_embed_dim,
+                    "lfc": False,
+                    "latent_node_size": model_args.latent_node_size,
+                },
                 G,
                 batch_size,
                 50000,
@@ -129,9 +150,9 @@ for i, name in enumerate(names):
         except:
             print(f"error on batch size {batch_size}")
             break
-    
+
 
 import json
 
-with open(f"{mpgan_dir}/outputs/timings.json", 'w') as f:
+with open(f"{mpgan_dir}/outputs/timings.json", "w") as f:
     json.dump(timings, f)
