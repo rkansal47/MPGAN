@@ -6,6 +6,12 @@ plt.switch_backend("agg")
 plt.rcParams.update({"font.size": 16})
 plt.style.use(hep.style.CMS)
 
+plabels_dict = {
+    "cartesian": ["$p_x$ (GeV)", "$p_y$ (GeV)", "$p_z$ (GeV)"],
+    "polarrel": ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T^{rel}$"],
+    "polarrelabspt": ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"],
+}
+
 
 def plot_part_feats(
     jet_type,
@@ -24,12 +30,10 @@ def plot_part_feats(
 ):
     """Plot particle feature histograms"""
     if coords == "cartesian":
-        plabels = ["$p_x$ (GeV)", "$p_y$ (GeV)", "$p_z$ (GeV)"]
         bin = np.arange(-500, 500, 10)
         pbins = [bin, bin, bin]
     elif coords == "polarrel":
         if dataset == "jetnet":
-            plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T^{rel}$"]
             if jet_type == "g" or jet_type == "q" or jet_type == "w" or jet_type == "z":
                 if num_particles == 100:
                     pbins = [
@@ -50,16 +54,10 @@ def plot_part_feats(
                     np.linspace(-0.5, 0.5, 100),
                     np.linspace(0, 0.2, 100),
                 ]
-        elif dataset == "jets-lagan":
-            plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T^{rel}$"]
-            pbins = [
-                np.linspace(-1.25, 1.25, 25 + 1),
-                np.linspace(-1.25, 1.25, 25 + 1),
-                np.linspace(0, 1, 51),
-            ]
     elif coords == "polarrelabspt":
-        plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
         pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
+
+    plabels = plabels_dict[coords]
 
     if real_mask is not None:
         parts_real = real_jets[real_mask]
@@ -115,11 +113,9 @@ def plot_part_feats_jet_mass(
 ):
     """Plot histograms of particle feature + jet mass in one row"""
     if coords == "cartesian":
-        plabels = ["$p_x$ (GeV)", "$p_y$ (GeV)", "$p_z$ (GeV)"]
         bin = np.arange(-500, 500, 10)
         pbins = [bin, bin, bin]
     elif coords == "polarrel":
-        plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T^{rel}$"]
         if jet_type == "g" or jet_type == "q" or jet_type == "w" or jet_type == "z":
             if num_particles == 100:
                 pbins = [
@@ -140,8 +136,9 @@ def plot_part_feats_jet_mass(
                 np.linspace(0, 0.2, 100),
             ]
     elif coords == "polarrelabspt":
-        plabels = ["$\eta^{rel}$", "$\phi^{rel}$", "$p_T (GeV)$"]
         pbins = [np.arange(-0.5, 0.5, 0.01), np.arange(-0.5, 0.5, 0.01), np.arange(0, 400, 4)]
+
+    plabels = plabels_dict[coords]
 
     if jet_type == "g" or jet_type == "q" or jet_type == "t":
         mbins = np.linspace(0, 0.225, 51)
@@ -183,6 +180,51 @@ def plot_part_feats_jet_mass(
         plt.title(f'$W_1$ = {losses["w1m"][-1][0]:.2e} ± {losses["w1m"][-1][1]:.2e}', fontsize=12)
 
     plt.tight_layout(pad=2.0)
+    if figs_path is not None and name is not None:
+        plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_efps(
+    jet_type,
+    real_efps,
+    gen_efps,
+    name=None,
+    figs_path=None,
+    show=False,
+):
+    """Plot 6 EFPs"""
+    if jet_type == "g":
+        binranges = [0.2, 0.06, 0.04, 0.003, 0.003, 0.0015]
+    elif jet_type == "q":
+        binranges = [0.2, 0.06, 0.04, 0.003, 0.003, 0.0015]
+    else:
+        binranges = [0.22, 0.075, 0.05, 0.008, 0.01, 0.004]
+
+    efp_indices = [1, 2, 5, 8, 13, 18, 32]
+
+    bins = [np.linspace(0, binr, 101) for binr in binranges]
+
+    fig = plt.figure(figsize=(20, 12))
+    for i in range(6):
+        fig.add_subplot(2, 3, i + 1)
+        plt.ticklabel_format(axis="y", scilimits=(0, 0), useMathText=True)
+        plt.ticklabel_format(axis="x", scilimits=(0, 0), useMathText=True)
+        _ = plt.hist(
+            real_efps[:, efp_indices[i]], bins[i], histtype="step", label="Real", color="red"
+        )
+        _ = plt.hist(
+            gen_efps[:, efp_indices[i]], bins[i], histtype="step", label="Generated", color="blue"
+        )
+        plt.xlabel("EFP " + str(i + 1), x=0.7)
+        plt.ylabel("Jets")
+        plt.legend(loc=1, prop={"size": 18})
+
+    plt.tight_layout(pad=0.5)
     if figs_path is not None and name is not None:
         plt.savefig(figs_path + name + ".pdf", bbox_inches="tight")
 
@@ -360,14 +402,32 @@ def plot_eval(
         plt.ylabel("Jet Relative Mass $W_1$")
         plt.yscale("log")
 
-    if "w1efp" in losses:
+    # if "w1efp" in losses:
+    #     fig.add_subplot(3, 3, 5)
+    #     for i in range(5):
+    #         plt.plot(x, np.array(losses["w1p"])[:, i], label="EFP " + str(i + 1), color=colors[i])
+    #     plt.legend(loc=1)
+    #     plt.xlabel("Epoch")
+    #     plt.ylabel("Jet EFPs $W_1$")
+    #     plt.yscale("log")
+
+    if "fpd" in losses:
+        means = np.array(losses["fpd"])[:, 0]
+        stds = np.array(losses["fpd"])[:, 1]
+
         fig.add_subplot(3, 3, 5)
-        for i in range(5):
-            plt.plot(x, np.array(losses["w1p"])[:, i], label="EFP " + str(i + 1), color=colors[i])
-        plt.legend(loc=1)
+        plt.plot(x, means)
         plt.xlabel("Epoch")
-        plt.ylabel("Jet EFPs $W_1$")
+        plt.ylabel(r"$\overline{\mathrm{FGD}}_{\infty}$")
         plt.yscale("log")
+        plt.ylim(top=10)
+
+        fig.add_subplot(3, 3, 6)
+        plt.plot(x, means + stds)
+        plt.xlabel("Epoch")
+        plt.ylabel(r"$\overline{\mathrm{FGD}}_{\infty}^{+\sigma}$")
+        plt.yscale("log")
+        plt.ylim(top=10)
 
     if "mmd" in losses and "coverage" in losses:
         # x = x[-len(losses['mmd']):]
@@ -386,6 +446,25 @@ def plot_eval(
         plt.xlabel("Epoch")
         plt.ylabel("FPND")
         plt.yscale("log")
+        plt.ylim(top=10)
+
+    if losses_path is not None and name is not None:
+        plt.savefig(losses_path + name + ".pdf", bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close()
+
+
+def plot_fid(losses, epoch, save_epochs, name=None, losses_path=None, show=False):
+    x = np.arange(0, epoch + 1, save_epochs)[-len(losses["fid"]) :]
+
+    plt.figure()
+    plt.plot(x, np.array(losses["fid"]))
+    plt.xlabel("Epoch")
+    plt.ylabel("FID")
+    plt.yscale("log")
 
     if losses_path is not None and name is not None:
         plt.savefig(losses_path + name + ".pdf", bbox_inches="tight")
