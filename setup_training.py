@@ -848,14 +848,6 @@ def process_optimization_args(args):
 
         args.lr_gen *= args.lr_x
 
-    if args.aug_t or args.aug_f or args.aug_r90 or args.aug_s:
-        args.augment = True
-    else:
-        args.augment = False
-
-    if args.augment:
-        logging.warning("augmentation is very experimental - try at your own risk")
-
 
 def process_regularization_args(args):
     if args.spectral_norm:
