@@ -1,0 +1,5 @@
+torch>=1.8.0
+jetnet>=0.2.1.post2
+numpy>=1.21.0
+matplotlib
+mplhep
