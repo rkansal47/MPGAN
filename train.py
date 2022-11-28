@@ -6,6 +6,7 @@ from jetnet.datasets.normalisations import FeaturewiseLinearBounded, Featurewise
 import setup_training
 from mpgan import augment, mask_manual
 import plotting
+import metrics
 
 import torch
 from torch import Tensor
@@ -599,9 +600,11 @@ def evaluate(
             )
         )
 
-    # coming soon
-    # if "fpd" in losses:
-    #     losses["fpd"].append(evaluation.fpd(real_efps, gen_efps, n_jobs=efp_jobs))
+    if "fpd" in losses:
+        losses["fpd"].append(metrics.fpd_infinity(real_efps, gen_efps, n_jobs=efp_jobs))
+
+    if "mmd" in losses:
+        losses["fpd"].append(metrics.mmd(real_efps, gen_efps, n_jobs=efp_jobs))
 
 
 def make_plots(

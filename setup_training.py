@@ -1347,6 +1347,11 @@ def setup_gapt(args, gen):
         )
 
 
+# https://discuss.pytorch.org/t/how-do-i-check-the-number-of-parameters-of-a-model/4325/9
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 def models(args, gen_only=False):
     """Set up generator and discriminator models, either new or loaded from a state dict"""
     if args.model == "mpgan":
@@ -1377,6 +1382,8 @@ def models(args, gen_only=False):
 
         G = Graph_GAN(gen=True, args=deepcopy(args))
 
+    logging.info(f"# of parameters in G: {count_parameters(G)}")
+
     if gen_only:
         return G
 
@@ -1402,6 +1409,8 @@ def models(args, gen_only=False):
         from mpgan import Graph_GAN
 
         G = Graph_GAN(gen=False, args=deepcopy(args))
+    
+    logging.info(f"# of parameters in D: {count_parameters(D)}")
 
     if args.load_model:
         try:
