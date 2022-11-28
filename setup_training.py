@@ -280,7 +280,8 @@ def parse_regularization_args(parser):
 
 def parse_evaluation_args(parser):
     add_bool_arg(parser, "fpnd", "calc fpnd", default=False)
-    add_bool_arg(parser, "fpd", "calc fpd (coming soon)", default=False)
+    add_bool_arg(parser, "fpd", "calc fpd", default=False)
+    add_bool_arg(parser, "kpd", "calc kpd", default=False)
     add_bool_arg(parser, "efp", "calc w1efp", default=False)
     # parser.add_argument("--fid-eval-size", type=int, default=8192, help="number of samples generated for evaluating fid")
     parser.add_argument(
@@ -1557,7 +1558,7 @@ def losses(args):
         keys.append("gp")
 
     # eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd", "coverage", "mmd"]
-    eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd"]
+    eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd", "kpd"]
     # metrics which store more than a single value per epoch e.g. mean and std
     multi_value_keys = ["w1p", "w1m", "w1efp"]
 
@@ -1566,6 +1567,9 @@ def losses(args):
 
     if not args.fpd:
         eval_keys.remove("fpd")
+
+    if not args.kpd:
+        eval_keys.remove("kpd")
 
     if not args.efp:
         eval_keys.remove("w1efp")

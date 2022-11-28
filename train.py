@@ -603,8 +603,8 @@ def evaluate(
     if "fpd" in losses:
         losses["fpd"].append(metrics.fpd_infinity(real_efps, gen_efps, n_jobs=efp_jobs))
 
-    if "mmd" in losses:
-        losses["fpd"].append(metrics.mmd(real_efps, gen_efps, n_jobs=efp_jobs))
+    if "kpd" in losses:
+        losses["kpd"].append(metrics.mmd(real_efps, gen_efps, n_jobs=efp_jobs))
 
 
 def make_plots(
