@@ -51,19 +51,23 @@ def _average_batches(X, Y, batch_size, num_batches, seed):
 def fpd_infinity(
     X: ArrayLike,
     Y: ArrayLike,
-    min_samples: int = 5_000,
+    min_samples: int = 20_000,
     max_samples: int = 50_000,
-    num_batches: int = 10,
-    num_points: int = 200,
+    num_batches: int = 20,
+    num_points: int = 10,
     seed: int = 42,
     normalise: bool = True,
+    inverse_intervals: bool = True,
     n_jobs: int = 1,
 ):
     if normalise:
         X, Y = normalise_features(X, Y)
 
-    # Choose the number of images to evaluate FID_N at regular intervals over N
-    batches = (1 / np.linspace(1.0 / min_samples, 1.0 / max_samples, num_points)).astype("int32")
+    # Choose the number of images to evaluate FID_N at either regular intervals over N or 1/N
+    if inverse_intervals:
+        batches = (1 / np.linspace(1.0 / min_samples, 1.0 / max_samples, num_points)).astype("int32")
+    else:
+        batches = np.linspace(min_samples, max_samples, num_points).astype("int32")
     # batches = np.linspace(min_samples, max_samples, num_points).astype("int32")
 
     np.random.seed(seed)
