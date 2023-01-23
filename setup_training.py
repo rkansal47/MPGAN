@@ -1159,6 +1159,8 @@ def models(args, gen_only=False):
 
         G = Graph_GAN(gen=True, args=deepcopy(args))
 
+    G = G.to(args.device)
+
     if gen_only:
         return G
 
@@ -1180,7 +1182,7 @@ def models(args, gen_only=False):
     elif args.model_D == "old_mpgan":
         from mpgan import Graph_GAN
 
-        G = Graph_GAN(gen=False, args=deepcopy(args))
+        D = Graph_GAN(gen=False, args=deepcopy(args))
 
     if args.load_model:
         try:
@@ -1199,7 +1201,6 @@ def models(args, gen_only=False):
         G = torch.nn.DataParallel(G)
         D = torch.nn.DataParallel(D)
 
-    G = G.to(args.device)
     D = D.to(args.device)
 
     return G, D
