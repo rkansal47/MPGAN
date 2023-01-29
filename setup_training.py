@@ -607,6 +607,28 @@ def parse_gapt_args(parser):
         help="number of induced nodes in ISAB blocks, if using ISAB blocks",
     )
 
+    parser.add_argument(
+        "--global-noise-input-dim",
+        type=int,
+        default=8,
+        help="size of global noise vector z",
+    )
+
+    parser.add_argument(
+        "--global-noise-feat-dim",
+        type=int,
+        default=8,
+        help="size of processed global noise vector z'",
+    )
+
+    parser.add_argument(
+        "--global-noise-layers",
+        type=int,
+        nargs="*",
+        default=[],
+        help="Global noise MLP intermediate layers",
+    )
+
     add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
     add_bool_arg(parser, "use-isab", "use ISAB in GAPT", default=False)
 
@@ -1315,6 +1337,12 @@ def setup_gapt(args, gen):
         "num_isab_nodes": args.num_isab_nodes,
     }
 
+    global_noise_args = {
+        "global_noise_input_dim": args.global_noise_input_dim,
+        "global_noise_feat_dim": args.global_noise_feat_dim,
+        "global_noise_layers": args.global_noise_layers,
+    }
+
     # generator-specific args
     gen_args = {
         "sab_layers": args.sab_layers_gen,
@@ -1337,6 +1365,7 @@ def setup_gapt(args, gen):
         return GAPT_G(
             **gen_args,
             **common_args,
+            **global_noise_args,
             linear_args=linear_args,
         )
     else:

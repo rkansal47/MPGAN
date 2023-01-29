@@ -60,6 +60,9 @@ def main():
         "split_fraction": [args.ttsplit, 1 - args.ttsplit, 0],
     }
 
+    # print('Data args:',data_args)
+    # exit()
+
     X_train = JetNet(**data_args, split="train")
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
@@ -146,6 +149,7 @@ def gen(
     G: torch.nn.Module,
     num_samples: int,
     num_particles: int,
+    global_noise_dims: int = 8,
     model: str = "mpgan",
     noise: Tensor = None,
     labels: Tensor = None,
@@ -203,7 +207,9 @@ def gen(
             model_args, num_samples, num_particles, model, device, noise_std
         )
 
-    gen_data = G(noise, labels)
+    global_noise = torch.randn(num_samples, global_noise_dims)
+
+    gen_data = G(global_noise, noise, labels)
 
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
         # TODO: add pt_cutoff to extra_args

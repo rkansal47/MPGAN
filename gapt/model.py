@@ -95,7 +95,9 @@ class MAB(nn.Module):
         self,
         embed_dim: int,
         num_heads: int,
+        ff_output_dim: int,
         ff_layers: list = [],
+        conditioning: bool = False,
         layer_norm: bool = False,
         dropout_p: float = 0.0,
         final_linear: bool = True,
@@ -105,10 +107,14 @@ class MAB(nn.Module):
 
         self.num_heads = num_heads
         self.attention = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
+        self.conditioning = conditioning
+        if self.conditioning:
+            self.attn_ff   = nn.Linear(embed_dim, ff_output_dim)
+
         self.ff = LinearNet(
             ff_layers,
-            input_size=embed_dim,
-            output_size=embed_dim,
+            input_size=ff_output_dim,
+            output_size=ff_output_dim,
             final_linear=final_linear,
             **linear_args,
         )
@@ -116,26 +122,29 @@ class MAB(nn.Module):
         self.layer_norm = layer_norm
 
         if self.layer_norm:
-            self.norm1 = nn.LayerNorm(embed_dim)
-            self.norm2 = nn.LayerNorm(embed_dim)
+            self.norm1 = nn.LayerNorm(ff_output_dim)
+            self.norm2 = nn.LayerNorm(ff_output_dim)
 
         self.dropout = nn.Dropout(p=dropout_p)
 
-    def forward(self, x: Tensor, y: Tensor, y_mask: Tensor = None):
+    def forward(self, x: Tensor, y: Tensor, y_mask: Tensor = None, z: Tensor = None):
         if y_mask is not None:
             # torch.nn.MultiheadAttention needs a mask of shape [batch_size * num_heads, N, N]
             y_mask = torch.repeat_interleave(y_mask, self.num_heads, dim=0)
 
-        x = x + self.attention(x, y, y, attn_mask=y_mask, need_weights=False)[0]
+        if self.conditioning:
+            assert z is not None
+            x_, y_ = torch.concat((x,z), dim=2), torch.concat((y,z), dim=2)
+            x = x + self.attn_ff(self.attention(x_, y_, y_, attn_mask=y_mask, need_weights=False)[0])
+        else:
+            x = x + self.attention(x, y, y, attn_mask=y_mask, need_weights=False)[0]
         if self.layer_norm:
             x = self.norm1(x)
         x = self.dropout(x)
-
         x = x + self.ff(x)
         if self.layer_norm:
             x = self.norm2(x)
         x = self.dropout(x)
-
         return x
 
 
@@ -145,13 +154,13 @@ class SAB(nn.Module):
         super(SAB, self).__init__()
         self.mab = MAB(**mab_args)
 
-    def forward(self, x: Tensor, mask: Tensor = None):
+    def forward(self, x: Tensor, mask: Tensor = None, z: Tensor = None):
         if mask is not None:
             # torch.nn.MultiheadAttention needs a mask vector for each target node
             # i.e. reshaping from [B, N, 1] -> [B, N, N]
             mask = mask.transpose(-2, -1).repeat((1, mask.shape[-2], 1))
 
-        return self.mab(x, x, mask)
+        return self.mab(x, x, mask, z)
 
 
 # Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
@@ -207,6 +216,9 @@ class GAPT_G(nn.Module):
         self,
         num_particles: int,
         output_feat_size: int,
+        global_noise_input_dim: int,
+        global_noise_feat_dim: int,
+        global_noise_layers: list = [],
         sab_layers: int = 2,
         num_heads: int = 4,
         embed_dim: int = 32,
@@ -224,11 +236,19 @@ class GAPT_G(nn.Module):
         self.output_feat_size = output_feat_size
         self.use_mask = use_mask
 
+        self.global_noise_net = LinearNet(
+            layers = global_noise_layers,
+            input_size = global_noise_input_dim,
+            output_size = global_noise_feat_dim
+        )
+
         self.sabs = nn.ModuleList()
 
         sab_args = {
-            "embed_dim": embed_dim,
+            "embed_dim": embed_dim+global_noise_feat_dim,
+            "ff_output_dim": embed_dim,
             "ff_layers": sab_fc_layers,
+            "conditioning": True,
             "final_linear": False,
             "num_heads": num_heads,
             "layer_norm": layer_norm,
@@ -248,12 +268,12 @@ class GAPT_G(nn.Module):
             **linear_args,
         )
 
-    def forward(self, x: Tensor, labels: Tensor = None):
+    def forward(self, z: Tensor, x: Tensor, labels: Tensor = None):
         if self.use_mask:
             # unnormalize the last jet label - the normalized # of particles per jet
             # (between 1/``num_particles`` and 1) - to between 0 and ``num_particles`` - 1
             num_jet_particles = (labels[:, -1] * self.num_particles).int() - 1
-            # sort the particles bythe first noise feature per particle, and the first
+            # sort the particles by the first noise feature per particle, and the first
             # ``num_jet_particles`` particles receive a 1-mask, the rest 0.
             mask = (
                 (x[:, :, 0].argsort(1).argsort(1) <= num_jet_particles.unsqueeze(1))
@@ -266,8 +286,10 @@ class GAPT_G(nn.Module):
         else:
             mask = None
 
+        z = self.global_noise_net(z).unsqueeze(1).repeat(1, x.shape[1], 1)
+        
         for sab in self.sabs:
-            x = sab(x, _attn_mask(mask))
+            x = sab(x, _attn_mask(mask), z)
 
         x = torch.tanh(self.final_fc(x))
 
@@ -301,6 +323,7 @@ class GAPT_D(nn.Module):
         sab_args = {
             "embed_dim": embed_dim,
             "ff_layers": sab_fc_layers,
+            "ff_output_dim": embed_dim,
             "final_linear": False,
             "num_heads": num_heads,
             "layer_norm": layer_norm,
