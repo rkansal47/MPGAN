@@ -1511,7 +1511,11 @@ def get_model_args(args):
             else args.hidden_node_size,
         }
     elif args.model == "gapt":
-        model_args = {"embed_dim": args.gapt_embed_dim}
+        if args.conditioning:
+            model_args = {
+                "global_noise_dim": args.global_noise_input_dim
+            }
+        model_args["embed_dim"] = args.gapt_embed_dim
     elif args.model == "rgan" or args.model == "graphcnngan":
         model_args = {"latent_dim": args.latent_dim}
     elif args.model == "treegan":

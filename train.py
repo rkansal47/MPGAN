@@ -149,7 +149,6 @@ def gen(
     G: torch.nn.Module,
     num_samples: int,
     num_particles: int,
-    global_noise_dims: int = 8,
     model: str = "mpgan",
     noise: Tensor = None,
     labels: Tensor = None,
@@ -207,7 +206,7 @@ def gen(
             model_args, num_samples, num_particles, model, device, noise_std
         )
 
-    global_noise = torch.randn(num_samples, global_noise_dims).to(device)
+    global_noise = torch.randn(num_samples, model_args['global_noise_dim']).to(device)
 
     gen_data = G(global_noise, noise, labels)
 
