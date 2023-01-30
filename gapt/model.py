@@ -308,14 +308,14 @@ class GAPT_G(nn.Module):
             )
         else:
             mask = None
-        
+         
         # Concatenate global noise and # particles depending on conditioning
         num_jet_particles += 1
         if self.noise_conditioning or self.n_conditioning:
             if self.noise_conditioning and self.n_conditioning:
                 z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
             elif self.n_conditioning:
-                z = num_jet_particles.unsqueeze(1).type(torch.FloatTensor)
+                z = num_jet_particles.unsqueeze(1).float()
             z = self.global_noise_net(z)
         
         for sab in self.sabs:
@@ -414,7 +414,7 @@ class GAPT_D(nn.Module):
         z = None
         if self.n_conditioning:
             num_jet_particles = (labels[:, -1] * self.num_particles).int()
-            z = num_jet_particles.unsqueeze(1).type(torch.FloatTensor)
+            z = num_jet_particles.unsqueeze(1).float()
             z = self.cond_net(z)
 
         for sab in self.sabs:
