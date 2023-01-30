@@ -905,20 +905,20 @@ def train(
     model_eval_args,
     extra_args,
 ):
-    # if args.start_epoch == 0 and args.save_zero:
-    #     eval_save_plot(
-    #         args,
-    #         X_test,
-    #         D,
-    #         G,
-    #         D_optimizer,
-    #         G_optimizer,
-    #         model_eval_args,
-    #         losses,
-    #         0,
-    #         best_epoch,
-    #         **extra_args,
-    #     )
+    if args.start_epoch == 0 and args.save_zero:
+        eval_save_plot(
+            args,
+            X_test,
+            D,
+            G,
+            D_optimizer,
+            G_optimizer,
+            model_eval_args,
+            losses,
+            0,
+            best_epoch,
+            **extra_args,
+        )
 
     D_losses = ["Dr", "Df", "D"]
     if args.gp:
