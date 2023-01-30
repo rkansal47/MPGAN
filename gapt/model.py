@@ -239,14 +239,14 @@ class GAPT_G(nn.Module):
 
         self.global_noise_net = LinearNet(
             layers = global_noise_layers,
-            input_size = global_noise_input_dim,
+            input_size = global_noise_input_dim + 1,
             output_size = global_noise_feat_dim
         )
 
         self.sabs = nn.ModuleList()
 
         sab_args = {
-            "embed_dim": embed_dim+global_noise_feat_dim if conditioning else embed_dim,
+            "embed_dim": embed_dim + global_noise_feat_dim if conditioning else embed_dim,
             "ff_output_dim": embed_dim,
             "ff_layers": sab_fc_layers,
             "conditioning": conditioning,
@@ -287,6 +287,7 @@ class GAPT_G(nn.Module):
         else:
             mask = None
 
+        z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
         z = self.global_noise_net(z).unsqueeze(1).repeat(1, x.shape[1], 1)
         
         for sab in self.sabs:
