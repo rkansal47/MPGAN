@@ -628,7 +628,7 @@ def parse_gapt_args(parser):
         default=[],
         help="Global noise MLP intermediate layers",
     )
-
+    add_bool_arg(parser, "conditioning", "condition generator on global feats", default=False)
     add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
     add_bool_arg(parser, "use-isab", "use ISAB in GAPT", default=False)
 
@@ -1341,6 +1341,7 @@ def setup_gapt(args, gen):
         "global_noise_input_dim": args.global_noise_input_dim,
         "global_noise_feat_dim": args.global_noise_feat_dim,
         "global_noise_layers": args.global_noise_layers,
+        "conditioning": args.conditioning
     }
 
     # generator-specific args

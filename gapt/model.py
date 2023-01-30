@@ -134,6 +134,7 @@ class MAB(nn.Module):
 
         if self.conditioning:
             assert z is not None
+            print('conditioning')
             x_, y_ = torch.cat((x,z), dim=2), torch.cat((y,z), dim=2)
             x = x + self.attn_ff(self.attention(x_, y_, y_, attn_mask=y_mask, need_weights=False)[0])
         else:
@@ -219,6 +220,7 @@ class GAPT_G(nn.Module):
         global_noise_input_dim: int,
         global_noise_feat_dim: int,
         global_noise_layers: list = [],
+        conditioning: bool = False,
         sab_layers: int = 2,
         num_heads: int = 4,
         embed_dim: int = 32,
@@ -248,7 +250,7 @@ class GAPT_G(nn.Module):
             "embed_dim": embed_dim+global_noise_feat_dim,
             "ff_output_dim": embed_dim,
             "ff_layers": sab_fc_layers,
-            "conditioning": True,
+            "conditioning": conditioning,
             "final_linear": False,
             "num_heads": num_heads,
             "layer_norm": layer_norm,
@@ -304,6 +306,7 @@ class GAPT_D(nn.Module):
         sab_layers: int = 2,
         num_heads: int = 4,
         embed_dim: int = 32,
+        conditioning: bool = False,
         sab_fc_layers: list = [],
         layer_norm: bool = False,
         dropout_p: float = 0.0,
