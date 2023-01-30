@@ -247,7 +247,7 @@ class GAPT_G(nn.Module):
         self.sabs = nn.ModuleList()
 
         sab_args = {
-            "embed_dim": embed_dim+global_noise_feat_dim,
+            "embed_dim": embed_dim+global_noise_feat_dim if conditioning else embed_dim,
             "ff_output_dim": embed_dim,
             "ff_layers": sab_fc_layers,
             "conditioning": conditioning,
