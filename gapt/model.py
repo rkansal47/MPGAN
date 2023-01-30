@@ -134,7 +134,7 @@ class MAB(nn.Module):
 
         if self.conditioning:
             assert z is not None
-            x_, y_ = torch.concat((x,z), dim=2), torch.concat((y,z), dim=2)
+            x_, y_ = torch.cat((x,z), dim=2), torch.cat((y,z), dim=2)
             x = x + self.attn_ff(self.attention(x_, y_, y_, attn_mask=y_mask, need_weights=False)[0])
         else:
             x = x + self.attention(x, y, y, attn_mask=y_mask, need_weights=False)[0]

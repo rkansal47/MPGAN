@@ -207,7 +207,7 @@ def gen(
             model_args, num_samples, num_particles, model, device, noise_std
         )
 
-    global_noise = torch.randn(num_samples, global_noise_dims)
+    global_noise = torch.randn(num_samples, global_noise_dims).to(device)
 
     gen_data = G(global_noise, noise, labels)
 
