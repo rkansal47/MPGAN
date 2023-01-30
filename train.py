@@ -206,9 +206,9 @@ def gen(
             model_args, num_samples, num_particles, model, device, noise_std
         )
 
-    global_noise = torch.randn(num_samples, model_args['global_noise_dim']).to(device)
+    global_noise = torch.randn(num_samples, model_args['global_noise_dim']).to(device) if G.noise_conditioning else None
 
-    gen_data = G(global_noise, noise, labels)
+    gen_data = G(noise, labels, global_noise)
 
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
         # TODO: add pt_cutoff to extra_args
@@ -905,20 +905,20 @@ def train(
     model_eval_args,
     extra_args,
 ):
-    if args.start_epoch == 0 and args.save_zero:
-        eval_save_plot(
-            args,
-            X_test,
-            D,
-            G,
-            D_optimizer,
-            G_optimizer,
-            model_eval_args,
-            losses,
-            0,
-            best_epoch,
-            **extra_args,
-        )
+    # if args.start_epoch == 0 and args.save_zero:
+    #     eval_save_plot(
+    #         args,
+    #         X_test,
+    #         D,
+    #         G,
+    #         D_optimizer,
+    #         G_optimizer,
+    #         model_eval_args,
+    #         losses,
+    #         0,
+    #         best_epoch,
+    #         **extra_args,
+    #     )
 
     D_losses = ["Dr", "Df", "D"]
     if args.gp:

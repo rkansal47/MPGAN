@@ -628,7 +628,24 @@ def parse_gapt_args(parser):
         default=[],
         help="Global noise MLP intermediate layers",
     )
-    add_bool_arg(parser, "conditioning", "condition generator on global feats", default=False)
+
+    parser.add_argument(
+        "--cond-feat-dim",
+        type=int,
+        default=8,
+        help="size of processed conditional vector z'",
+    )
+
+    parser.add_argument(
+        "--cond-net-layers",
+        type=int,
+        nargs="*",
+        default=[],
+        help="Discriminator conditional net intermediate layers",
+    )
+
+    add_bool_arg(parser, "noise-conditioning", "condition generator on global noise", default=False)
+    add_bool_arg(parser, "n-conditioning", "condition generator on num. particles", default=False)
     add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
     add_bool_arg(parser, "use-isab", "use ISAB in GAPT", default=False)
 
@@ -1341,7 +1358,14 @@ def setup_gapt(args, gen):
         "global_noise_input_dim": args.global_noise_input_dim,
         "global_noise_feat_dim": args.global_noise_feat_dim,
         "global_noise_layers": args.global_noise_layers,
-        "conditioning": args.conditioning
+        "noise_conditioning": args.noise_conditioning,
+        "n_conditioning": args.n_conditioning
+    }
+
+    cond_net_args = {
+        "cond_feat_dim": args.cond_feat_dim,
+        "cond_net_layers": args.cond_net_layers,
+        "n_conditioning": args.n_conditioning
     }
 
     # generator-specific args
@@ -1373,6 +1397,7 @@ def setup_gapt(args, gen):
         return GAPT_D(
             **disc_args,
             **common_args,
+            **cond_net_args,
             linear_args=linear_args,
         )
 
@@ -1511,7 +1536,7 @@ def get_model_args(args):
             else args.hidden_node_size,
         }
     elif args.model == "gapt":
-        if args.conditioning:
+        if args.noise_conditioning:
             model_args = {
                 "global_noise_dim": args.global_noise_input_dim
             }
