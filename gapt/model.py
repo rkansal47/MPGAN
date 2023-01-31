@@ -359,6 +359,7 @@ class GAPT_D(nn.Module):
         self.input_feat_size = input_feat_size
         self.use_mask = use_mask
         self.n_conditioning = n_conditioning
+        self.n_normalized = n_normalized
 
         # MLP for processing # particles
         if n_conditioning:
