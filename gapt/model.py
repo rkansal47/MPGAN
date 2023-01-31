@@ -138,7 +138,9 @@ class MAB(nn.Module):
         # Linearly project output (dim(x+z')) back to dim(x)
         if self.conditioning:
             assert z is not None
+            # Concat z with query
             x_ = torch.cat((x, z.unsqueeze(1).repeat(1, x.shape[1], 1)), dim=2)
+            # Concat z with key/value
             y_ = torch.cat((y, z.unsqueeze(1).repeat(1, y.shape[1], 1)), dim=2)
             x = x + self.attn_ff(self.attention(x_, y_, y_, attn_mask=y_mask, need_weights=False)[0])
         else:
