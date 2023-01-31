@@ -229,6 +229,7 @@ class GAPT_G(nn.Module):
         global_noise_layers: list = [],
         noise_conditioning: bool = False,
         n_conditioning: bool = False,
+        n_normalized: bool = False,
         sab_layers: int = 2,
         num_heads: int = 4,
         embed_dim: int = 32,
@@ -247,6 +248,7 @@ class GAPT_G(nn.Module):
         self.use_mask = use_mask
         self.noise_conditioning = noise_conditioning
         self.n_conditioning = n_conditioning
+        self.n_normalized = n_normalized
 
 
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
@@ -312,7 +314,10 @@ class GAPT_G(nn.Module):
             mask = None
          
         # Concatenate global noise and # particles depending on conditioning
-        num_jet_particles += 1
+        if self.n_normalized:
+            num_jet_particles = labels[:, -1]
+        else:
+            num_jet_particles += 1
         if self.noise_conditioning or self.n_conditioning:
             if self.noise_conditioning and self.n_conditioning:
                 z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
@@ -339,6 +344,7 @@ class GAPT_D(nn.Module):
         cond_feat_dim: int = 8,
         cond_net_layers: list = [],
         n_conditioning: bool = False,
+        n_normalized: bool = False,
         sab_fc_layers: list = [],
         layer_norm: bool = False,
         dropout_p: float = 0.0,
@@ -415,7 +421,10 @@ class GAPT_D(nn.Module):
         # Use # particles for conditioning
         z = None
         if self.n_conditioning:
-            num_jet_particles = (labels[:, -1] * self.num_particles).int()
+            if self.n_normalized:
+                num_jet_particles = labels[:, -1]
+            else:
+                num_jet_particles = (labels[:, -1] * self.num_particles).int()
             z = num_jet_particles.unsqueeze(1).float()
             z = self.cond_net(z)
 

@@ -646,6 +646,7 @@ def parse_gapt_args(parser):
 
     add_bool_arg(parser, "noise-conditioning", "condition generator on global noise", default=False)
     add_bool_arg(parser, "n-conditioning", "condition generator on num. particles", default=False)
+    add_bool_arg(parser, "n-normalized", "use normalized num. particles", default=False)
     add_bool_arg(parser, "no-D-conditioning", "do not condition discriminator on num. particles", default=False)
     add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
     add_bool_arg(parser, "use-isab", "use ISAB in GAPT", default=False)
@@ -1360,13 +1361,15 @@ def setup_gapt(args, gen):
         "global_noise_feat_dim": args.global_noise_feat_dim,
         "global_noise_layers": args.global_noise_layers,
         "noise_conditioning": args.noise_conditioning,
-        "n_conditioning": args.n_conditioning
+        "n_conditioning": args.n_conditioning,
+        "n_normalized": args.n_normalized
     }
 
     cond_net_args = {
         "cond_feat_dim": args.cond_feat_dim,
         "cond_net_layers": args.cond_net_layers,
-        "n_conditioning": args.n_conditioning and not args.no_D_conditioning
+        "n_conditioning": args.n_conditioning and not args.no_D_conditioning,
+        "n_normalized": args.n_normalized
     }
 
     # generator-specific args
