@@ -280,8 +280,8 @@ def parse_regularization_args(parser):
 
 def parse_evaluation_args(parser):
     add_bool_arg(parser, "fpnd", "calc fpnd", default=False)
-    add_bool_arg(parser, "fpd", "calc fpd", default=False)
-    add_bool_arg(parser, "kpd", "calc kpd", default=False)
+    add_bool_arg(parser, "fpd", "calc fpd", default=True)
+    add_bool_arg(parser, "kpd", "calc kpd", default=True)
     add_bool_arg(parser, "efp", "calc w1efp", default=False)
     # parser.add_argument("--fid-eval-size", type=int, default=8192, help="number of samples generated for evaluating fid")
     parser.add_argument(

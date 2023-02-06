@@ -58,7 +58,6 @@ def fpd_infinity(
     seed: int = 42,
     normalise: bool = True,
     inverse_intervals: bool = True,
-    n_jobs: int = 1,
 ):
     if normalise:
         X, Y = normalise_features(X, Y)
@@ -216,6 +215,8 @@ def mmd(
     if normalise:
         X, Y = normalise_features(X, Y)
 
-    set_num_threads(num_threads)
+    if num_threads is not None:
+        set_num_threads(num_threads)
+
     vals_point = _average_batches_mmd(X, Y, num_batches, batch_size, seed)
     return [np.median(vals_point), iqr(vals_point, rng=(16.275, 83.725))]
