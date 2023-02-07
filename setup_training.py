@@ -1626,7 +1626,7 @@ def losses(args):
     # eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd", "coverage", "mmd"]
     eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd", "kpd"]
     # metrics which store more than a single value per epoch e.g. mean and std
-    multi_value_keys = ["w1p", "w1m", "w1efp"]
+    multi_value_keys = ["w1p", "w1m", "w1efp", "fpd", "kpd"]
 
     if not args.fpnd:
         eval_keys.remove("fpnd")

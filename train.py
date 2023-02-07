@@ -609,9 +609,11 @@ def evaluate(
         )
 
     if "fpd" in losses:
+        logging.info("FPD")
         losses["fpd"].append(metrics.fpd_infinity(real_efps, gen_efps))
 
     if "kpd" in losses:
+        logging.info("KPD")
         losses["kpd"].append(metrics.mmd(real_efps, gen_efps, num_threads=efp_jobs))
 
 
@@ -636,6 +638,8 @@ def make_plots(
     gen_efps=None,
 ):
     """Plot histograms, jet images, loss curves, and evaluation curves"""
+    logging.info("Plotting")
+
     real_masses = jetnet.utils.jet_features(real_jets)["mass"]
     gen_masses = jetnet.utils.jet_features(gen_jets)["mass"]
 
