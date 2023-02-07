@@ -280,7 +280,8 @@ def parse_regularization_args(parser):
 
 def parse_evaluation_args(parser):
     add_bool_arg(parser, "fpnd", "calc fpnd", default=False)
-    add_bool_arg(parser, "fpd", "calc fpd (coming soon)", default=False)
+    add_bool_arg(parser, "fpd", "calc fpd", default=True)
+    add_bool_arg(parser, "kpd", "calc kpd", default=True)
     add_bool_arg(parser, "efp", "calc w1efp", default=False)
     # parser.add_argument("--fid-eval-size", type=int, default=8192, help="number of samples generated for evaluating fid")
     parser.add_argument(
@@ -1347,6 +1348,11 @@ def setup_gapt(args, gen):
         )
 
 
+# https://discuss.pytorch.org/t/how-do-i-check-the-number-of-parameters-of-a-model/4325/9
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
 def models(args, gen_only=False):
     """Set up generator and discriminator models, either new or loaded from a state dict"""
     if args.model == "mpgan":
@@ -1377,6 +1383,8 @@ def models(args, gen_only=False):
 
         G = Graph_GAN(gen=True, args=deepcopy(args))
 
+    logging.info(f"# of parameters in G: {count_parameters(G)}")
+
     if gen_only:
         return G
 
@@ -1402,6 +1410,8 @@ def models(args, gen_only=False):
         from mpgan import Graph_GAN
 
         G = Graph_GAN(gen=False, args=deepcopy(args))
+    
+    logging.info(f"# of parameters in D: {count_parameters(D)}")
 
     if args.load_model:
         try:
@@ -1548,7 +1558,7 @@ def losses(args):
         keys.append("gp")
 
     # eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd", "coverage", "mmd"]
-    eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd"]
+    eval_keys = ["w1p", "w1m", "w1efp", "fpnd", "fpd", "kpd"]
     # metrics which store more than a single value per epoch e.g. mean and std
     multi_value_keys = ["w1p", "w1m", "w1efp"]
 
@@ -1557,6 +1567,9 @@ def losses(args):
 
     if not args.fpd:
         eval_keys.remove("fpd")
+
+    if not args.kpd:
+        eval_keys.remove("kpd")
 
     if not args.efp:
         eval_keys.remove("w1efp")
