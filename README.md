@@ -74,5 +74,5 @@ Some notes:
 Pre-trained generators with saved state dictionaries and arguments can be used to generate samples with, for example:
 
 ```python
-python gen.py --G-state-dict trained_models/mp_g/G_best_epoch.pt --G-args trained_models/mp_g/args.txt --num-samples 50,000 --output-file trained_models/mp_g/gen_jets.npy
+python gen.py --G-state-dict trained_models/mp_g/G_best_epoch.pt --G-args trained_models/mp_g/args.txt --num-samples 50000 --output-file trained_models/mp_g/gen_jets.npy
 ```
