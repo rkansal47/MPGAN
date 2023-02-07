@@ -1,7 +1,7 @@
 import torch
 from torch import nn, Tensor
 import torch.nn.functional as F
-
+from torch.distributions import MultivariateNormal
 from .spectral_normalization import SpectralNorm
 
 import logging
@@ -250,6 +250,11 @@ class GAPT_G(nn.Module):
         self.n_conditioning = n_conditioning
         self.n_normalized = n_normalized
 
+        # Learnable gaussian noise for sampling initial set
+        if condition:
+            self.mu = nn.Parameter(torch.randn(self.num_particles, ff_output_dim))
+            self.std = nn.Parameter(torch.torch.randn(self.num_particles, ff_output_dim))
+
 
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
         if noise_conditioning or n_conditioning:
@@ -332,6 +337,11 @@ class GAPT_G(nn.Module):
 
         return torch.cat((x, mask - 0.5), dim=2) if mask is not None else x
 
+    def sample_init_set(self, batch_size):
+        cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1) * (self.std ** 2).unsqueeze(2)
+        assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
+        mvn = MultivariateNormal(loc=self.mean, scale_tril=cov)
+        return mvn.rsample((batch_size, ))
 
 class GAPT_D(nn.Module):
     def __init__(
