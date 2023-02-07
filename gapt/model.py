@@ -344,7 +344,7 @@ class GAPT_G(nn.Module):
         if self.learnable_init_noise:
             cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1).to(self.std.device) * (self.std ** 2).unsqueeze(2)
             assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
-            mvn = MultivariateNormal(loc=self.mu, scale_tril=cov)
+            mvn = MultivariateNormal(loc=self.mu, covariance_matrix=cov)
             return mvn.rsample((batch_size, ))
 
 
