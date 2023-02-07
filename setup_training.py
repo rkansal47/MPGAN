@@ -608,6 +608,12 @@ def parse_gapt_args(parser):
         default=10,
         help="number of induced nodes in ISAB blocks, if using ISAB blocks",
     )
+    parser.add_argument(
+        "--num-ise-nodes",
+        type=int,
+        default=10,
+        help="number of induced nodes in ISE, if using ISE",
+    )
 
     parser.add_argument(
         "--global-noise-input-dim",
@@ -652,6 +658,7 @@ def parse_gapt_args(parser):
     add_bool_arg(parser, "no-D-conditioning", "do not condition discriminator on num. particles", default=False)
     add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
     add_bool_arg(parser, "use-isab", "use ISAB in GAPT", default=False)
+    add_bool_arg(parser, "use-ise", "use ISE in GAPT discriminator", default=False)
 
     add_bool_arg(parser, "layer-norm", "use layer normalization in G and D", default=False)
     add_bool_arg(parser, "layer-norm-disc", "use layer normalization in generator", default=False)
@@ -1392,6 +1399,8 @@ def setup_gapt(args, gen):
         "final_fc_layers": args.final_fc_layers_disc,
         "dropout_p": args.disc_dropout,
         "layer_norm": args.layer_norm_disc,
+        "use_ise": args.use_ise,
+        "num_ise_nodes": args.num_ise_nodes
     }
 
     if gen:

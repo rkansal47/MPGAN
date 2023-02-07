@@ -387,7 +387,8 @@ class GAPT_D(nn.Module):
         use_mask: bool = True,
         use_isab: bool = False,
         num_isab_nodes: int = 10,
-        use_ise: bool = True,
+        use_ise: bool = False,
+        num_ise_nodes: int = 10,
         linear_args: dict = {},
     ):
         super(GAPT_D, self).__init__()
@@ -429,24 +430,27 @@ class GAPT_D(nn.Module):
             [], input_size=input_feat_size, output_size=ff_output_dim, **linear_args
         )
 
-        # intermediate layers
+        # Intermediate layers
         for _ in range(sab_layers):
             self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
         
+        # Encoding/Pooling layers
+        linear_net_input_dim = ff_output_dim
         if use_ise:
-            self.ises.append()
+            self.ises = nn.ModuleList()
             for _ in range(sab_layers):
-                self.ises.append(ISE(**sab))
+                self.ises.append(ISE(num_ise_nodes, **sab_args))
+            linear_net_input_dim *= sab_layers
+        else:
+            self.pma = PMA(
+                num_seeds=1,
+                **sab_args,
+            )
 
-        self.pma = PMA(
-            num_seeds=1,
-
-            **sab_args,
-        )
-
+        # Classification network
         self.final_fc = LinearNet(
             final_fc_layers,
-            input_size=ff_output_dim,
+            input_size=linear_net_input_dim,
             output_size=1,
             final_linear=True,
             **linear_args,
@@ -470,8 +474,17 @@ class GAPT_D(nn.Module):
                 num_jet_particles = (labels[:, -1] * self.num_particles).int()
             z = num_jet_particles.unsqueeze(1).float()
             z = self.cond_net(z)
-
-        for sab in self.sabs:
-            x = sab(x, _attn_mask(mask), z)
-
-        return torch.sigmoid(self.final_fc(self.pma(x, _attn_mask(mask), z).squeeze()))
+        
+        # Use appropriate forward pass corresponding to encoding/pooling operation
+        if self.use_ise:
+            e = torch.Tensor().to(x.device)
+            for sab, ise in zip(self.sabs, self.ises):
+                x = sab(x, _attn_mask(mask), z)
+                e = torch.cat((e, ise(x, _attn_mask(mask), z)), dim=1)
+            out = e
+        else:
+            for sab in self.sabs:
+                x = sab(x, _attn_mask(mask), z)
+            out = self.pma(x, _attn_mask(mask), z).squeeze()
+        
+        return torch.sigmoid(self.final_fc(out))
