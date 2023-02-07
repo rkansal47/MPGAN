@@ -207,6 +207,26 @@ class ISAB(nn.Module):
         
         return self.mab1(X, H, z=z)
 
+class ISE(nn.Module):
+    def __init__(
+        self,
+        num_inds: int,
+        embed_dim: int,
+        **mab_args
+    ):
+        super(ISE, self).__init__()
+        self.I = nn.Parameter(torch.Tensor(1, num_inds, mab_args['ff_output_dim']))
+        self.num_inds = num_inds
+        nn.init.xavier_uniform_(self.I)
+        self.mab = MAB(embed_dim, **mab_args)
+    
+    def forward(self, x: Tensor, mask: Tensor = None, z: Tensor = None):
+        if mask is not None:
+            mask = mask.transpose(-2, -1).repeat((1, self.num_inds, 1))
+        H = self.mab(self.I.repeat(x.size(0), 1, 1), x, mask, z)
+
+        return H.sum(dim=1)
+
 
 def _attn_mask(mask: Tensor) -> Optional[Tensor]:
     """
@@ -367,6 +387,7 @@ class GAPT_D(nn.Module):
         use_mask: bool = True,
         use_isab: bool = False,
         num_isab_nodes: int = 10,
+        use_ise: bool = True,
         linear_args: dict = {},
     ):
         super(GAPT_D, self).__init__()
@@ -375,6 +396,7 @@ class GAPT_D(nn.Module):
         self.use_mask = use_mask
         self.n_conditioning = n_conditioning
         self.n_normalized = n_normalized
+        self.use_ise = use_ise
 
         # MLP for processing # particles
         if n_conditioning:
@@ -410,6 +432,11 @@ class GAPT_D(nn.Module):
         # intermediate layers
         for _ in range(sab_layers):
             self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
+        
+        if use_ise:
+            self.ises.append()
+            for _ in range(sab_layers):
+                self.ises.append(ISE(**sab))
 
         self.pma = PMA(
             num_seeds=1,
