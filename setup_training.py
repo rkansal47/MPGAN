@@ -134,6 +134,7 @@ def parse_args():
 
     parser.add_argument("--dir-path", type=str, default="", help="path where output will be stored")
     parser.add_argument("--datasets-path", type=str, default="", help="path to datasets")
+    parser.add_argument("--efps-path", type=str, default="", help="path to efps")
 
     parser.add_argument(
         "--num-samples", type=int, default=50000, help="num samples to evaluate every 5 epochs"
@@ -644,7 +645,7 @@ def parse_gapt_args(parser):
         default=[],
         help="Discriminator conditional net intermediate layers",
     )
-
+    add_bool_arg(parser, "learnable-init-noise", "learn the gaussian noise parameters for sampling initial set", default=False)
     add_bool_arg(parser, "noise-conditioning", "condition generator on global noise", default=False)
     add_bool_arg(parser, "n-conditioning", "condition generator on num. particles", default=False)
     add_bool_arg(parser, "n-normalized", "use normalized num. particles", default=False)
@@ -1118,8 +1119,9 @@ def init_project_dirs(args):
             args.dir_path = str(pathlib.Path(__file__).parent.resolve()) + f"/{dataset_str}outputs/"
 
     os.system(f"mkdir -p {args.dir_path}")
-
-    args.efps_path = str(pathlib.Path(args.dir_path).parent.resolve()) + "/efps/"
+    
+    if args.efps_path == "":
+        args.efps_path = str(pathlib.Path(args.dir_path).parent.resolve()) + "/efps/"
     os.system(f"mkdir -p {args.efps_path}")
 
     return args
@@ -1380,6 +1382,7 @@ def setup_gapt(args, gen):
         "final_fc_layers": args.final_fc_layers_gen,
         "dropout_p": args.gen_dropout,
         "layer_norm": args.layer_norm_gen,
+        "learnable_init_noise": args.learnable_init_noise
     }
 
     # discriminator-specific args

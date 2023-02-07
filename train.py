@@ -203,9 +203,12 @@ def gen(
         labels = labels.to(device)
 
     if noise is None:
-        noise, point_noise = get_gen_noise(
-            model_args, num_samples, num_particles, model, device, noise_std
-        )
+        if G.learnable_init_noise:
+            noise = G.sample_init_set(num_samples).to(device)
+        else:
+            noise, point_noise = get_gen_noise(
+                model_args, num_samples, num_particles, model, device, noise_std
+            )
 
     global_noise = torch.randn(num_samples, model_args['global_noise_dim']).to(device) if G.noise_conditioning else None
 

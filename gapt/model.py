@@ -227,6 +227,7 @@ class GAPT_G(nn.Module):
         global_noise_input_dim: int = 0,
         global_noise_feat_dim: int = 0,
         global_noise_layers: list = [],
+        learnable_init_noise: bool = False,
         noise_conditioning: bool = False,
         n_conditioning: bool = False,
         n_normalized: bool = False,
@@ -246,14 +247,16 @@ class GAPT_G(nn.Module):
         self.num_particles = num_particles
         self.output_feat_size = output_feat_size
         self.use_mask = use_mask
+        self.learnable_init_noise = learnable_init_noise
         self.noise_conditioning = noise_conditioning
         self.n_conditioning = n_conditioning
         self.n_normalized = n_normalized
+        
 
         # Learnable gaussian noise for sampling initial set
-        if condition:
-            self.mu = nn.Parameter(torch.randn(self.num_particles, ff_output_dim))
-            self.std = nn.Parameter(torch.torch.randn(self.num_particles, ff_output_dim))
+        if self.learnable_init_noise:
+            self.mu = nn.Parameter(torch.randn(self.num_particles, embed_dim))
+            self.std = nn.Parameter(torch.torch.randn(self.num_particles, embed_dim))
 
 
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
@@ -338,10 +341,12 @@ class GAPT_G(nn.Module):
         return torch.cat((x, mask - 0.5), dim=2) if mask is not None else x
 
     def sample_init_set(self, batch_size):
-        cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1) * (self.std ** 2).unsqueeze(2)
-        assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
-        mvn = MultivariateNormal(loc=self.mean, scale_tril=cov)
-        return mvn.rsample((batch_size, ))
+        if self.learnable_init_noise:
+            cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1) * (self.std ** 2).unsqueeze(2)
+            assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
+            mvn = MultivariateNormal(loc=self.mu, scale_tril=cov)
+            return mvn.rsample((batch_size, ))
+
 
 class GAPT_D(nn.Module):
     def __init__(
