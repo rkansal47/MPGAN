@@ -606,6 +606,10 @@ def evaluate(
 
     if "kpd" in losses:
         logging.info("KPD")
+        if efp_jobs is not None and efp_jobs > 2:
+            num_threads = efp_jobs - 2
+        else:
+            num_threads = 1
         losses["kpd"].append(metrics.mmd(real_efps, gen_efps, num_threads=efp_jobs))
 
 
