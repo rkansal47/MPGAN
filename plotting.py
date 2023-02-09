@@ -426,10 +426,11 @@ def plot_eval(
         means = np.array(losses["kpd"])[:, 0]
         stds = np.array(losses["kpd"])[:, 1]
 
+        # plot mean + 1 sigma values to avoid -ve values in log plot
         fig.add_subplot(3, 3, 6)
-        plt.plot(x, means)
+        plt.plot(x, means + stds)
         plt.xlabel("Epoch")
-        plt.ylabel(r"KPD")
+        plt.ylabel(r"KP$D^{+\sigma}$")
         plt.yscale("log")
         plt.ylim(top=10)
 
