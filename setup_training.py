@@ -659,6 +659,7 @@ def parse_gapt_args(parser):
     add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
     add_bool_arg(parser, "use-isab", "use ISAB in GAPT", default=False)
     add_bool_arg(parser, "use-ise", "use ISE in GAPT discriminator", default=False)
+    add_bool_arg(parser, "block-residual", "residual connection at each SAB", default=False)
 
     add_bool_arg(parser, "layer-norm", "use layer normalization in G and D", default=False)
     add_bool_arg(parser, "layer-norm-disc", "use layer normalization in generator", default=False)
@@ -1364,6 +1365,7 @@ def setup_gapt(args, gen):
         "use_mask": args.gapt_mask,
         "use_isab": args.use_isab,
         "num_isab_nodes": args.num_isab_nodes,
+        "block_residual": args.block_residual
     }
 
     global_noise_args = {

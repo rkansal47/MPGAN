@@ -261,6 +261,7 @@ class GAPT_G(nn.Module):
         use_mask: bool = True,
         use_isab: bool = False,
         num_isab_nodes: int = 10,
+        block_residual = False,
         linear_args: dict = {},
     ):
         super(GAPT_G, self).__init__()
@@ -271,6 +272,7 @@ class GAPT_G(nn.Module):
         self.noise_conditioning = noise_conditioning
         self.n_conditioning = n_conditioning
         self.n_normalized = n_normalized
+        self.block_residual = block_residual
         
 
         # Learnable gaussian noise for sampling initial set
@@ -354,7 +356,8 @@ class GAPT_G(nn.Module):
             z = self.global_noise_net(z)
         
         for sab in self.sabs:
-            x = sab(x, _attn_mask(mask), z)
+            sab_out = sab(x, _attn_mask(mask), z)
+            x = x + sab_out if self.block_residual else sab_out
 
         x = torch.tanh(self.final_fc(x))
 
@@ -389,6 +392,7 @@ class GAPT_D(nn.Module):
         num_isab_nodes: int = 10,
         use_ise: bool = False,
         num_ise_nodes: int = 10,
+        block_residual = False,
         linear_args: dict = {},
     ):
         super(GAPT_D, self).__init__()
@@ -398,6 +402,7 @@ class GAPT_D(nn.Module):
         self.n_conditioning = n_conditioning
         self.n_normalized = n_normalized
         self.use_ise = use_ise
+        self.block_residual = block_residual
 
         # MLP for processing # particles
         if n_conditioning:
@@ -479,12 +484,14 @@ class GAPT_D(nn.Module):
         if self.use_ise:
             e = torch.Tensor().to(x.device)
             for sab, ise in zip(self.sabs, self.ises):
-                x = sab(x, _attn_mask(mask), z)
+                sab_out = sab(x, _attn_mask(mask), z)
+                x = x + sab_out if self.block_residual else sab_out
                 e = torch.cat((e, ise(x, _attn_mask(mask), z)), dim=1)
             out = e
         else:
             for sab in self.sabs:
-                x = sab(x, _attn_mask(mask), z)
+                sab_out = sab(x, _attn_mask(mask), z)
+                x = x + sab_out if self.block_residual else sab_out
             out = self.pma(x, _attn_mask(mask), z).squeeze()
         
         return torch.sigmoid(self.final_fc(out))
