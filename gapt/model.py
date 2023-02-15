@@ -247,7 +247,7 @@ class GAPT_G(nn.Module):
         global_noise_feat_dim: int = 0,
         global_noise_layers: list = [],
         learnable_init_noise: bool = False,
-        noise_conditioning: bool = False,
+        noise_conditioning: bool = True,
         n_conditioning: bool = False,
         n_normalized: bool = False,
         sab_layers: int = 2,
@@ -281,17 +281,17 @@ class GAPT_G(nn.Module):
 
 
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
-        if noise_conditioning or n_conditioning:
-            noise_net_input_dim = 0
-            if noise_conditioning:
-                noise_net_input_dim += global_noise_input_dim
-            if n_conditioning:
-                noise_net_input_dim += 1
-            self.global_noise_net = LinearNet(
-                layers = global_noise_layers,
-                input_size = noise_net_input_dim,
-                output_size = global_noise_feat_dim
-            )
+        # if noise_conditioning or n_conditioning:
+        noise_net_input_dim = global_noise_input_dim
+        # if noise_conditioning:
+        #     noise_net_input_dim += global_noise_input_dim
+        if n_conditioning:
+            noise_net_input_dim += 1
+        self.global_noise_net = LinearNet(
+            layers = global_noise_layers,
+            input_size = noise_net_input_dim,
+            output_size = global_noise_feat_dim
+        )
 
         self.sabs = nn.ModuleList()
 
@@ -348,12 +348,14 @@ class GAPT_G(nn.Module):
             num_jet_particles = labels[:, -1]
         else:
             num_jet_particles += 1
-        if self.noise_conditioning or self.n_conditioning:
-            if self.noise_conditioning and self.n_conditioning:
-                z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
-            elif self.n_conditioning:
-                z = num_jet_particles.unsqueeze(1).float()
-            z = self.global_noise_net(z)
+        # if self.noise_conditioning or self.n_conditioning:
+        #     if self.noise_conditioning and self.n_conditioning:
+        #         z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
+        #     elif self.n_conditioning:
+        #         z = num_jet_particles.unsqueeze(1).float()
+        if self.n_conditioning:
+            z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
+        z = self.global_noise_net(z)
         
         for sab in self.sabs:
             sab_out, z = sab(x, _attn_mask(mask), z)

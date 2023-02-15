@@ -652,7 +652,7 @@ def parse_gapt_args(parser):
         help="Discriminator conditional net intermediate layers",
     )
     add_bool_arg(parser, "learnable-init-noise", "learn the gaussian noise parameters for sampling initial set", default=False)
-    add_bool_arg(parser, "noise-conditioning", "condition generator on global noise", default=False)
+    add_bool_arg(parser, "noise-conditioning", "condition generator on global noise", default=True)
     add_bool_arg(parser, "n-conditioning", "condition generator on num. particles", default=False)
     add_bool_arg(parser, "n-normalized", "use normalized num. particles", default=False)
     add_bool_arg(parser, "no-D-conditioning", "do not condition discriminator on num. particles", default=False)
