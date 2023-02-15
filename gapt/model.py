@@ -110,8 +110,8 @@ class MAB(nn.Module):
         self.conditioning = conditioning
 
         # Single linear layer to project from dim(x+z') to dim(x)
-        if self.conditioning:
-            self.attn_ff   = nn.Linear(embed_dim, ff_output_dim)
+        # if self.conditioning:
+        #     self.attn_ff   = nn.Linear(embed_dim, ff_output_dim)
 
         self.ff = LinearNet(
             ff_layers,
@@ -136,15 +136,15 @@ class MAB(nn.Module):
 
         # Concatenate q,k,v inputs with conditioning vector if self.conditioning==True 
         # Linearly project output (dim(x+z')) back to dim(x)
-        if self.conditioning:
-            assert z is not None
-            # Concat z with query
-            x_ = torch.cat((x, z.unsqueeze(1).repeat(1, x.shape[1], 1)), dim=2)
-            # Concat z with key/value
-            y_ = torch.cat((y, z.unsqueeze(1).repeat(1, y.shape[1], 1)), dim=2)
-            x = x + self.attn_ff(self.attention(x_, y_, y_, attn_mask=y_mask, need_weights=False)[0])
-        else:
-            x = x + self.attention(x, y, y, attn_mask=y_mask, need_weights=False)[0]
+        # if self.conditioning:
+            # assert z is not None
+            # # Concat z with query
+            # x_ = torch.cat((x, z.unsqueeze(1).repeat(1, x.shape[1], 1)), dim=2)
+            # # Concat z with key/value
+            # y_ = torch.cat((y, z.unsqueeze(1).repeat(1, y.shape[1], 1)), dim=2)
+            # x = x + self.attn_ff(self.attention(x_, y_, y_, attn_mask=y_mask, need_weights=False)[0])
+        # else:
+        x = x + self.attention(x, y, y, attn_mask=y_mask, need_weights=False)[0]
         if self.layer_norm:
             x = self.norm1(x)
         x = self.dropout(x)
@@ -192,20 +192,19 @@ class PMA(nn.Module):
 
 # Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
 class ISAB(nn.Module):
-    def __init__(self, num_inds, embed_dim, **mab_args):
+    def __init__(self, embed_dim, **mab_args):
         super(ISAB, self).__init__()
-        self.I = nn.Parameter(torch.Tensor(1, num_inds, mab_args['ff_output_dim']))
-        self.num_inds = num_inds
-        nn.init.xavier_uniform_(self.I)
+        # self.I = nn.Parameter(torch.Tensor(1, num_inds, mab_args['ff_output_dim']))
+        # self.num_inds = num_inds
+        # nn.init.xavier_uniform_(self.I)
         self.mab0 = MAB(embed_dim=embed_dim, **mab_args)
         self.mab1 = MAB(embed_dim=embed_dim, **mab_args)
 
     def forward(self, X, mask: Tensor = None, z: Tensor = None):
         if mask is not None:
-            mask = mask.transpose(-2, -1).repeat((1, self.num_inds, 1))
-        H = self.mab0(self.I.repeat(X.size(0), 1, 1), X, mask, z)
-        
-        return self.mab1(X, H, z=z)
+            mask = mask.transpose(-2, -1).repeat((1, 1, 1))
+        z = self.mab0(z.unsqueeze(1), X, mask)
+        return self.mab1(X, z), z.squeeze(1)
 
 class ISE(nn.Module):
     def __init__(
@@ -298,8 +297,8 @@ class GAPT_G(nn.Module):
 
         # Adjust MAB input dims based on conditioning
         ff_output_dim = embed_dim
-        if noise_conditioning or n_conditioning:
-            embed_dim += global_noise_feat_dim
+        # if noise_conditioning or n_conditioning:
+        #     embed_dim += global_noise_feat_dim
 
         sab_args = {
             "embed_dim": embed_dim,
@@ -315,7 +314,8 @@ class GAPT_G(nn.Module):
 
         # intermediate layers
         for _ in range(sab_layers):
-            self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
+            # self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
+            self.sabs.append(ISAB(**sab_args))
 
         self.final_fc = LinearNet(
             final_fc_layers,
@@ -356,7 +356,7 @@ class GAPT_G(nn.Module):
             z = self.global_noise_net(z)
         
         for sab in self.sabs:
-            sab_out = sab(x, _attn_mask(mask), z)
+            sab_out, z = sab(x, _attn_mask(mask), z)
             x = x + sab_out if self.block_residual else sab_out
 
         x = torch.tanh(self.final_fc(x))
@@ -405,19 +405,21 @@ class GAPT_D(nn.Module):
         self.block_residual = block_residual
 
         # MLP for processing # particles
+        cond_net_input_dim = 2 * embed_dim
         if n_conditioning:
-            cond_net_input_dim = 1
-            self.cond_net = LinearNet(
-                layers = cond_net_layers,
-                input_size = cond_net_input_dim,
-                output_size = cond_feat_dim
-            )
+            cond_net_input_dim += 1
+        
+        self.cond_net = LinearNet(
+            layers = cond_net_layers,
+            input_size = cond_net_input_dim,
+            output_size = cond_feat_dim
+        )
 
         self.sabs = nn.ModuleList()
 
         ff_output_dim = embed_dim
-        if n_conditioning:
-            embed_dim += cond_feat_dim
+        # if n_conditioning:
+        #     embed_dim += cond_feat_dim
 
         sab_args = {
             "embed_dim": embed_dim,
@@ -437,7 +439,8 @@ class GAPT_D(nn.Module):
 
         # Intermediate layers
         for _ in range(sab_layers):
-            self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
+            # self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
+            self.sabs.append(ISAB(**sab_args))
         
         # Encoding/Pooling layers
         linear_net_input_dim = ff_output_dim
@@ -470,27 +473,29 @@ class GAPT_D(nn.Module):
 
         x = self.input_embedding(x)
         
+        # Get initial global noise by pooling over the input
+        z = torch.cat([x.mean(dim=1), x.sum(dim=1)], dim=1)
         # Use # particles for conditioning
-        z = None
         if self.n_conditioning:
             if self.n_normalized:
                 num_jet_particles = labels[:, -1]
             else:
                 num_jet_particles = (labels[:, -1] * self.num_particles).int()
-            z = num_jet_particles.unsqueeze(1).float()
-            z = self.cond_net(z)
+            z = torch.cat([z, num_jet_particles.unsqueeze(1).float()], dim=1)
+        
+        z = self.cond_net(z)
         
         # Use appropriate forward pass corresponding to encoding/pooling operation
         if self.use_ise:
             e = torch.Tensor().to(x.device)
             for sab, ise in zip(self.sabs, self.ises):
-                sab_out = sab(x, _attn_mask(mask), z)
+                sab_out, z = sab(x, _attn_mask(mask), z)
                 x = x + sab_out if self.block_residual else sab_out
                 e = torch.cat((e, ise(x, _attn_mask(mask), z)), dim=1)
             out = e
         else:
             for sab in self.sabs:
-                sab_out = sab(x, _attn_mask(mask), z)
+                sab_out, z = sab(x, _attn_mask(mask), z)
                 x = x + sab_out if self.block_residual else sab_out
             out = self.pma(x, _attn_mask(mask), z).squeeze()
         
