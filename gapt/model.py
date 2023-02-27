@@ -278,7 +278,7 @@ class GAPT_G(nn.Module):
         # Learnable gaussian noise for sampling initial set
         if self.learnable_init_noise:
             self.mu = nn.Parameter(torch.randn(self.num_particles, embed_dim))
-            self.std = nn.Parameter(torch.torch.randn(self.num_particles, embed_dim))
+            self.std = nn.Parameter(torch.randn(self.num_particles, embed_dim))
 
 
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
@@ -365,10 +365,14 @@ class GAPT_G(nn.Module):
 
     def sample_init_set(self, batch_size):
         if self.learnable_init_noise:
-            cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1).to(self.std.device) * (self.std ** 2).unsqueeze(2)
-            assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
-            mvn = MultivariateNormal(loc=self.mu, covariance_matrix=cov)
-            return mvn.rsample((batch_size, ))
+            # cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1).to(self.std.device) * (self.std ** 2).unsqueeze(2)
+            # assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
+            # mvn = MultivariateNormal(loc=self.mu, covariance_matrix=cov)
+            # return mvn.rsample((batch_size, ))
+            std_mu = torch.zeros_like(self.mu).repeat(batch_size,1,1)
+            std_sigma = torch.ones_like(self.std).repeat(batch_size,1,1)
+            std_samples = torch.normal(std_mu, std_sigma)
+            return std_samples * self.std + self.mu
 
 
 class GAPT_D(nn.Module):
