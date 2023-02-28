@@ -80,8 +80,6 @@ class LinearNet(nn.Module):
             if i != len(self.net) - 1 or not self.final_linear:
                 x = F.leaky_relu(x, negative_slope=self.leaky_relu_alpha)
                 if self.batch_norm:
-                    print(x.shape)
-                    print(self.bn[i])
                     x = self.bn[i](x)
             x = self.dropout(x)
 
