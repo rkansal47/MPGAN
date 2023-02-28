@@ -252,8 +252,9 @@ def parse_optimization_args(parser):
 
 
 def parse_regularization_args(parser):
-    add_bool_arg(parser, "batch-norm-disc", "use batch normalization", default=False)
-    add_bool_arg(parser, "batch-norm-gen", "use batch normalization", default=False)
+    add_bool_arg(parser, "batch-norm", "use batch normalization in G and D", default=False)
+    add_bool_arg(parser, "batch-norm-disc", "use batch normalization in discriminator", default=False)
+    add_bool_arg(parser, "batch-norm-gen", "use batch normalization in generator", default=False)
     add_bool_arg(parser, "spectral-norm", "use spectral normalization in G and D", default=False)
     add_bool_arg(
         parser, "spectral-norm-disc", "use spectral normalization in discriminator", default=False
@@ -932,6 +933,8 @@ def process_optimization_args(args):
 
 
 def process_regularization_args(args):
+    if args.batch_norm:
+        args.batch_norm_disc, args.batch_norm_gen = True, True
     if args.spectral_norm:
         args.spectral_norm_disc, args.spectral_norm_gen = True, True
     if args.layer_norm:
