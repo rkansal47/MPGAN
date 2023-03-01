@@ -41,7 +41,6 @@ class LinearNet(nn.Module):
         spectral_norm: bool = False,
     ):
         super(LinearNet, self).__init__()
-
         self.final_linear = final_linear
         self.leaky_relu_alpha = leaky_relu_alpha
         self.batch_norm = batch_norm
@@ -289,7 +288,6 @@ class GAPT_G(nn.Module):
         self.n_normalized = n_normalized
         self.block_residual = block_residual
         
-
         # Learnable gaussian noise for sampling initial set
         if self.learnable_init_noise:
             self.mu = nn.Parameter(torch.randn(self.num_particles, embed_dim))
@@ -433,7 +431,6 @@ class GAPT_D(nn.Module):
                 output_size = cond_feat_dim,
                 **linear_args
             )
-
         self.sabs = nn.ModuleList()
 
         ff_output_dim = embed_dim
