@@ -37,6 +37,7 @@ class LinearNet(nn.Module):
         leaky_relu_alpha: float = 0.2,
         dropout_p: float = 0,
         batch_norm: bool = False,
+        layer_norm: bool = False,
         spectral_norm: bool = False,
     ):
         super(LinearNet, self).__init__()
@@ -44,6 +45,7 @@ class LinearNet(nn.Module):
         self.final_linear = final_linear
         self.leaky_relu_alpha = leaky_relu_alpha
         self.batch_norm = batch_norm
+        self.layer_norm = layer_norm
         self.dropout = nn.Dropout(p=dropout_p)
 
         layers = layers.copy()
@@ -56,12 +58,18 @@ class LinearNet(nn.Module):
         self.net = nn.ModuleList()
         if batch_norm:
             self.bn = nn.ModuleList()
+        if layer_norm:
+            self.ln = nn.ModuleList()
 
         for i in range(len(layers) - 1):
             linear = nn.Linear(layers[i], layers[i + 1])
             self.net.append(linear)
+
             if batch_norm:
                 self.bn.append(nn.BatchNorm1d(layers[i + 1]))
+            
+            if layer_norm:
+                self.ln.append(nn.LayerNorm(layers[i + 1]))
 
         if spectral_norm:
             for i in range(len(self.net)):
@@ -81,6 +89,8 @@ class LinearNet(nn.Module):
                 x = F.leaky_relu(x, negative_slope=self.leaky_relu_alpha)
                 if self.batch_norm:
                     x = self.bn[i](x)
+                elif self.layer_norm:
+                    x = self.ln[i](x)
             x = self.dropout(x)
 
         return x
@@ -99,6 +109,7 @@ class MAB(nn.Module):
         ff_layers: list = [],
         conditioning: bool = False,
         layer_norm: bool = False,
+        spectral_norm: bool = False,
         dropout_p: float = 0.0,
         final_linear: bool = True,
         linear_args={},
@@ -122,10 +133,14 @@ class MAB(nn.Module):
         )
 
         self.layer_norm = layer_norm
+        self.spectral_norm = spectral_norm
 
         if self.layer_norm:
             self.norm1 = nn.LayerNorm(ff_output_dim)
             self.norm2 = nn.LayerNorm(ff_output_dim)
+        
+        if self.spectral_norm:
+            self.attention = SpectralNorm(self.attention)
 
         self.dropout = nn.Dropout(p=dropout_p)
 
@@ -291,7 +306,8 @@ class GAPT_G(nn.Module):
             self.global_noise_net = LinearNet(
                 layers = global_noise_layers,
                 input_size = noise_net_input_dim,
-                output_size = global_noise_feat_dim
+                output_size = global_noise_feat_dim,
+                **linear_args
             )
 
         self.sabs = nn.ModuleList()
@@ -414,7 +430,8 @@ class GAPT_D(nn.Module):
             self.cond_net = LinearNet(
                 layers = cond_net_layers,
                 input_size = cond_net_input_dim,
-                output_size = cond_feat_dim
+                output_size = cond_feat_dim,
+                **linear_args
             )
 
         self.sabs = nn.ModuleList()
