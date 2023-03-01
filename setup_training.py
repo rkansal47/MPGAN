@@ -1357,6 +1357,7 @@ def setup_gapt(args, gen):
         "leaky_relu_alpha": args.leaky_relu_alpha,
         "dropout_p": args.gen_dropout if gen else args.disc_dropout,
         "batch_norm": args.batch_norm_gen if gen else args.batch_norm_disc,
+        "layer_norm": args.layer_norm_gen if gen else args.layer_norm_disc,
         "spectral_norm": args.spectral_norm_gen if gen else args.spectral_norm_disc,
     }
 
