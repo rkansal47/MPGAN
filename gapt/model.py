@@ -268,6 +268,7 @@ class GAPT_G(nn.Module):
         sab_layers: int = 2,
         num_heads: int = 4,
         embed_dim: int = 32,
+        init_noise_dim: int = 8,
         sab_fc_layers: list = [],
         layer_norm: bool = False,
         dropout_p: float = 0.0,
@@ -290,8 +291,16 @@ class GAPT_G(nn.Module):
         
         # Learnable gaussian noise for sampling initial set
         if self.learnable_init_noise:
-            self.mu = nn.Parameter(torch.randn(self.num_particles, embed_dim))
-            self.std = nn.Parameter(torch.randn(self.num_particles, embed_dim))
+            self.mu = nn.Parameter(torch.randn(self.num_particles, init_noise_dim))
+            self.std = nn.Parameter(torch.randn(self.num_particles, init_noise_dim))
+        
+        # Projecting initial noise z to embed_dims
+        self.input_embedding = LinearNet(
+            layers = [],
+            input_size = init_noise_dim,
+            output_size = embed_dim,
+            **linear_args
+        )
 
 
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
@@ -356,7 +365,9 @@ class GAPT_G(nn.Module):
             )
         else:
             mask = None
-         
+
+        x = self.input_embedding(x)
+        
         # Concatenate global noise and # particles depending on conditioning
         if self.n_normalized:
             num_jet_particles = labels[:, -1]
