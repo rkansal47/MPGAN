@@ -646,6 +646,13 @@ def parse_gapt_args(parser):
     )
 
     parser.add_argument(
+        "--init-noise-dim",
+        type=int,
+        default=8,
+        help="size of initial noise for sampling the set",
+    )
+
+    parser.add_argument(
         "--cond-net-layers",
         type=int,
         nargs="*",
@@ -653,6 +660,7 @@ def parse_gapt_args(parser):
         help="Discriminator conditional net intermediate layers",
     )
     add_bool_arg(parser, "learnable-init-noise", "learn the gaussian noise parameters for sampling initial set", default=False)
+   
     add_bool_arg(parser, "noise-conditioning", "condition generator on global noise", default=False)
     add_bool_arg(parser, "n-conditioning", "condition generator on num. particles", default=False)
     add_bool_arg(parser, "n-normalized", "use normalized num. particles", default=False)
@@ -1395,7 +1403,8 @@ def setup_gapt(args, gen):
         "final_fc_layers": args.final_fc_layers_gen,
         "dropout_p": args.gen_dropout,
         "layer_norm": args.layer_norm_gen,
-        "learnable_init_noise": args.learnable_init_noise
+        "learnable_init_noise": args.learnable_init_noise,
+        "init_noise_dim": args.init_noise_dim
     }
 
     # discriminator-specific args

@@ -302,7 +302,7 @@ class GAPT_G(nn.Module):
             **linear_args
         )
 
-
+        
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
         if noise_conditioning or n_conditioning:
             noise_net_input_dim = 0
@@ -365,7 +365,7 @@ class GAPT_G(nn.Module):
             )
         else:
             mask = None
-
+        
         x = self.input_embedding(x)
         
         # Concatenate global noise and # particles depending on conditioning
