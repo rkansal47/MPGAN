@@ -571,7 +571,6 @@ def evaluate(
             exclude_zeros=True,
             num_eval_samples=num_w1_eval_samples,
             num_batches=real_jets.shape[0] // num_w1_eval_samples,
-            average_over_features=False,
             return_std=True,
         )
         losses["w1p"].append(np.concatenate((w1pm, w1pstd)))
