@@ -252,8 +252,9 @@ def parse_optimization_args(parser):
 
 
 def parse_regularization_args(parser):
-    add_bool_arg(parser, "batch-norm-disc", "use batch normalization", default=False)
-    add_bool_arg(parser, "batch-norm-gen", "use batch normalization", default=False)
+    add_bool_arg(parser, "batch-norm", "use batch normalization in G and D", default=False)
+    add_bool_arg(parser, "batch-norm-disc", "use batch normalization in discriminator", default=False)
+    add_bool_arg(parser, "batch-norm-gen", "use batch normalization in generator", default=False)
     add_bool_arg(parser, "spectral-norm", "use spectral normalization in G and D", default=False)
     add_bool_arg(
         parser, "spectral-norm-disc", "use spectral normalization in discriminator", default=False
@@ -645,6 +646,13 @@ def parse_gapt_args(parser):
     )
 
     parser.add_argument(
+        "--init-noise-dim",
+        type=int,
+        default=8,
+        help="size of initial noise for sampling the set",
+    )
+
+    parser.add_argument(
         "--cond-net-layers",
         type=int,
         nargs="*",
@@ -932,6 +940,8 @@ def process_optimization_args(args):
 
 
 def process_regularization_args(args):
+    if args.batch_norm:
+        args.batch_norm_disc, args.batch_norm_gen = True, True
     if args.spectral_norm:
         args.spectral_norm_disc, args.spectral_norm_gen = True, True
     if args.layer_norm:
@@ -1354,6 +1364,7 @@ def setup_gapt(args, gen):
         "leaky_relu_alpha": args.leaky_relu_alpha,
         "dropout_p": args.gen_dropout if gen else args.disc_dropout,
         "batch_norm": args.batch_norm_gen if gen else args.batch_norm_disc,
+        "layer_norm": args.layer_norm_gen if gen else args.layer_norm_disc,
         "spectral_norm": args.spectral_norm_gen if gen else args.spectral_norm_disc,
     }
 
@@ -1391,7 +1402,8 @@ def setup_gapt(args, gen):
         "final_fc_layers": args.final_fc_layers_gen,
         "dropout_p": args.gen_dropout,
         "layer_norm": args.layer_norm_gen,
-        "learnable_init_noise": args.learnable_init_noise
+        "learnable_init_noise": args.learnable_init_noise,
+        "init_noise_dim": args.init_noise_dim
     }
 
     # discriminator-specific args

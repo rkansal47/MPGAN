@@ -37,13 +37,14 @@ class LinearNet(nn.Module):
         leaky_relu_alpha: float = 0.2,
         dropout_p: float = 0,
         batch_norm: bool = False,
+        layer_norm: bool = False,
         spectral_norm: bool = False,
     ):
         super(LinearNet, self).__init__()
-
         self.final_linear = final_linear
         self.leaky_relu_alpha = leaky_relu_alpha
         self.batch_norm = batch_norm
+        self.layer_norm = layer_norm
         self.dropout = nn.Dropout(p=dropout_p)
 
         layers = layers.copy()
@@ -56,12 +57,18 @@ class LinearNet(nn.Module):
         self.net = nn.ModuleList()
         if batch_norm:
             self.bn = nn.ModuleList()
+        if layer_norm:
+            self.ln = nn.ModuleList()
 
         for i in range(len(layers) - 1):
             linear = nn.Linear(layers[i], layers[i + 1])
             self.net.append(linear)
+
             if batch_norm:
                 self.bn.append(nn.BatchNorm1d(layers[i + 1]))
+            
+            if layer_norm:
+                self.ln.append(nn.LayerNorm(layers[i + 1]))
 
         if spectral_norm:
             for i in range(len(self.net)):
@@ -81,6 +88,8 @@ class LinearNet(nn.Module):
                 x = F.leaky_relu(x, negative_slope=self.leaky_relu_alpha)
                 if self.batch_norm:
                     x = self.bn[i](x)
+                elif self.layer_norm:
+                    x = self.ln[i](x)
             x = self.dropout(x)
 
         return x
@@ -99,6 +108,7 @@ class MAB(nn.Module):
         ff_layers: list = [],
         conditioning: bool = False,
         layer_norm: bool = False,
+        spectral_norm: bool = False,
         dropout_p: float = 0.0,
         final_linear: bool = True,
         linear_args={},
@@ -122,10 +132,14 @@ class MAB(nn.Module):
         )
 
         self.layer_norm = layer_norm
+        self.spectral_norm = spectral_norm
 
         if self.layer_norm:
             self.norm1 = nn.LayerNorm(ff_output_dim)
             self.norm2 = nn.LayerNorm(ff_output_dim)
+        
+        if self.spectral_norm:
+            self.attention = SpectralNorm(self.attention)
 
         self.dropout = nn.Dropout(p=dropout_p)
 
@@ -253,6 +267,7 @@ class GAPT_G(nn.Module):
         sab_layers: int = 2,
         num_heads: int = 4,
         embed_dim: int = 32,
+        init_noise_dim: int = 8,
         sab_fc_layers: list = [],
         layer_norm: bool = False,
         dropout_p: float = 0.0,
@@ -273,12 +288,18 @@ class GAPT_G(nn.Module):
         self.n_normalized = n_normalized
         self.block_residual = block_residual
         
-
         # Learnable gaussian noise for sampling initial set
         if self.learnable_init_noise:
-            self.mu = nn.Parameter(torch.randn(self.num_particles, embed_dim))
-            self.std = nn.Parameter(torch.torch.randn(self.num_particles, embed_dim))
+            self.mu = nn.Parameter(torch.randn(self.num_particles, init_noise_dim))
+            self.std = nn.Parameter(torch.randn(self.num_particles, init_noise_dim))
 
+            # Projecting initial noise z to embed_dims
+            self.input_embedding = LinearNet(
+                layers = [],
+                input_size = init_noise_dim,
+                output_size = embed_dim,
+                **linear_args
+            )
 
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
         # if noise_conditioning or n_conditioning:
@@ -342,7 +363,10 @@ class GAPT_G(nn.Module):
             )
         else:
             mask = None
-         
+        
+        if self.learnable_init_noise:
+            x = self.input_embedding(x)
+        
         # Concatenate global noise and # particles depending on conditioning
         if self.n_normalized:
             num_jet_particles = labels[:, -1]
@@ -367,10 +391,14 @@ class GAPT_G(nn.Module):
 
     def sample_init_set(self, batch_size):
         if self.learnable_init_noise:
-            cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1).to(self.std.device) * (self.std ** 2).unsqueeze(2)
-            assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
-            mvn = MultivariateNormal(loc=self.mu, covariance_matrix=cov)
-            return mvn.rsample((batch_size, ))
+            # cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1).to(self.std.device) * (self.std ** 2).unsqueeze(2)
+            # assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
+            # mvn = MultivariateNormal(loc=self.mu, covariance_matrix=cov)
+            # return mvn.rsample((batch_size, ))
+            std_mu = torch.zeros_like(self.mu).repeat(batch_size,1,1)
+            std_sigma = torch.ones_like(self.std).repeat(batch_size,1,1)
+            std_samples = torch.normal(std_mu, std_sigma)
+            return std_samples * self.std + self.mu
 
 
 class GAPT_D(nn.Module):
