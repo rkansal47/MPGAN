@@ -1208,7 +1208,7 @@ def load_args(args):
 
             if len(d_prev_models) and len(g_prev_models):
                 # make sure G and D are both saved
-                args.start_epoch = max(set(d_prev_models) & set(g_prev_models))
+                args.start_epochx = max(set(d_prev_models) & set(g_prev_models))
             else:
                 logging.debug("No model to load from")
                 args.start_epoch = 0
@@ -1402,6 +1402,7 @@ def setup_gapt(args, gen):
         "final_fc_layers": args.final_fc_layers_gen,
         "dropout_p": args.gen_dropout,
         "layer_norm": args.layer_norm_gen,
+        "spectral_norm": args.spectral_norm_gen,
         "learnable_init_noise": args.learnable_init_noise,
         "init_noise_dim": args.init_noise_dim
     }
@@ -1413,6 +1414,7 @@ def setup_gapt(args, gen):
         "final_fc_layers": args.final_fc_layers_disc,
         "dropout_p": args.disc_dropout,
         "layer_norm": args.layer_norm_disc,
+        "spectral_norm": args.spectral_norm_disc,
         "use_ise": args.use_ise,
         "num_ise_nodes": args.num_ise_nodes
     }
