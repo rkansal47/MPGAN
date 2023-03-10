@@ -3,7 +3,7 @@ from torch import nn, Tensor
 import torch.nn.functional as F
 from torch.distributions import MultivariateNormal
 from .spectral_normalization import SpectralNorm
-
+import math
 import logging
 from typing import Optional
 
@@ -97,6 +97,52 @@ class LinearNet(nn.Module):
     def __repr__(self):
         return f"{self.__class__.__name__}(net = {self.net})"
 
+class DotProdMAB(nn.Module):
+    def __init__(self, dim_Q, dim_K, dim_V, num_heads, layer_norm=False, spectral_norm=False):
+        super(DotProdMAB, self).__init__()
+        self.dim_V = dim_V
+        self.dim_Q = dim_Q
+        self.num_heads = num_heads
+        self.fc_q = nn.Linear(dim_Q, dim_V)
+        self.fc_k = nn.Linear(dim_K, dim_V)
+        self.fc_v = nn.Linear(dim_K, dim_V)
+        if layer_norm:
+            self.ln0 = nn.LayerNorm(dim_V)
+            self.ln1 = nn.LayerNorm(dim_V)
+        self.fc_o1 = nn.Linear(dim_V, dim_V)
+        self.fc_o2 = nn.Linear(dim_V, dim_V)
+
+        if spectral_norm:
+            self.fc_q = SpectralNorm(self.fc_q)
+            self.fc_k = SpectralNorm(self.fc_k)
+            self.fc_v = SpectralNorm(self.fc_v)
+            self.fc_o1 = SpectralNorm(self.fc_o1)
+            self.fc_o2 = SpectralNorm(self.fc_o2)
+
+    def forward(self, Q, K, V, attn_mask=None, need_weights=False):
+        Q = self.fc_q(Q)
+        K, V = self.fc_k(K), self.fc_v(V)
+
+        dim_split = self.dim_V // self.num_heads
+        Q_ = torch.cat(Q.split(dim_split, 2), 0)
+        K_ = torch.cat(K.split(dim_split, 2), 0)
+        V_ = torch.cat(V.split(dim_split, 2), 0)
+        logits = Q_.bmm(K_.transpose(1,2))/math.sqrt(self.dim_V)
+
+        inf = torch.tensor(1e38, dtype=torch.float32, device=Q.device)
+        if attn_mask is not None:
+            # pres.repeat(self.num_heads, 1).unsqueeze(-2)
+            logits = logits * attn_mask - (~attn_mask) * inf
+        A = torch.softmax(logits, 2)
+        O = torch.cat((A.bmm(V_)).split(Q.size(0), 0), 2)
+        O = O if getattr(self, 'ln0', None) is None else self.ln0(O)
+        O = self.fc_o1(O)
+        O = O if getattr(self, 'ln1', None) is None else self.ln1(O)
+        O = self.fc_o2(F.relu(O))
+        if need_weights:
+            return [O, A]
+        return [O]
+
 
 # Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
 class MAB(nn.Module):
@@ -116,7 +162,8 @@ class MAB(nn.Module):
         super(MAB, self).__init__()
 
         self.num_heads = num_heads
-        self.attention = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
+        # self.attention = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
+        self.attention = DotProdMAB(embed_dim, embed_dim, embed_dim, num_heads, layer_norm, spectral_norm)
         self.conditioning = conditioning
 
         # Single linear layer to project from dim(x+z') to dim(x)
@@ -138,8 +185,9 @@ class MAB(nn.Module):
             self.norm1 = nn.LayerNorm(ff_output_dim)
             self.norm2 = nn.LayerNorm(ff_output_dim)
         
-        if self.spectral_norm:
-            self.attention = SpectralNorm(self.attention)
+        # if self.spectral_norm:
+        #     print('Spectral norm :', self.attention)
+            # self.attention = SpectralNorm(self.attention)
 
         self.dropout = nn.Dropout(p=dropout_p)
 
@@ -271,6 +319,7 @@ class GAPT_G(nn.Module):
         init_noise_dim: int = 8,
         sab_fc_layers: list = [],
         layer_norm: bool = False,
+        spectral_norm: bool = False,
         dropout_p: float = 0.0,
         final_fc_layers: list = [],
         use_mask: bool = True,
@@ -288,7 +337,6 @@ class GAPT_G(nn.Module):
         self.n_conditioning = n_conditioning
         self.n_normalized = n_normalized
         self.block_residual = block_residual
-        
         # Learnable gaussian noise for sampling initial set
         if self.learnable_init_noise:
             self.mu = nn.Parameter(torch.randn(self.num_particles, init_noise_dim))
@@ -331,6 +379,7 @@ class GAPT_G(nn.Module):
             "final_linear": False,
             "num_heads": num_heads,
             "layer_norm": layer_norm,
+            "spectral_norm": spectral_norm,
             "dropout_p": dropout_p,
             "linear_args": linear_args,
         }
@@ -414,6 +463,7 @@ class GAPT_D(nn.Module):
         n_normalized: bool = False,
         sab_fc_layers: list = [],
         layer_norm: bool = False,
+        spectral_norm: bool = False,
         dropout_p: float = 0.0,
         final_fc_layers: list = [],
         use_mask: bool = True,
@@ -432,7 +482,6 @@ class GAPT_D(nn.Module):
         self.n_normalized = n_normalized
         self.use_ise = use_ise
         self.block_residual = block_residual
-
         # MLP for processing # particles
         if n_conditioning:
             cond_net_input_dim = 1
@@ -456,6 +505,7 @@ class GAPT_D(nn.Module):
             "final_linear": False,
             "num_heads": num_heads,
             "layer_norm": layer_norm,
+            "spectral_norm": spectral_norm,
             "dropout_p": dropout_p,
             "linear_args": linear_args,
         }
