@@ -712,6 +712,7 @@ def eval_save_plot(
     best_epoch,
     **extra_args,
 ):
+    print('evaaaaaal')
     G.eval()
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
