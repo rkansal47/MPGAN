@@ -1206,10 +1206,10 @@ def load_args(args):
             g_prev_models = [
                 int(f[:-3].split("_")[-1]) for f in listdir(args.models_path) if f.startswith("G")
             ]
-
+            
             if len(d_prev_models) and len(g_prev_models):
                 # make sure G and D are both saved
-                args.start_epochx = max(set(d_prev_models) & set(g_prev_models))
+                args.start_epoch = max(set(d_prev_models) & set(g_prev_models))
             else:
                 logging.debug("No model to load from")
                 args.start_epoch = 0
