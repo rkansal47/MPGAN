@@ -152,6 +152,7 @@ class MAB(nn.Module):
         num_heads: int,
         ff_output_dim: int,
         ff_layers: list = [],
+        use_custom_mab: bool = False,
         conditioning: bool = False,
         layer_norm: bool = False,
         spectral_norm: bool = False,
@@ -162,8 +163,11 @@ class MAB(nn.Module):
         super(MAB, self).__init__()
 
         self.num_heads = num_heads
-        # self.attention = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
-        self.attention = DotProdMAB(embed_dim, embed_dim, embed_dim, num_heads, layer_norm, spectral_norm)
+        if use_custom_mab:
+            self.attention = DotProdMAB(embed_dim, embed_dim, embed_dim, num_heads, layer_norm, spectral_norm)
+        else:
+            self.attention = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
+        
         self.conditioning = conditioning
 
         # Single linear layer to project from dim(x+z') to dim(x)
@@ -314,6 +318,7 @@ class GAPT_G(nn.Module):
         n_conditioning: bool = False,
         n_normalized: bool = False,
         sab_layers: int = 2,
+        use_custom_mab: bool = False,
         num_heads: int = 4,
         embed_dim: int = 32,
         init_noise_dim: int = 8,
@@ -378,6 +383,7 @@ class GAPT_G(nn.Module):
             "conditioning": noise_conditioning or n_conditioning,
             "final_linear": False,
             "num_heads": num_heads,
+            "use_custom_mab": use_custom_mab,
             "layer_norm": layer_norm,
             "spectral_norm": spectral_norm,
             "dropout_p": dropout_p,
@@ -461,6 +467,7 @@ class GAPT_D(nn.Module):
         cond_net_layers: list = [],
         n_conditioning: bool = False,
         n_normalized: bool = False,
+        use_custom_mab: bool = False,
         sab_fc_layers: list = [],
         layer_norm: bool = False,
         spectral_norm: bool = False,
@@ -501,6 +508,7 @@ class GAPT_D(nn.Module):
             "embed_dim": embed_dim,
             "ff_layers": sab_fc_layers,
             "ff_output_dim": ff_output_dim,
+            "use_custom_mab": use_custom_mab,
             "conditioning": n_conditioning,
             "final_linear": False,
             "num_heads": num_heads,
