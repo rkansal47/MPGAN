@@ -674,6 +674,7 @@ def parse_gapt_args(parser):
     add_bool_arg(
         parser, "layer-norm-gen", "use layer normalization in discriminator", default=False
     )
+    add_bool_arg(parser, "use-custom-mab", "use a custom (Stelzner's) implementation of MAB in GAPT", default=False)
 
 
 def parse_ext_models_args(parser):
@@ -1373,6 +1374,7 @@ def setup_gapt(args, gen):
         "num_heads": args.num_heads,
         "embed_dim": args.gapt_embed_dim,
         "sab_fc_layers": args.sab_fc_layers,
+        "use_custom_mab": args.use_custom_mab,
         "use_mask": args.gapt_mask,
         "use_isab": args.use_isab,
         "num_isab_nodes": args.num_isab_nodes,
