@@ -608,7 +608,7 @@ def evaluate(
             num_threads = efp_jobs - 2
         else:
             num_threads = 1
-        losses["kpd"].append(metrics.mmd(real_efps, gen_efps, num_threads=efp_jobs))
+        losses["kpd"].append(metrics.mmd(real_efps, gen_efps, num_threads=num_threads))
 
 
 def make_plots(
