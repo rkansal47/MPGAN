@@ -108,41 +108,36 @@ class DotProdMAB(nn.Module):
         self.fc_v = nn.Linear(dim_K, dim_V)
         if layer_norm:
             self.ln0 = nn.LayerNorm(dim_V)
-            self.ln1 = nn.LayerNorm(dim_V)
         self.fc_o1 = nn.Linear(dim_V, dim_V)
-        self.fc_o2 = nn.Linear(dim_V, dim_V)
 
         if spectral_norm:
             self.fc_q = SpectralNorm(self.fc_q)
             self.fc_k = SpectralNorm(self.fc_k)
             self.fc_v = SpectralNorm(self.fc_v)
             self.fc_o1 = SpectralNorm(self.fc_o1)
-            self.fc_o2 = SpectralNorm(self.fc_o2)
 
     def forward(self, Q, K, V, attn_mask=None, need_weights=False):
         Q = self.fc_q(Q)
         K, V = self.fc_k(K), self.fc_v(V)
 
-        dim_split = self.dim_V // self.num_heads
-        Q_ = torch.cat(Q.split(dim_split, 2), 0)
-        K_ = torch.cat(K.split(dim_split, 2), 0)
-        V_ = torch.cat(V.split(dim_split, 2), 0)
-        logits = Q_.bmm(K_.transpose(1,2))/math.sqrt(self.dim_V)
+        head_dim = self.dim_V // self.num_heads
+        Q_ = torch.cat(Q.split(head_dim, 2), 0)
+        K_ = torch.cat(K.split(head_dim, 2), 0)
+        V_ = torch.cat(V.split(head_dim, 2), 0)
+        logits = Q_.bmm(K_.transpose(1,2))/math.sqrt(head_dim)
 
-        inf = torch.tensor(1e38, dtype=torch.float32, device=Q.device)
         if attn_mask is not None:
-            # pres.repeat(self.num_heads, 1).unsqueeze(-2)
-            logits = logits * attn_mask - (~attn_mask) * inf
+            inf = torch.tensor(1e38, dtype=torch.float32, device=Q.device)
+            logits = logits + (attn_mask) * -inf
+        
         A = torch.softmax(logits, 2)
         O = torch.cat((A.bmm(V_)).split(Q.size(0), 0), 2)
         O = O if getattr(self, 'ln0', None) is None else self.ln0(O)
         O = self.fc_o1(O)
-        O = O if getattr(self, 'ln1', None) is None else self.ln1(O)
-        O = self.fc_o2(F.relu(O))
+
         if need_weights:
             return [O, A]
         return [O]
-
 
 # Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
 class MAB(nn.Module):
@@ -167,7 +162,7 @@ class MAB(nn.Module):
             self.attention = DotProdMAB(embed_dim, embed_dim, embed_dim, num_heads, layer_norm, spectral_norm)
         else:
             self.attention = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
-        
+
         self.conditioning = conditioning
 
         # Single linear layer to project from dim(x+z') to dim(x)
@@ -188,10 +183,6 @@ class MAB(nn.Module):
         if self.layer_norm:
             self.norm1 = nn.LayerNorm(ff_output_dim)
             self.norm2 = nn.LayerNorm(ff_output_dim)
-        
-        # if self.spectral_norm:
-        #     print('Spectral norm :', self.attention)
-            # self.attention = SpectralNorm(self.attention)
 
         self.dropout = nn.Dropout(p=dropout_p)
 
@@ -347,12 +338,12 @@ class GAPT_G(nn.Module):
             self.std = nn.Parameter(torch.randn(self.num_particles, init_noise_dim))
 
             # Projecting initial noise z to embed_dims
-            self.input_embedding = LinearNet(
-                layers = [],
-                input_size = init_noise_dim,
-                output_size = embed_dim,
-                **linear_args
-            )
+            # self.input_embedding = LinearNet(
+            #     layers = [],
+            #     input_size = init_noise_dim,
+            #     output_size = embed_dim,
+            #     **linear_args
+            # )
 
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
         # if noise_conditioning or n_conditioning:
@@ -419,8 +410,8 @@ class GAPT_G(nn.Module):
         else:
             mask = None
         
-        if self.learnable_init_noise:
-            x = self.input_embedding(x)
+        # if self.learnable_init_noise:
+        #     x = self.input_embedding(x)
         
         # Concatenate global noise and # particles depending on conditioning
         if self.n_normalized:
@@ -446,14 +437,14 @@ class GAPT_G(nn.Module):
 
     def sample_init_set(self, batch_size):
         if self.learnable_init_noise:
-            # cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1).to(self.std.device) * (self.std ** 2).unsqueeze(2)
-            # assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
-            # mvn = MultivariateNormal(loc=self.mu, covariance_matrix=cov)
-            # return mvn.rsample((batch_size, ))
-            std_mu = torch.zeros_like(self.mu).repeat(batch_size,1,1)
-            std_sigma = torch.ones_like(self.std).repeat(batch_size,1,1)
-            std_samples = torch.normal(std_mu, std_sigma)
-            return std_samples * self.std + self.mu
+            cov = torch.eye(self.std.shape[1]).repeat(self.num_particles, 1, 1).to(self.std.device) * (self.std ** 2).unsqueeze(2)
+            assert cov.shape==(self.num_particles, self.std.shape[1], self.std.shape[1])
+            mvn = MultivariateNormal(loc=self.mu, covariance_matrix=cov)
+            return mvn.rsample((batch_size, ))
+            # std_mu = torch.zeros_like(self.mu).repeat(batch_size,1,1)
+            # std_sigma = torch.ones_like(self.std).repeat(batch_size,1,1)
+            # std_samples = torch.normal(std_mu, std_sigma)
+            # return std_samples * self.std + self.mu
 
 
 class GAPT_D(nn.Module):
