@@ -249,19 +249,29 @@ class PMA(nn.Module):
 
 # Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
 class ISAB(nn.Module):
-    def __init__(self, embed_dim, **mab_args):
+    def __init__(self, embed_dim, learn_anchor_from_global_noise=False, num_inds=1, global_noise_feat_dim=None, **mab_args):
         super(ISAB, self).__init__()
         # self.I = nn.Parameter(torch.Tensor(1, num_inds, mab_args['ff_output_dim']))
         # self.num_inds = num_inds
         # nn.init.xavier_uniform_(self.I)
+        self.embed_dim = embed_dim
+        self.num_inds = num_inds
+        self.learn_anchor_from_global_noise = learn_anchor_from_global_noise
+        if learn_anchor_from_global_noise:
+            self.noise_to_anchor_net = LinearNet(layers = [], input_size = global_noise_feat_dim, output_size = self.num_inds * embed_dim, **(mab_args['linear_args']))
         self.mab0 = MAB(embed_dim=embed_dim, **mab_args)
         self.mab1 = MAB(embed_dim=embed_dim, **mab_args)
 
     def forward(self, X, mask: Tensor = None, z: Tensor = None):
+        # print('zzz',z.shape)
         if mask is not None:
-            mask = mask.transpose(-2, -1).repeat((1, 1, 1))
-        z = self.mab0(z.unsqueeze(1), X, mask)
-        return self.mab1(X, z), z.squeeze(1)
+            mask = mask.transpose(-2, -1).repeat((1, self.num_inds, 1))
+        if self.learn_anchor_from_global_noise:
+            I = self.noise_to_anchor_net(z).reshape(z.shape[0], self.num_inds, self.embed_dim)
+            return self.mab1(X, self.mab0(I, X, mask))
+        else:
+            z = self.mab0(z.unsqueeze(1), X, mask)
+            return self.mab1(X, z), z.squeeze(1)
 
 class ISE(nn.Module):
     def __init__(
@@ -307,6 +317,7 @@ class GAPT_G(nn.Module):
         noise_conditioning: bool = True,
         n_conditioning: bool = False,
         n_normalized: bool = False,
+        learn_anchor_from_global_noise: bool = False,
         sab_layers: int = 2,
         use_custom_mab: bool = False,
         num_heads: int = 4,
@@ -332,6 +343,7 @@ class GAPT_G(nn.Module):
         self.n_conditioning = n_conditioning
         self.n_normalized = n_normalized
         self.block_residual = block_residual
+        self.learn_anchor_from_global_noise = learn_anchor_from_global_noise
         # Learnable gaussian noise for sampling initial set
         if self.learnable_init_noise:
             self.mu = nn.Parameter(torch.randn(self.num_particles, init_noise_dim))
@@ -367,6 +379,9 @@ class GAPT_G(nn.Module):
 
         sab_args = {
             "embed_dim": embed_dim,
+            # "learn_anchor_from_global_noise": self.learn_anchor_from_global_noise,
+            # "num_inds": num_isab_nodes,
+            # "global_noise_feat_dim": embed_dim,
             "ff_output_dim": ff_output_dim,
             "ff_layers": sab_fc_layers,
             "conditioning": noise_conditioning or n_conditioning,
@@ -382,7 +397,7 @@ class GAPT_G(nn.Module):
         # intermediate layers
         for _ in range(sab_layers):
             # self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
-            self.sabs.append(ISAB(**sab_args))
+            self.sabs.append(ISAB(learn_anchor_from_global_noise=self.learn_anchor_from_global_noise, num_inds=num_isab_nodes, global_noise_feat_dim=embed_dim, **sab_args))
 
         self.final_fc = LinearNet(
             final_fc_layers,
@@ -428,7 +443,10 @@ class GAPT_G(nn.Module):
         z = self.global_noise_net(z)
         
         for sab in self.sabs:
-            sab_out, z = sab(x, _attn_mask(mask), z)
+            if self.learn_anchor_from_global_noise:
+                sab_out = sab(x, _attn_mask(mask), z)
+            else:
+                sab_out, z = sab(x, _attn_mask(mask), z)
             x = x + sab_out if self.block_residual else sab_out
 
         x = torch.tanh(self.final_fc(x))
@@ -459,6 +477,7 @@ class GAPT_D(nn.Module):
         cond_net_layers: list = [],
         n_conditioning: bool = False,
         n_normalized: bool = False,
+        learn_anchor_from_global_noise: bool = False,
         use_custom_mab: bool = False,
         sab_fc_layers: list = [],
         layer_norm: bool = False,
@@ -481,6 +500,7 @@ class GAPT_D(nn.Module):
         self.n_normalized = n_normalized
         self.use_ise = use_ise
         self.block_residual = block_residual
+        self.learn_anchor_from_global_noise = learn_anchor_from_global_noise
         # MLP for processing # particles
         cond_net_input_dim = 2 * embed_dim
         if n_conditioning:
@@ -500,6 +520,9 @@ class GAPT_D(nn.Module):
 
         sab_args = {
             "embed_dim": embed_dim,
+            # "learn_anchor_from_global_noise": self.learn_anchor_from_global_noise,
+            # "num_inds": num_isab_nodes,
+            # "global_noise_feat_dim": embed_dim,
             "ff_layers": sab_fc_layers,
             "ff_output_dim": ff_output_dim,
             "use_custom_mab": use_custom_mab,
@@ -519,7 +542,7 @@ class GAPT_D(nn.Module):
         # Intermediate layers
         for _ in range(sab_layers):
             # self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
-            self.sabs.append(ISAB(**sab_args))
+            self.sabs.append(ISAB(learn_anchor_from_global_noise=self.learn_anchor_from_global_noise, num_inds=num_isab_nodes, global_noise_feat_dim=embed_dim, **sab_args))
         
         # Encoding/Pooling layers
         linear_net_input_dim = ff_output_dim
@@ -568,13 +591,19 @@ class GAPT_D(nn.Module):
         if self.use_ise:
             e = torch.Tensor().to(x.device)
             for sab, ise in zip(self.sabs, self.ises):
-                sab_out, z = sab(x, _attn_mask(mask), z)
+                if self.learn_anchor_from_global_noise:
+                    sab_out = sab(x, _attn_mask(mask), z)
+                else:
+                    sab_out, z = sab(x, _attn_mask(mask), z)
                 x = x + sab_out if self.block_residual else sab_out
                 e = torch.cat((e, ise(x, _attn_mask(mask), z)), dim=1)
             out = e
         else:
             for sab in self.sabs:
-                sab_out, z = sab(x, _attn_mask(mask), z)
+                if self.learn_anchor_from_global_noise:
+                    sab_out = sab(x, _attn_mask(mask), z)
+                else:
+                    sab_out, z = sab(x, _attn_mask(mask), z)
                 x = x + sab_out if self.block_residual else sab_out
             out = self.pma(x, _attn_mask(mask), z).squeeze()
         

@@ -606,7 +606,7 @@ def parse_gapt_args(parser):
     parser.add_argument(
         "--num-isab-nodes",
         type=int,
-        default=10,
+        default=1,
         help="number of induced nodes in ISAB blocks, if using ISAB blocks",
     )
     parser.add_argument(
@@ -663,6 +663,7 @@ def parse_gapt_args(parser):
     add_bool_arg(parser, "noise-conditioning", "condition generator on global noise", default=True)
     add_bool_arg(parser, "n-conditioning", "condition generator on num. particles", default=False)
     add_bool_arg(parser, "n-normalized", "use normalized num. particles", default=False)
+    add_bool_arg(parser, "learn-anchor-from-global-noise", "learn the ISAB anchors from global noise", default=False)
     add_bool_arg(parser, "no-D-conditioning", "do not condition discriminator on num. particles", default=False)
     add_bool_arg(parser, "gapt-mask", "use mask in GAPT", default=True)
     add_bool_arg(parser, "use-isab", "use ISAB in GAPT", default=False)
@@ -1374,6 +1375,7 @@ def setup_gapt(args, gen):
         "num_heads": args.num_heads,
         "embed_dim": args.gapt_embed_dim,
         "sab_fc_layers": args.sab_fc_layers,
+        "learn_anchor_from_global_noise": args.learn_anchor_from_global_noise,
         "use_custom_mab": args.use_custom_mab,
         "use_mask": args.gapt_mask,
         "use_isab": args.use_isab,
