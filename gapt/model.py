@@ -333,18 +333,19 @@ class GAPT_G(nn.Module):
         self.n_conditioning = n_conditioning
         self.n_normalized = n_normalized
         self.block_residual = block_residual
+
         # Learnable gaussian noise for sampling initial set
         if self.learnable_init_noise:
             self.mu = nn.Parameter(torch.randn(self.num_particles, init_noise_dim))
             self.std = nn.Parameter(torch.randn(self.num_particles, init_noise_dim))
 
-            # Projecting initial noise z to embed_dims
-            # self.input_embedding = LinearNet(
-            #     layers = [],
-            #     input_size = init_noise_dim,
-            #     output_size = embed_dim,
-            #     **linear_args
-            # )
+        # Projecting initial noise z to embed_dims
+        self.input_embedding = LinearNet(
+            layers = [],
+            input_size = init_noise_dim,
+            output_size = embed_dim,
+            **linear_args
+        )
 
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
         if noise_conditioning or n_conditioning:
@@ -412,7 +413,7 @@ class GAPT_G(nn.Module):
             mask = None
         
         # if self.learnable_init_noise:
-        #     x = self.input_embedding(x)
+        x = self.input_embedding(x)
         
         # Concatenate global noise and # particles depending on conditioning
         if self.n_normalized:
