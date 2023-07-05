@@ -210,7 +210,7 @@ def gen(
             )
 
     global_noise = torch.randn(num_samples, model_args['global_noise_dim']).to(device) if G.noise_conditioning else None
-    print(noise.shape)
+    # print(noise.shape)
     gen_data = G(noise, labels, global_noise)
 
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
