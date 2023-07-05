@@ -1587,6 +1587,7 @@ def get_model_args(args):
                 "global_noise_dim": args.global_noise_input_dim
             }
         model_args["embed_dim"] = args.gapt_embed_dim
+        model_args["init_noise_dim"] = args.init_noise_dim
     elif args.model == "rgan" or args.model == "graphcnngan":
         model_args = {"latent_dim": args.latent_dim}
     elif args.model == "treegan":
