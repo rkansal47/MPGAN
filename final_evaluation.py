@@ -1,151 +1,158 @@
+import json
 import os
 
+import jetnet
 from jetnet.datasets import JetNet
 from jetnet import evaluation
 
 import numpy as np
 
 
-datasets = ["g", "q", "t"]
-samples_dict = {key: {} for key in datasets}
 real_samples = {}
 num_samples = 50000
+num_w1_eval_samples = 10000
+num_w1_batches = num_samples // num_w1_eval_samples
+efp_jobs = None
 
-# mapping folder names to gen and disc names in the final table
+
+# if running on nautilus
+datasets_dir = "/graphganvol/MPGAN/datasets/"
+evaluation_outputs_dir = "/graphganvol/MPGAN/ml4ps2023/evaluation_results/"
+mp_trained_models = "/graphganvol/MPGAN/trained_models/"
+
+# running locally
+# datasets_dir = "./datasets/"
+# evaluation_outputs_dir = "./ml4ps2023/evaluation_results/"
+# mp_trained_models = "./trained_models/"
+
+
+evaluation_outputs = evaluation_outputs_dir + "scores.json"
+_ = os.system(f"mkdir -p {evaluation_outputs_dir}")
+
+
+# mapping models to path to gen jets
 model_name_map = {
-    "fc": ["FC", "FC"],
-    "fcmp": ["FC", "MP"],
-    "fcpnet": ["FC", "PointNet"],
-    "graphcnn": ["GraphCNN", "FC"],
-    "graphcnnmp": ["GraphCNN", "MP"],
-    "graphcnnpnet": ["GraphCNN", "PointNet"],
-    "mp": ["MP", "MP"],
-    "mpfc": ["MP", "FC"],
-    "mplfc": ["MP-LFC", "MP"],
-    "mppnet": ["MP", "PointNet"],
-    "treeganfc": ["TreeGAN", "FC"],
-    "treeganmp": ["TreeGAN", "MP"],
-    "treeganpnet": ["TreeGAN", "PointNet"],
+    "g": {
+        "mp": mp_trained_models + "mp_g/gen_jets.npy",
+        # TODO: fill out
+        "gapt_baseline": "",
+        "gapt_gast": "",
+        "gapt_igapt": "",
+    },
+    "t": {
+        "mp": mp_trained_models + "mp_t/gen_jets.npy",
+    },
+    "q": {
+        "mp": mp_trained_models + "mp_q/gen_jets.npy",
+    },
+    # TODO: fill out
+    "g150": {},
 }
 
+# evaluation scores
+if os.path.exists(evaluation_outputs):
+    with open(evaluation_outputs, "r") as f:
+        scores = json.load(f)
+else:
+    scores = {}
 
-# Load samples
+# datasets = ["g", "q", "t", "g150"]
+datasets = ["g", "q", "t"]
+# models = ["mp", "gapt_baseline", "gapt_gast", "gapt_igapt"]
+models = ["mp"]
 
-# models_dir = "/graphganvol/MPGAN/trained_models/"
-models_dir = "./trained_models/"
 
-for dir in os.listdir(models_dir):
-    if dir == ".DS_Store" or dir == "README.md":
-        continue
+def _save_scores(scores):
+    """Save evaluation scores to json file"""
+    with open(evaluation_outputs, "w") as f:
+        json.dump(scores, f, indent=4)
 
-    model_name = dir.split("_")[0]
 
-    if model_name in model_name_map:
-        dataset = dir.split("_")[1]
-        samples = np.load(f"{models_dir}/{dir}/gen_jets.npy")[:num_samples, :, :3]
-        samples_dict[dataset][model_name] = samples
+def _check_load_efps(jets, path):
+    """Check if EFPs have already been computed and load them if so"""
+    if os.path.exists(path):
+        efps = np.load(path)
+    else:
+        print(f"\t\tComputing EFPs and saving to {path}")
+        efps = jetnet.utils.efps(jets, efpset_args=[("d<=", 4)], efp_jobs=efp_jobs)
+        np.save(path, efps)
 
-for dataset in datasets:
-    real_samples[dataset] = (
-        JetNet(
-            dataset, "/graphganvol/MPGAN/datasets/", normalize=False, train=False, use_mask=False
-        )
-        .data[:num_samples]
-        .numpy()
+    return efps
+
+
+def get_scores(jets1, jets2, efps1, efps2):
+    """Compute evaluation scores between two sets of jets"""
+    scores = {}
+
+    scores["w1m"] = evaluation.w1m(
+        jets1,
+        jets2,
+        num_eval_samples=num_w1_eval_samples,
+        num_batches=num_w1_batches,
+        return_std=True,
     )
 
-# order in final table
-order = [
-    "fc",
-    "graphcnn",
-    "treeganfc",
-    "fcpnet",
-    "graphcnnpnet",
-    "treeganpnet",
-    "-",
-    "mp",
-    "mplfc",
-    "-",
-    "fcmp",
-    "graphcnnmp",
-    "treeganmp",
-    "mpfc",
-    "mppnet",
-]
+    w1pm, w1pstd = evaluation.w1p(
+        jets1,
+        jets2,
+        exclude_zeros=True,
+        num_eval_samples=num_w1_eval_samples,
+        num_batches=num_w1_batches,
+        return_std=True,
+    )
+
+    scores["w1ppt"] = [w1pm[2], w1pstd[2]]
+    scores["fpd"] = evaluation.fpd(efps1, efps2)
+    scores["kpd"] = evaluation.kpd(efps1, efps2)
+
+    return scores
 
 
-# get evaluation metrics for all samples and save in folder
-evals_dict = {key: {} for key in datasets}
+# compute scores for real and generated jets
+for jet_type in datasets:
+    print(f"Evaluating {jet_type} jets")
 
-for key in order:
-    print(key)
-    for dataset in datasets:
-        print(dataset)
-        if key not in samples_dict[dataset]:
-            print(f"{key} samples for {dataset} jets not found")
-            continue
+    if jet_type not in scores:
+        scores[jet_type] = {}
 
-        gen_jets = samples_dict[dataset][key]
-        real_jets = real_samples[dataset]
+    real_jets1, _ = JetNet.getData(
+        jet_type,
+        data_dir=datasets_dir,
+        split_fraction=[0.7, 0.3, 0],
+        particle_features=["etarel", "phirel", "ptrel"],
+        jet_features=None,
+        split="train",
+    )
 
-        evals = {}
+    real_efps1 = _check_load_efps(real_jets1, f"{datasets_dir}/{jet_type}_efps1.npy")
 
-        evals["w1m"] = evaluation.w1m(gen_jets, real_jets)
-        evals["w1p"] = evaluation.w1p(gen_jets, real_jets, average_over_features=False)
-        evals["w1efp"] = evaluation.w1efp(gen_jets, real_jets, average_over_efps=False)
-        evals["fpnd"] = evaluation.fpnd(gen_jets[:, :30], dataset, device="cuda", batch_size=256)
-        cov, mmd = evaluation.cov_mmd(real_jets, gen_jets)
-        evals["coverage"] = cov
-        evals["mmd"] = mmd
+    if "real" not in scores[jet_type]:
+        print("\tEvaluating real jets")
+        real_jets2, _ = JetNet.getData(
+            jet_type,
+            data_dir=datasets_dir,
+            split_fraction=[0.7, 0.3, 0],
+            particle_features=["etarel", "phirel", "ptrel"],
+            jet_features=None,
+            split="valid",
+        )
 
-        f = open(f"{models_dir}/{key}_{dataset}/evals.txt", "w+")
-        f.write(str(evals))
-        f.close()
+        real_efps2 = _check_load_efps(real_jets2, f"{datasets_dir}/{jet_type}_efps2.npy")
+        scores[jet_type]["real"] = get_scores(real_jets1, real_jets2, real_efps1, real_efps2)
+        _save_scores(scores)
 
-        evals_dict[dataset][key] = evals
+    for model in models:
+        print(f"\tEvaluating {model} jets")
+        jet_path = model_name_map[jet_type][model]
+        efp_path = jet_path.replace("jets.npy", "efps.npy")
 
+        gen_jets = np.load(jet_path)[:num_samples, :, :3]
+        gen_efps = _check_load_efps(gen_jets, efp_path)
 
-# load eval metrics if already saved
-from numpy import array
+        if model not in scores[jet_type]:
+            scores[jet_type][model] = get_scores(real_jets1, gen_jets, real_efps1, gen_efps)
+            _save_scores(scores)
 
-for dataset in datasets:
-    for key in order:
-        if key != "-":
-            with open(f"{models_dir}/{key}_{dataset}/evals.txt", "r") as f:
-                evals_dict[dataset][key] = eval(f.read())
-
-            if "cov" in evals_dict[dataset][key]:
-                evals_dict[dataset][key]["coverage"] = evals_dict[dataset][key]["cov"]
-                del evals_dict[dataset][key]["cov"]
-
-                with open(f"{models_dir}/{key}_{dataset}/evals.txt", "w") as f:
-                    f.write(str(evals_dict[dataset][key]))
-
-
-# find best values
-
-best_key_dict = {key: {} for key in datasets}
-eval_keys = ["w1m", "w1p", "w1efp", "fpnd", "coverage", "mmd"]
-
-for dataset in datasets:
-    model_keys = list(evals_dict[dataset].keys())
-
-    lists = {key: [] for key in eval_keys}
-
-    for key in model_keys:
-        evals = evals_dict[dataset][key]
-
-        lists["w1m"].append(np.round(evals["w1m"][0], 5))
-        lists["w1p"].append(np.round(np.mean(evals["w1p"][0]), 4))
-        lists["w1efp"].append(np.round(np.mean(evals["w1efp"][0]), 5 if dataset == "t" else 6))
-        lists["fpnd"].append(np.round(evals["fpnd"], 2))
-        lists["coverage"].append(1 - np.round(evals["coverage"], 2))  # invert to maximize cov
-        lists["mmd"].append(np.round(evals["mmd"], 3))
-
-    for key in eval_keys:
-        best_key_dict[dataset][key] = np.array(model_keys)[
-            np.flatnonzero(np.array(lists[key]) == np.array(lists[key]).min())
-        ]
 
 
 def format_mean_sd(mean, sd):
@@ -171,22 +178,6 @@ def format_mean_sd(mean, sd):
         return f"${mean:.{decimals}f} \\pm {sd:.{decimals}f}$"
 
 
-def format_fpnd(fpnd):
-    if fpnd >= 1e6:
-        fpnd = np.round(fpnd * 1e-6)
-        return f"${fpnd:.0f}$M"
-    elif fpnd >= 1e3:
-        fpnd = np.round(fpnd * 1e-3)
-        return f"${fpnd:.0f}$k"
-    elif fpnd >= 10:
-        fpnd = np.round(fpnd)
-        return f"${fpnd:.0f}$"
-    elif fpnd >= 1:
-        return f"${fpnd:.1f}$"
-    else:
-        return f"${fpnd:.2f}$"
-
-
 def bold_best_key(val_str: str, bold: bool):
     if bold:
         return f"$\\mathbf{{{val_str[1:-1]}}}$"
@@ -196,53 +187,45 @@ def bold_best_key(val_str: str, bold: bool):
 
 # Make and save table
 
-table_dict = {key: {} for key in datasets}
+model_name_map = {
+    "real": "Truth",
+    "mp": "MPGAN",
+    "gapt_baseline": "GAPT",
+    "gapt_gast": "GAST",
+    "gapt_igapt": "iGAPT",
+}
 
-for dataset in datasets:
-    lines = []
-    for key in order:
-        if key == "-":
-            lines.append("\cmidrule(lr){2-3}\n")
-        else:
-            line = f" & {model_name_map[key][0]} & {model_name_map[key][1]}"
-            evals = evals_dict[dataset][key]
+jet_name_map = {"g": "Gluon (30)", "q": "Light quark (30)", "t": "Top quark (30)", "g150": "Gluon (150)"}
 
-            line += " & " + bold_best_key(
-                format_mean_sd(evals["w1m"][0] * 1e3, evals["w1m"][1] * 1e3),
-                key in best_key_dict[dataset]["w1m"],
+scores_scale_dict = {
+    "fpd": 1e3,
+    "kpd": 1e6,
+    "w1m": 1e3,
+    "w1ppt": 1e3,
+}
+
+row_order = ["real", "mp"] #, "gapt_baseline", "gapt_gast", "gapt_igapt"]
+# column_order = ["fpd", "kpd", "w1m", "w1ppt"]
+column_order = ["w1ppt", "w1m", "fpd", "kpd"]
+
+lines = []
+for jet_type in datasets:
+    lines.append(rf"\multirow{{{len(row_order)}}}{{*}}{{{jet_name_map[jet_type]}}}" + "\n")
+    for i, key in enumerate(row_order):
+        line = f" & {model_name_map[key]} & "
+        
+        format_scores = []
+        for score in column_order:
+            format_scores.append(format_mean_sd(
+                    scores[jet_type][key][score][0] * scores_scale_dict[score],
+                    scores[jet_type][key][score][1] * scores_scale_dict[score],
+                )
             )
+        line += " & ".join(format_scores)
+        
+        line += "\\\\ \n"
+        lines.append(line)
 
-            line += " & " + bold_best_key(
-                format_mean_sd(
-                    np.mean(evals["w1p"][0]) * 1e3, np.linalg.norm(evals["w1p"][1]) * 1e3
-                ),
-                key in best_key_dict[dataset]["w1p"],
-            )
 
-            line += " & " + bold_best_key(
-                format_mean_sd(
-                    np.mean(evals["w1efp"][0]) * 1e5, np.linalg.norm(evals["w1efp"][1]) * 1e5
-                ),
-                key in best_key_dict[dataset]["w1efp"],
-            )
-
-            line += " & " + bold_best_key(
-                format_fpnd(evals["fpnd"]), key in best_key_dict[dataset]["fpnd"]
-            )
-
-            line += " & " + bold_best_key(
-                f"${evals['coverage']:.2f}$", key in best_key_dict[dataset]["coverage"]
-            )
-
-            line += " & " + bold_best_key(
-                f"${evals['mmd']:.3f}$", key in best_key_dict[dataset]["mmd"]
-            )
-
-            line += "\\\\ \n"
-
-            lines.append(line)
-
-    table_dict[dataset] = lines
-
-    with open(f"evaluation_results/{dataset}.tex", "w") as f:
-        f.writelines(table_dict[dataset])
+with open(f"{evaluation_outputs_dir}/scores_table.tex", "w") as f:
+    f.writelines(lines)
