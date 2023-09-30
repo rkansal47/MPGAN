@@ -34,19 +34,27 @@ _ = os.system(f"mkdir -p {evaluation_outputs_dir}")
 model_name_map = {
     "g": {
         "mp": mp_trained_models + "mp_g/gen_jets.npy",
-        # TODO: fill out
-        "gapt_baseline": "",
-        "gapt_gast": "",
-        "gapt_igapt": "",
+        "gapt_baseline": "/graphganvol/vk/g_128D_nh-8_n-2000/outputs/baseline2/best_epoch_gen_jets.npy",
+        "gapt_gast": "/graphganvol/vk/g_128D_nh-8_n-2000/outputs/nz_condGD/best_epoch_gen_jets.npy",
+        "gapt_igapt": "/graphganvol/vk/g_128D_nh-8_n-2000/outputs/nz_condGD_isab-nz2/best_epoch_gen_jets.npy",
     },
     "t": {
         "mp": mp_trained_models + "mp_t/gen_jets.npy",
+        "gapt_baseline": "/graphganvol/vk/t_128D_nh-8_n-2000/outputs/baseline/best_epoch_gen_jets.npy",
+        "gapt_gast": "/graphganvol/vk/t_128D_nh-8_n-2000/outputs/nz_condGD/best_epoch_gen_jets.npy",
+        "gapt_igapt": "/graphganvol/vk/t_128D_nh-8_n-2000/outputs/nz_condGD_isab-nz/best_epoch_gen_jets.npy",
     },
     "q": {
         "mp": mp_trained_models + "mp_q/gen_jets.npy",
+        "gapt_baseline": "/graphganvol/vk/q_128D_nh-8_n-2000/outputs/baseline/best_epoch_gen_jets.npy",
+        "gapt_gast": "/graphganvol/vk/q_128D_nh-8_n-2000/outputs/nz_condGD/best_epoch_gen_jets.npy",
+        "gapt_igapt": "/graphganvol/vk/q_128D_nh-8_n-2000/outputs/nz_condGD_isab-nz/best_epoch_gen_jets.npy",
     },
-    # TODO: fill out
-    "g150": {},
+    "g150": {
+        "gapt_baseline": "/graphganvol/anni/gapt/jets/mask/tune/m20/6000epochs/disnorm3x/test/best_epoch_gen_jets.npy",
+        "gapt_gast": "/graphganvol/anni/gapt/jets/mask/tune/m20/6000epochs/cond/disnorm3x/test/best_epoch_gen_jets.npy",
+        "gapt_igapt": "/graphganvol/anni/gapt/jets/mask/tune/m20/6000epochs/epicgan/condz/epic/layer48/test/best_epoch_gen_jets.npy",
+    },
 }
 
 # evaluation scores
@@ -56,10 +64,10 @@ if os.path.exists(evaluation_outputs):
 else:
     scores = {}
 
-# datasets = ["g", "q", "t", "g150"]
-datasets = ["g", "q", "t"]
-# models = ["mp", "gapt_baseline", "gapt_gast", "gapt_igapt"]
-models = ["mp"]
+datasets = ["g", "q", "t", "g150"]
+# datasets = ["g", "q", "t"]
+models = ["mp", "gapt_baseline", "gapt_gast", "gapt_igapt"]
+# models = ["mp"]
 
 
 def _save_scores(scores):
@@ -111,37 +119,40 @@ def get_scores(jets1, jets2, efps1, efps2):
 # compute scores for real and generated jets
 for jet_type in datasets:
     print(f"Evaluating {jet_type} jets")
+    
+    data_args = {
+        "jet_type": jet_type,
+        "data_dir": datasets_dir,
+        "split_fraction": [0.7, 0.3, 0],
+        "particle_features": ["etarel", "phirel", "ptrel"],
+        "jet_features": None
+    }
+    
+    if jet_type == "g150":
+        data_args["num_particles"] = 150
+        data_args["jet_type"] = "g"
 
     if jet_type not in scores:
         scores[jet_type] = {}
 
-    real_jets1, _ = JetNet.getData(
-        jet_type,
-        data_dir=datasets_dir,
-        split_fraction=[0.7, 0.3, 0],
-        particle_features=["etarel", "phirel", "ptrel"],
-        jet_features=None,
-        split="train",
-    )
-
+    data_args["split"] = "train"
+    real_jets1, _ = JetNet.getData(**data_args)
     real_efps1 = _check_load_efps(real_jets1, f"{datasets_dir}/{jet_type}_efps1.npy")
 
     if "real" not in scores[jet_type]:
         print("\tEvaluating real jets")
-        real_jets2, _ = JetNet.getData(
-            jet_type,
-            data_dir=datasets_dir,
-            split_fraction=[0.7, 0.3, 0],
-            particle_features=["etarel", "phirel", "ptrel"],
-            jet_features=None,
-            split="valid",
-        )
-
+        
+        data_args["split"] = "valid"
+        real_jets2, _ = JetNet.getData(**data_args)
+        
         real_efps2 = _check_load_efps(real_jets2, f"{datasets_dir}/{jet_type}_efps2.npy")
         scores[jet_type]["real"] = get_scores(real_jets1, real_jets2, real_efps1, real_efps2)
         _save_scores(scores)
 
     for model in models:
+        if model == "mp" and jet_type == "g150":
+            continue
+        
         print(f"\tEvaluating {model} jets")
         jet_path = model_name_map[jet_type][model]
         efp_path = jet_path.replace("jets.npy", "efps.npy")
@@ -154,17 +165,20 @@ for jet_type in datasets:
             _save_scores(scores)
 
 
-
 def format_mean_sd(mean, sd):
     """round mean and standard deviation to most significant digit of sd and apply latex formatting"""
     decimals = -int(np.floor(np.log10(sd)))
     decimals -= int((sd * 10**decimals) >= 9.5)
-
+    decimals = np.abs(decimals)
     if decimals < 0:
         ten_to = 10 ** (-decimals)
         if mean > ten_to:
             mean = ten_to * (mean // ten_to)
         else:
+            if mean <= 0:
+                print(f"Warning: mean is non-positive: {mean}")
+                return "NaN"
+
             mean_ten_to = 10 ** np.floor(np.log10(mean))
             mean = mean_ten_to * (mean // mean_ten_to)
         sd = ten_to * (sd // ten_to)
@@ -204,21 +218,33 @@ scores_scale_dict = {
     "w1ppt": 1e3,
 }
 
-row_order = ["real", "mp"] #, "gapt_baseline", "gapt_gast", "gapt_igapt"]
+row_order = ["real", "mp", "gapt_baseline", "gapt_gast", "gapt_igapt"]
 # column_order = ["fpd", "kpd", "w1m", "w1ppt"]
 column_order = ["w1ppt", "w1m", "fpd", "kpd"]
 
 lines = []
 for jet_type in datasets:
+    if jet_type == "g150":
+        row_order = ["real", "gapt_baseline", "gapt_gast", "gapt_igapt"]
+    
     lines.append(rf"\multirow{{{len(row_order)}}}{{*}}{{{jet_name_map[jet_type]}}}" + "\n")
+    
+    # find the index of the lowest score for each metric
+    bold_idxs = {}
+    for col in column_order:
+        bold_idxs[col] = np.argmin([scores[jet_type][key][col][0] for key in row_order[1:]]) + 1
+    
     for i, key in enumerate(row_order):
         line = f" & {model_name_map[key]} & "
         
         format_scores = []
         for score in column_order:
-            format_scores.append(format_mean_sd(
-                    scores[jet_type][key][score][0] * scores_scale_dict[score],
-                    scores[jet_type][key][score][1] * scores_scale_dict[score],
+            format_scores.append(bold_best_key(
+                    format_mean_sd(
+                        scores[jet_type][key][score][0] * scores_scale_dict[score],
+                        scores[jet_type][key][score][1] * scores_scale_dict[score],
+                    ),
+                    i == bold_idxs[score],
                 )
             )
         line += " & ".join(format_scores)
