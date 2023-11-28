@@ -147,18 +147,23 @@ class MAB(nn.Module):
         self,
         embed_dim: int,
         num_heads: int,
-        ff_output_dim: int,
-        ff_layers: list = [],
+        ff_output_dim: int,  # TODO: how can this be different from embed_dim?
+        ff_layers: list = None,
         use_custom_mab: bool = False,
-        conditioning: bool = False,
         layer_norm: bool = False,
         spectral_norm: bool = False,
         dropout_p: float = 0.0,
         final_linear: bool = True,
-        linear_args={},
+        linear_args: dict = None,
     ):
         super(MAB, self).__init__()
 
+        if ff_layers is None:
+            ff_layers = []
+        
+        if linear_args is None:
+            linear_args = {}
+        
         self.num_heads = num_heads
         if use_custom_mab:
             self.attention = DotProdMAB(
@@ -166,12 +171,6 @@ class MAB(nn.Module):
             )
         else:
             self.attention = nn.MultiheadAttention(embed_dim, num_heads, batch_first=True)
-
-        self.conditioning = conditioning
-
-        # Single linear layer to project from dim(x+z') to dim(x)
-        # if self.conditioning:
-        #     self.attn_ff   = nn.Linear(embed_dim, ff_output_dim)
 
         self.ff = LinearNet(
             ff_layers,
@@ -190,21 +189,11 @@ class MAB(nn.Module):
 
         self.dropout = nn.Dropout(p=dropout_p)
 
-    def forward(self, x: Tensor, y: Tensor, y_mask: Tensor = None, z: Tensor = None):
+    def forward(self, x: Tensor, y: Tensor, y_mask: Tensor = None):
         if y_mask is not None:
             # torch.nn.MultiheadAttention needs a mask of shape [batch_size * num_heads, N, N]
             y_mask = torch.repeat_interleave(y_mask, self.num_heads, dim=0)
 
-        # Concatenate q,k,v inputs with conditioning vector if self.conditioning==True
-        # Linearly project output (dim(x+z')) back to dim(x)
-        # if self.conditioning:
-        # assert z is not None
-        # # Concat z with query
-        # x_ = torch.cat((x, z.unsqueeze(1).repeat(1, x.shape[1], 1)), dim=2)
-        # # Concat z with key/value
-        # y_ = torch.cat((y, z.unsqueeze(1).repeat(1, y.shape[1], 1)), dim=2)
-        # x = x + self.attn_ff(self.attention(x_, y_, y_, attn_mask=y_mask, need_weights=False)[0])
-        # else:
         x = x + self.attention(x, y, y, attn_mask=y_mask, need_weights=False)[0]
         if self.layer_norm:
             x = self.norm1(x)
@@ -222,13 +211,13 @@ class SAB(nn.Module):
         super(SAB, self).__init__()
         self.mab = MAB(**mab_args)
 
-    def forward(self, x: Tensor, mask: Tensor = None, z: Tensor = None):
+    def forward(self, x: Tensor, mask: Tensor = None):
         if mask is not None:
             # torch.nn.MultiheadAttention needs a mask vector for each target node
             # i.e. reshaping from [B, N, 1] -> [B, N, N]
             mask = mask.transpose(-2, -1).repeat((1, mask.shape[-2], 1))
 
-        return self.mab(x, x, mask, z)
+        return self.mab(x, x, mask)
 
 
 # Adapted from https://github.com/juho-lee/set_transformer/blob/master/modules.py
