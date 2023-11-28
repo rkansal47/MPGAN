@@ -60,6 +60,9 @@ def main():
         "split_fraction": [args.ttsplit, 1 - args.ttsplit, 0],
     }
 
+    # print('Data args:',data_args)
+    # exit()
+
     X_train = JetNet(**data_args, split="train")
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
@@ -126,7 +129,7 @@ def get_gen_noise(
                 )
             )
     elif model == "gapt":
-        noise = dist.sample((num_samples, num_particles, model_args["embed_dim"]))
+        noise = dist.sample((num_samples, num_particles, model_args["init_noise_dim"]))
     elif model == "rgan" or model == "graphcnngan":
         noise = dist.sample((num_samples, model_args["latent_dim"]))
     elif model == "treegan":
@@ -199,11 +202,20 @@ def gen(
         labels = labels.to(device)
 
     if noise is None:
-        noise, point_noise = get_gen_noise(
-            model_args, num_samples, num_particles, model, device, noise_std
-        )
+        if G.learnable_init_noise:
+            noise = G.sample_init_set(num_samples).to(device)
+        else:
+            noise, point_noise = get_gen_noise(
+                model_args, num_samples, num_particles, model, device, noise_std
+            )
 
-    gen_data = G(noise, labels)
+    global_noise = (
+        torch.randn(num_samples, model_args["global_noise_dim"]).to(device)
+        if G.noise_conditioning
+        else None
+    )
+    # print(noise.shape)
+    gen_data = G(noise, labels, global_noise)
 
     if "mask_manual" in extra_args and extra_args["mask_manual"]:
         # TODO: add pt_cutoff to extra_args
@@ -698,6 +710,7 @@ def eval_save_plot(
     best_epoch,
     **extra_args,
 ):
+    print("evaaaaaal")
     G.eval()
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
