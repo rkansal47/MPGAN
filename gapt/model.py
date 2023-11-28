@@ -160,10 +160,10 @@ class MAB(nn.Module):
 
         if ff_layers is None:
             ff_layers = []
-        
+
         if linear_args is None:
             linear_args = {}
-        
+
         self.num_heads = num_heads
         if use_custom_mab:
             self.attention = DotProdMAB(
