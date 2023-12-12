@@ -52,7 +52,7 @@ def main():
         "particle_features": JetNet.all_particle_features
         if args.mask
         else JetNet.all_particle_features[:-1],
-        "jet_features": "num_particles"
+        "jet_features": ["pt","num_particles"]
         if (args.clabels or args.mask_c or args.gapt_mask)
         else None,
         "particle_normalisation": particle_norm,

@@ -411,16 +411,23 @@ class GAPT_G(nn.Module):
         if self.use_mask:
             # unnormalize the last jet label - the normalized # of particles per jet
             # (between 1/``num_particles`` and 1) - to between 0 and ``num_particles`` - 1
-            num_jet_particles = (labels[:, -1] * self.num_particles).int() - 1
+            #num_jet_particles = (labels[:, -1] * self.num_particles).int() - 1
+            momentum_jet_particles = labels[:, -2]
             # sort the particles by the first noise feature per particle, and the first
             # ``num_jet_particles`` particles receive a 1-mask, the rest 0.
+            
+            #mask = (
+            #    (x[:, :, 0].argsort(1).argsort(1) <= num_jet_particles.unsqueeze(1))
+            #    .unsqueeze(2)
+            #    .float()
+            #)
             mask = (
-                (x[:, :, 0].argsort(1).argsort(1) <= num_jet_particles.unsqueeze(1))
+                (x[:, :, 0].argsort(1).argsort(1) <= momentum_jet_particles.unsqueeze(1))
                 .unsqueeze(2)
                 .float()
             )
             logging.debug(
-                f"x \n {x[:2, :, 0]} \n num particles \n {num_jet_particles[:2]} \n gen mask \n {mask[:2]}"
+                f"x \n {x[:2, :, 0]} \n num particles \n {momentum_jet_particles[:2]} \n gen mask \n {mask[:2]}"
             )
         else:
             mask = None
@@ -429,17 +436,19 @@ class GAPT_G(nn.Module):
         x = self.input_embedding(x)
         
         # Concatenate global noise and # particles depending on conditioning
-        if self.n_normalized:
-            num_jet_particles = labels[:, -1]
-        else:
-            num_jet_particles += 1
+        #if self.n_normalized:
+        #    num_jet_particles = labels[:, -1]
+        #else:
+        #    num_jet_particles += 1
+        momentum_jet_particles = labels[:, -2]
         # if self.noise_conditioning or self.n_conditioning:
         #     if self.noise_conditioning and self.n_conditioning:
         #         z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
         #     elif self.n_conditioning:
         #         z = num_jet_particles.unsqueeze(1).float()
         if self.n_conditioning:
-            z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
+            #z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
+            z = torch.cat((z, momentum_jet_particles.unsqueeze(1)), dim=1)
         z = self.global_noise_net(z)
         
         for sab in self.sabs:
@@ -580,10 +589,12 @@ class GAPT_D(nn.Module):
         # Use # particles for conditioning
         if self.n_conditioning:
             if self.n_normalized:
-                num_jet_particles = labels[:, -1]
+                #num_jet_particles = labels[:, -1]
+                momentum_jet_particles = labels[:, -2]
             else:
-                num_jet_particles = (labels[:, -1] * self.num_particles).int()
-            z = torch.cat([z, num_jet_particles.unsqueeze(1).float()], dim=1)
+                #num_jet_particles = (labels[:, -1] * self.num_particles).int()
+                momentum_jet_particles = labels[:, -2]
+            z = torch.cat([z, momentum_jet_particles.unsqueeze(1).float()], dim=1)
         
         z = self.cond_net(z)
         
