@@ -357,6 +357,7 @@ class GAPT_G(nn.Module):
             **linear_args
         )
 
+        self.linear_layer2_1 = nn.Linear(2,1)
         # MLP for processing conditioning vector (input dims = global noise dims + 1)
         # if noise_conditioning or n_conditioning:
         noise_net_input_dim = global_noise_input_dim
@@ -411,7 +412,7 @@ class GAPT_G(nn.Module):
         if self.use_mask:
             # unnormalize the last jet label - the normalized # of particles per jet
             # (between 1/``num_particles`` and 1) - to between 0 and ``num_particles`` - 1
-            #num_jet_particles = (labels[:, -1] * self.num_particles).int() - 1
+            num_jet_particles = (labels[:, -1] * self.num_particles).int() - 1
             momentum_jet_particles = labels[:, -2]
             # sort the particles by the first noise feature per particle, and the first
             # ``num_jet_particles`` particles receive a 1-mask, the rest 0.
@@ -421,8 +422,12 @@ class GAPT_G(nn.Module):
             #    .unsqueeze(2)
             #    .float()
             #)
+            inter = torch.cat([momentum_jet_particles.unsqueeze(1).float(),num_jet_particles.unsqueeze(1).float()], dim=1)
+            #linear_layer = nn.Linear(2, 1).to(x.device)
+            compressed_inter = self.linear_layer2_1(inter)
+            compressed_inter = torch.squeeze(compressed_inter)
             mask = (
-                (x[:, :, 0].argsort(1).argsort(1) <= momentum_jet_particles.unsqueeze(1))
+                (x[:, :, 0].argsort(1).argsort(1) <= compressed_inter.unsqueeze(1))
                 .unsqueeze(2)
                 .float()
             )
@@ -446,9 +451,13 @@ class GAPT_G(nn.Module):
         #         z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
         #     elif self.n_conditioning:
         #         z = num_jet_particles.unsqueeze(1).float()
-        if self.n_conditioning:
+        #if self.n_conditioning:
             #z = torch.cat((z, num_jet_particles.unsqueeze(1)), dim=1)
-            z = torch.cat((z, momentum_jet_particles.unsqueeze(1)), dim=1)
+        
+        inter = torch.cat([momentum_jet_particles.unsqueeze(1).float(),num_jet_particles.unsqueeze(1).float()], dim=1)
+        compressed_inter = self.linear_layer2_1(inter)
+        compressed_inter = torch.squeeze(compressed_inter)
+        z = torch.cat((z, compressed_inter.unsqueeze(1)), dim=1)
         z = self.global_noise_net(z)
         
         for sab in self.sabs:
@@ -547,7 +556,7 @@ class GAPT_D(nn.Module):
         self.input_embedding = LinearNet(
             [], input_size=input_feat_size, output_size=ff_output_dim, **linear_args
         )
-
+        self.linear_layer_258_257 = nn.Linear(258,257)
         # Intermediate layers
         for _ in range(sab_layers):
             # self.sabs.append(SAB(**sab_args) if not use_isab else ISAB(num_isab_nodes, **sab_args))
@@ -589,13 +598,16 @@ class GAPT_D(nn.Module):
         # Use # particles for conditioning
         if self.n_conditioning:
             if self.n_normalized:
-                #num_jet_particles = labels[:, -1]
+                num_jet_particles = labels[:, -1]
                 momentum_jet_particles = labels[:, -2]
             else:
-                #num_jet_particles = (labels[:, -1] * self.num_particles).int()
+                num_jet_particles = (labels[:, -1] * self.num_particles).int()
                 momentum_jet_particles = labels[:, -2]
-            z = torch.cat([z, momentum_jet_particles.unsqueeze(1).float()], dim=1)
+            z = torch.cat([z, momentum_jet_particles.unsqueeze(1).float(),num_jet_particles.unsqueeze(1).float()], dim=1)
         
+        # linear_layer = nn.Linear(258, 257).to(x.device)
+        # z = linear_layer(z)
+        z = self.linear_layer_258_257(z)
         z = self.cond_net(z)
         
         # Use appropriate forward pass corresponding to encoding/pooling operation
