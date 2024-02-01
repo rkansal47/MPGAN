@@ -363,8 +363,8 @@ class GAPT_G(nn.Module):
         noise_net_input_dim = global_noise_input_dim
         # if noise_conditioning:
         #     noise_net_input_dim += global_noise_input_dim
-        if n_conditioning:
-            noise_net_input_dim += 1
+        if n_conditioning: # Integer to know how many variables we are conditioning on.
+            noise_net_input_dim += 1 # add n_conditioning.
         self.global_noise_net = LinearNet(
             layers = global_noise_layers,
             input_size = noise_net_input_dim,
@@ -427,7 +427,7 @@ class GAPT_G(nn.Module):
             compressed_inter = self.linear_layer2_1(inter)
             compressed_inter = torch.squeeze(compressed_inter)
             mask = (
-                (x[:, :, 0].argsort(1).argsort(1) <= compressed_inter.unsqueeze(1))
+                (x[:, :, 0].argsort(1).argsort(1) <= num_jet_particles.unsqueeze(1))
                 .unsqueeze(2)
                 .float()
             )
