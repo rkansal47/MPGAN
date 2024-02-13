@@ -659,9 +659,17 @@ def parse_gapt_args(parser):
         default=[],
         help="Discriminator conditional net intermediate layers",
     )
+    
+    parser.add_argument(
+        "--n-conditioning",
+        type=int,
+        default=0,
+        help="Number of variables that are conditioned upon",
+    )
+
     add_bool_arg(parser, "learnable-init-noise", "learn the gaussian noise parameters for sampling initial set", default=False)
     add_bool_arg(parser, "noise-conditioning", "condition generator on global noise", default=True)
-    add_bool_arg(parser, "n-conditioning", "condition generator on num. particles", default=False)
+    #add_bool_arg(parser, "n-conditioning", "condition generator on num. particles", default=False)
     add_bool_arg(parser, "n-normalized", "use normalized num. particles", default=False)
     add_bool_arg(parser, "learn-anchor-from-global-noise", "learn the ISAB anchors from global noise", default=False)
     add_bool_arg(parser, "no-D-conditioning", "do not condition discriminator on num. particles", default=False)
@@ -1395,7 +1403,7 @@ def setup_gapt(args, gen):
     cond_net_args = {
         "cond_feat_dim": args.cond_feat_dim,
         "cond_net_layers": args.cond_net_layers,
-        "n_conditioning": args.n_conditioning and not args.no_D_conditioning,
+        "n_conditioning": args.n_conditioning,
         "n_normalized": args.n_normalized
     }
 
