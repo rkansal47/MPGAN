@@ -204,7 +204,26 @@ def parse_optimization_args(parser):
         type=str,
         default="rmsprop",
         help="pick optimizer",
-        choices=["adam", "rmsprop", "adadelta", "agcd"],
+        choices=["adam", "rmsprop", "adadelta", "agcd", "sgd"],
+    )
+    parser.add_argument(
+        "--use_different_optimizers",
+        action="store_true",
+        help="Use different optimizers for generator and discriminator",
+    )
+    parser.add_argument(
+        "--optimizer-G",
+        type=str,
+        default="rmsprop",
+        help="pick optimizer for generator",
+        choices=["adam", "rmsprop", "adadelta", "agcd", "sgd"],
+    )
+    parser.add_argument(
+        "--optimizer-D",
+        type=str,
+        default="rmsprop",
+        help="pick optimizer for discriminator",
+        choices=["adam", "rmsprop", "adadelta", "agcd", "sgd"],
     )
     parser.add_argument(
         "--loss",
@@ -247,6 +266,12 @@ def parse_optimization_args(parser):
         type=int,
         default=1,
         help="number of generator updates for each critic update (num-critic must be 1 for this to apply)",
+    )
+    parser.add_argument(
+        "--sgd-momentum",
+        type=float,
+        default=0.9,
+        help="momentum for the SGD optimizer",
     )
 
 
@@ -1410,7 +1435,7 @@ def models(args, gen_only=False):
         from mpgan import Graph_GAN
 
         G = Graph_GAN(gen=False, args=deepcopy(args))
-    
+
     logging.info(f"# of parameters in D: {count_parameters(D)}")
 
     if args.load_model:
@@ -1518,19 +1543,45 @@ def optimizers(args, G, D):
     else:
         D_params = D.parameters()
 
-    if args.optimizer == "rmsprop":
-        G_optimizer = optim.RMSprop(G_params, lr=args.lr_gen)
-        D_optimizer = optim.RMSprop(D_params, lr=args.lr_disc)
-    elif args.optimizer == "adadelta":
-        G_optimizer = optim.Adadelta(G_params, lr=args.lr_gen)
-        D_optimizer = optim.Adadelta(D_params, lr=args.lr_disc)
-    elif args.optimizer == "adam" or args.optimizer == "None":
-        G_optimizer = optim.Adam(
-            G_params, lr=args.lr_gen, weight_decay=5e-4, betas=(args.beta1, args.beta2)
-        )
-        D_optimizer = optim.Adam(
-            D_params, lr=args.lr_disc, weight_decay=5e-4, betas=(args.beta1, args.beta2)
-        )
+    if args.use_different_optimizers:
+        if args.optimizer_G == "rmsprop":
+            G_optimizer = optim.RMSprop(G_params, lr=args.lr_gen)
+        elif args.optimizer_G == "adadelta":
+            G_optimizer = optim.Adadelta(G_params, lr=args.lr_gen)
+        elif args.optimizer_G == "adam":
+            G_optimizer = optim.Adam(
+                G_params, lr=args.lr_gen, weight_decay=5e-4, betas=(args.beta1, args.beta2)
+            )
+        elif args.optimizer_G == "sgd":
+            G_optimizer = optim.SGD(G_params, lr=args.lr_gen, momentum=args.sgd_momentum)
+
+        if args.optimizer_D == "rmsprop":
+            D_optimizer = optim.RMSprop(D_params, lr=args.lr_disc)
+        elif args.optimizer_D == "adadelta":
+            D_optimizer = optim.Adadelta(D_params, lr=args.lr_disc)
+        elif args.optimizer_D == "adam":
+            D_optimizer = optim.Adam(
+                D_params, lr=args.lr_disc, weight_decay=5e-4, betas=(args.beta1, args.beta2)
+            )
+        elif args.optimizer_D == "sgd":
+            D_optimizer = optim.SGD(D_params, lr=args.lr_disc, momentum=args.sgd_momentum)
+    else:
+        if args.optimizer == "rmsprop":
+            G_optimizer = optim.RMSprop(G_params, lr=args.lr_gen)
+            D_optimizer = optim.RMSprop(D_params, lr=args.lr_disc)
+        elif args.optimizer == "adadelta":
+            G_optimizer = optim.Adadelta(G_params, lr=args.lr_gen)
+            D_optimizer = optim.Adadelta(D_params, lr=args.lr_disc)
+        elif args.optimizer == "adam" or args.optimizer == "None":
+            G_optimizer = optim.Adam(
+                G_params, lr=args.lr_gen, weight_decay=5e-4, betas=(args.beta1, args.beta2)
+            )
+            D_optimizer = optim.Adam(
+                D_params, lr=args.lr_disc, weight_decay=5e-4, betas=(args.beta1, args.beta2)
+            )
+        elif args.optimizer == "sgd":
+            G_optimizer = optim.SGD(G_params, lr=args.lr_gen, momentum=args.sgd_momentum)
+            D_optimizer = optim.SGD(D_params, lr=args.lr_disc, momentum=args.sgd_momentum)
 
     if args.load_model:
         G_optimizer.load_state_dict(
