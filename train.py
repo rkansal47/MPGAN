@@ -23,15 +23,19 @@ from tqdm import tqdm
 
 import logging
 
+import time
 
 def main():
+    start_time = time.time()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.autograd.set_detect_anomaly(False)
 
+    args_start_time = time.time()
     args = setup_training.init()
     torch.manual_seed(args.seed)
     args.device = device
-    logging.info("Args initalized")
+    args_end_time = time.time()
+    logging.info("Args initalized in: %s seconds" % (args_end_time - args_start_time))
 
     # as used for arXiv:2106.11535
     feature_maxes = JetNet.fpnd_norm.feature_maxes
@@ -60,25 +64,37 @@ def main():
         "split_fraction": [args.ttsplit, 1 - args.ttsplit, 0],
     }
 
+    data_load_start_time = time.time()
     X_train = JetNet(**data_args, split="train")
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
 
     X_test = JetNet(**data_args, split="valid")
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
-    logging.info(f"Data loaded \n X_train \n {X_train} \n X_test \n {X_test}")
-
+    data_load_end_time = time.time()
+    logging.info(
+        f"Data loading took: %s seconds \n X_train \n {X_train} \n X_test \n {X_test}"
+        % (data_load_end_time - data_load_start_time)
+    )
     # print(torch.max(X_train.view(-1, 30 * 4), axis=0))
     # print(torch.max(X_test.view(-1, 30 * 4), axis=0))
 
+    model_load_start_time = time.time()
     G, D = setup_training.models(args)
     model_train_args, model_eval_args, extra_args = setup_training.get_model_args(args)
-    logging.info("Models loaded")
+    model_load_end_time = time.time()
+    logging.info("Models loading took: %s seconds" % (model_load_end_time - model_load_start_time))
 
+    opt_load_start_time = time.time()
     G_optimizer, D_optimizer = setup_training.optimizers(args, G, D)
-    logging.info("Optimizers loaded")
+    opt_load_end_time = time.time()
+    logging.info("Optimizers loading took: %s seconds" % (opt_load_end_time - opt_load_start_time))
 
+    loss_calc_start_time = time.time()
     losses, best_epoch = setup_training.losses(args)
-
+    loss_calc_end_time = time.time()
+    logging.info("Loss calculation took: %s seconds" % (loss_calc_end_time - loss_calc_start_time))
+    
+    train_start_time = time.time()
     train(
         args,
         X_train,
@@ -95,7 +111,10 @@ def main():
         model_eval_args,
         extra_args,
     )
-
+    train_end_time = time.time()
+    logging.info("Training took: %s seconds" % (train_end_time - train_start_time))
+    end_time = time.time()
+    logging.info("Total execution time: %s seconds" % (end_time - start_time))
 
 def get_gen_noise(
     model_args,
@@ -217,10 +236,14 @@ def gen(
 
 
 def optional_tqdm(iter_obj, use_tqdm, total=None, desc=None):
+    start_time = time.time()
     if use_tqdm:
-        return tqdm(iter_obj, total=total, desc=desc)
+        result = tqdm(iter_obj, total=total, desc=desc)
     else:
-        return iter_obj
+        result = iter_obj
+    end_time = time.time()
+    logging.info("optional_tqdm function took: %s seconds" % (end_time - start_time))
+    return result
 
 
 def gen_multi_batch(
@@ -242,6 +265,7 @@ def gen_multi_batch(
     Generates ``num_samples`` jets in batches of ``batch_size``.
     Args are defined in ``gen`` function
     """
+    start_time = time.time()
     assert out_device == "cuda" or out_device == "cpu", "Invalid device type"
 
     if labels is not None:
@@ -277,11 +301,14 @@ def gen_multi_batch(
 
         gen_data = gen_temp if i == 0 else torch.cat((gen_data, gen_temp), axis=0)
 
+    total_end_time = time.time()
+    logging.info("Total gen_multi_batch took: %s seconds" % (total_end_time - start_time))
     return gen_data
 
 
 # from https://github.com/EmilienDupont/wgan-gp
 def gradient_penalty(gp_lambda, D, real_data, generated_data, batch_size, device, model="mpgan"):
+    start_time = time.time()
     # Calculate interpolation
     alpha = (
         torch.rand(batch_size, 1, 1).to(device)
@@ -319,6 +346,8 @@ def gradient_penalty(gp_lambda, D, real_data, generated_data, batch_size, device
 
     # Return gradient penalty
     gp = gp_lambda * ((gradients_norm - 1) ** 2).mean()
+    total_end_time = time.time()
+    logging.info("Total gradient_penalty took: %s seconds" % (total_end_time - start_time))
     return gp
 
 
@@ -345,6 +374,7 @@ def calc_D_loss(
 
     returns individual loss contributions as well for evaluation and plotting
     """
+    start_time = time.time()
     device = data.device
 
     if loss == "og" or loss == "ls":
@@ -382,6 +412,7 @@ def calc_D_loss(
     else:
         gpitem = None
 
+    time_calc_D_loss = time.time() - start_time
     return (
         D_loss,
         {
@@ -389,6 +420,7 @@ def calc_D_loss(
             "Df": D_fake_loss.item(),
             "gp": gpitem,
             "D": D_real_loss.item() + D_fake_loss.item(),
+            "time": time_calc_D_loss,
         },
     )
 
@@ -457,11 +489,12 @@ def train_D(
     )
     D_loss.backward()
     D_optimizer.step()
-    return D_loss_items
+    return D_loss_items, D_loss_items["time"]
 
 
 def calc_G_loss(loss, fake_outputs):
     """Calculates generator loss for the different possible loss functions"""
+    start_time = time.time()
     Y_real = torch.ones(fake_outputs.shape[0], 1, device=fake_outputs.device)
 
     if loss == "og":
@@ -471,8 +504,8 @@ def calc_G_loss(loss, fake_outputs):
     elif loss == "w" or loss == "hinge":
         G_loss = -fake_outputs.mean()
 
-    return G_loss
-
+    time_calc_G_loss = time.time() - start_time
+    return G_loss, time_calc_G_loss
 
 def train_G(
     model_args,
@@ -513,15 +546,16 @@ def train_G(
     logging.debug("D fake output:")
     logging.debug(D_fake_output[:10])
 
-    G_loss = calc_G_loss(loss, D_fake_output)
+    G_loss, time_calc_G_loss = calc_G_loss(loss, D_fake_output)
 
     G_loss.backward()
     G_optimizer.step()
 
-    return G_loss.item()
+    return G_loss.item(), time_calc_G_loss
 
 
 def save_models(D, G, D_optimizer, G_optimizer, models_path, epoch, multi_gpu=False):
+    start_time = time.time()
     if multi_gpu:
         torch.save(D.module.state_dict(), models_path + "/D_" + str(epoch) + ".pt")
         torch.save(G.module.state_dict(), models_path + "/G_" + str(epoch) + ".pt")
@@ -531,6 +565,7 @@ def save_models(D, G, D_optimizer, G_optimizer, models_path, epoch, multi_gpu=Fa
 
     torch.save(D_optimizer.state_dict(), models_path + "/D_optim_" + str(epoch) + ".pt")
     torch.save(G_optimizer.state_dict(), models_path + "/G_optim_" + str(epoch) + ".pt")
+    logging.info("Total save_models took: %s seconds" % (time.time() - start_time))
 
 
 def save_losses(losses, losses_path):
@@ -553,6 +588,7 @@ def evaluate(
     gen_efps=None,
 ):
     """Calculate evaluation metrics using the JetNet library and add them to the losses dict"""
+    start_time = time.time()
 
     print(real_jets.shape)
     if "w1p" in losses:
@@ -605,6 +641,9 @@ def evaluate(
         logging.info("KPD")
         losses["kpd"].append(evaluation.kpd(real_efps, gen_efps, num_threads=2))
 
+    total_end_time = time.time()
+    logging.info("Total evaluate took: %s seconds" % (total_end_time - start_time))
+
 
 def make_plots(
     losses,
@@ -627,6 +666,7 @@ def make_plots(
     gen_efps=None,
 ):
     """Plot histograms, jet images, loss curves, and evaluation curves"""
+    start_time = time.time()
     logging.info("Plotting")
 
     real_masses = jetnet.utils.jet_features(real_jets)["mass"]
@@ -684,6 +724,9 @@ def make_plots(
         except:
             logging.info("Couldn't remove previous eval curves")
 
+    total_end_time = time.time()
+    logging.info("Total make_plots took: %s seconds" % (total_end_time - start_time))
+
 
 def eval_save_plot(
     args,
@@ -698,18 +741,25 @@ def eval_save_plot(
     best_epoch,
     **extra_args,
 ):
+    start_time = time.time()
+    eval_time = time.time()
+
     G.eval()
     D.eval()
+    eval_end_time = time.time()
+
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)
 
     use_mask = args.mask_c or args.clabels or args.gapt_mask
 
+    start_real_jets = time.time()
     real_jets = jetnet.utils.gen_jet_corrections(
         X_test.particle_normalisation(X_test.particle_data[: args.eval_tot_samples], inverse=True),
         zero_mask_particles=False,
         ret_mask_separate=use_mask,
         zero_neg_pt=False,
     )
+    end_real_jets = time.time()
 
     gen_output = gen_multi_batch(
         model_args,
@@ -724,12 +774,15 @@ def eval_save_plot(
         **extra_args,
     )
 
+    start_gen_jets = time.time()
     gen_jets = jetnet.utils.gen_jet_corrections(
         X_test.particle_normalisation(gen_output, inverse=True),
         ret_mask_separate=use_mask,
         zero_mask_particles=use_mask,
     )
+    end_gen_jets = time.time()
 
+    start_mask = time.time()
     if use_mask:
         gen_mask = gen_jets[1]
         gen_jets = gen_jets[0]
@@ -738,11 +791,13 @@ def eval_save_plot(
     else:
         gen_mask = None
         real_mask = None
-
+    
     gen_jets = gen_jets.numpy()
     if gen_mask is not None:
         gen_mask = gen_mask.numpy()
+    end_mask = time.time()
 
+    start_efp = time.time()
     if "fpd" in losses:
         logging.info("Calculating EFPs")
         efp_file = f"{args.efps_path}/{args.jets}.npy"
@@ -757,6 +812,7 @@ def eval_save_plot(
         gen_efps = jetnet.utils.efps(gen_jets, efpset_args=[("d<=", 4)], efp_jobs=args.efp_jobs)
     else:
         real_efps, gen_efps = None, None
+    end_efp = time.time()
 
     evaluate(
         losses,
@@ -792,6 +848,7 @@ def eval_save_plot(
         real_efps=real_efps,
         gen_efps=gen_efps,
     )
+    start_save_lowest = time.time()
 
     if "fpd" in losses:
         # save model state and sample generated jets if this is the lowest fpd score yet
@@ -810,6 +867,15 @@ def eval_save_plot(
             else:
                 torch.save(G.state_dict(), f"{args.outs_path}/G_best_epoch.pt")
 
+    end_save_lowest = time.time()
+    total_end_time = time.time()
+    logging.info("Total eval_time took: %s seconds" % (eval_end_time - eval_time))
+    logging.info("Total real_jets took: %s seconds" % (end_real_jets - start_real_jets))
+    logging.info("Total gen_jets took: %s seconds" % (end_gen_jets - start_gen_jets))
+    logging.info("Total mask took: %s seconds" % (end_mask - start_mask))
+    logging.info("Total efp took: %s seconds" % (end_efp - start_efp))
+    logging.info("Total save_lowest took: %s seconds" % (end_save_lowest - start_save_lowest))
+    logging.info("Total eval_save_plot took: %s seconds" % (total_end_time - start_time))
 
 def train_loop(
     args,
@@ -826,6 +892,12 @@ def train_loop(
     epoch,
     extra_args,
 ):
+    start_time = time.time()
+    total_train_D = 0
+    total_train_G = 0
+    total_calc_D_loss = 0
+    total_calc_G_loss = 0
+
     lenX = len(X_train_loaded)
 
     for batch_ndx, data in tqdm(
@@ -841,7 +913,8 @@ def train_loop(
             data = model_train_args["pcgan_G_inv"](data.clone())
 
         if args.num_critic > 1 or (batch_ndx == 0 or (batch_ndx - 1) % args.num_gen == 0):
-            D_loss_items = train_D(
+            start_train_D = time.time()
+            D_loss_items, time_calc_D_loss = train_D(
                 model_train_args,
                 D,
                 G,
@@ -859,12 +932,17 @@ def train_loop(
                 print_output=(batch_ndx == lenX - 1),
                 **extra_args,
             )
+            total_calc_D_loss += time_calc_D_loss
 
             for key in D_losses:
                 epoch_loss[key] += D_loss_items[key]
 
+            end_train_D = time.time()
+            total_train_D += end_train_D - start_train_D
+
         if args.num_critic == 1 or (batch_ndx - 1) % args.num_critic == 0:
-            epoch_loss["G"] += train_G(
+            start_train_G = time.time()
+            G_loss, time_calc_G_loss = train_G(
                 model_train_args,
                 D,
                 G,
@@ -878,6 +956,10 @@ def train_loop(
                 epoch=epoch - 1,
                 **extra_args,
             )
+            total_calc_G_loss += time_calc_G_loss
+            epoch_loss["G"] += G_loss
+            end_train_G = time.time()
+            total_train_G += end_train_G - start_train_G
 
         if args.bottleneck:
             if batch_ndx == 10:
@@ -887,6 +969,12 @@ def train_loop(
             if batch_ndx == 0:
                 break
 
+    total_end_time = time.time()
+    logging.info("Total train_D took: %s seconds" % (total_train_D))
+    logging.info("Total train_G took: %s seconds" % (total_train_G))
+    logging.info("Total calc_D_loss took: %s seconds" % (total_calc_D_loss))
+    logging.info("Total calc_G_loss took: %s seconds" % (total_calc_G_loss))
+    logging.info("Total train_loop took: %s seconds" % (total_end_time - start_time))
 
 def train(
     args,
@@ -904,6 +992,7 @@ def train(
     model_eval_args,
     extra_args,
 ):
+    start_time = time.time()
     if args.start_epoch == 0 and args.save_zero:
         eval_save_plot(
             args,
@@ -984,6 +1073,9 @@ def train(
             save_models(
                 D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu
             )
+
+    total_end_time = time.time()
+    logging.info("Total train took: %s seconds" % (total_end_time - start_time))
 
 
 if __name__ == "__main__":
