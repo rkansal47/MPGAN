@@ -1435,7 +1435,7 @@ def models(args, gen_only=False):
         from mpgan import Graph_GAN
 
         G = Graph_GAN(gen=False, args=deepcopy(args))
-    
+
     logging.info(f"# of parameters in D: {count_parameters(D)}")
 
     if args.load_model:
@@ -1530,6 +1530,7 @@ def get_model_args(args):
     extra_args = {"mask_manual": args.mask_manual, "pt_cutoff": 0}  # TODO: get right pT cutoff
 
     return model_train_args, model_eval_args, extra_args
+
 
 def optimizers(args, G, D):
     if args.spectral_norm_gen:

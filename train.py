@@ -25,6 +25,7 @@ import logging
 
 import time
 
+
 def main():
     start_time = time.time()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -93,7 +94,7 @@ def main():
     losses, best_epoch = setup_training.losses(args)
     loss_calc_end_time = time.time()
     logging.info("Loss calculation took: %s seconds" % (loss_calc_end_time - loss_calc_start_time))
-    
+
     train_start_time = time.time()
     train(
         args,
@@ -115,6 +116,7 @@ def main():
     logging.info("Training took: %s seconds" % (train_end_time - train_start_time))
     end_time = time.time()
     logging.info("Total execution time: %s seconds" % (end_time - start_time))
+
 
 def get_gen_noise(
     model_args,
@@ -507,6 +509,7 @@ def calc_G_loss(loss, fake_outputs):
     time_calc_G_loss = time.time() - start_time
     return G_loss, time_calc_G_loss
 
+
 def train_G(
     model_args,
     D,
@@ -791,7 +794,7 @@ def eval_save_plot(
     else:
         gen_mask = None
         real_mask = None
-    
+
     gen_jets = gen_jets.numpy()
     if gen_mask is not None:
         gen_mask = gen_mask.numpy()
@@ -876,6 +879,7 @@ def eval_save_plot(
     logging.info("Total efp took: %s seconds" % (end_efp - start_efp))
     logging.info("Total save_lowest took: %s seconds" % (end_save_lowest - start_save_lowest))
     logging.info("Total eval_save_plot took: %s seconds" % (total_end_time - start_time))
+
 
 def train_loop(
     args,
@@ -975,6 +979,7 @@ def train_loop(
     logging.info("Total calc_D_loss took: %s seconds" % (total_calc_D_loss))
     logging.info("Total calc_G_loss took: %s seconds" % (total_calc_G_loss))
     logging.info("Total train_loop took: %s seconds" % (total_end_time - start_time))
+
 
 def train(
     args,
