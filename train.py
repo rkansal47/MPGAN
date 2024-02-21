@@ -43,7 +43,9 @@ def main():
         feature_shifts=[0.0, 0.0, -0.5, -0.5] if args.mask else [0.0, 0.0, -0.5],
         feature_maxes=feature_maxes,
     )
-    jet_norm = FeaturewiseLinear(feature_scales=1.0 / args.num_hits)
+    jet_norm = FeaturewiseLinear(normalise_features=[True,False]) # Change this to from feature_scales to feature_norms
+                                                                     # And then check and make sure that num_of_partilces is not normalized
+                                                                     # Only momentum is normalized
 
     data_args = {
         "jet_type": args.jets,
