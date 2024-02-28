@@ -442,10 +442,10 @@ class GAPT_G(nn.Module):
         x = self.input_embedding(x)
         
         # Concatenate global noise and # particles depending on conditioning
-        #if self.n_normalized:
-        #    num_jet_particles = labels[:, -1]
-        #else:
-        #    num_jet_particles += 1
+        if self.n_normalized:
+           num_jet_particles = labels[:, -1]
+        else:
+           num_jet_particles += 1
         momentum_jet_particles = labels[:, -2]
         # if self.noise_conditioning or self.n_conditioning:
         #     if self.noise_conditioning and self.n_conditioning:
