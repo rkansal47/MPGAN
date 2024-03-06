@@ -522,7 +522,7 @@ class GAPT_D(nn.Module):
         self.block_residual = block_residual
         self.learn_anchor_from_global_noise = learn_anchor_from_global_noise
         # MLP for processing # particles
-        cond_net_input_dim = 2 * embed_dim
+        cond_net_input_dim = 1 * embed_dim
         if n_conditioning != 0:
             #cond_net_input_dim += 1
             cond_net_input_dim += n_conditioning
@@ -596,8 +596,13 @@ class GAPT_D(nn.Module):
 
         x = self.input_embedding(x)
         
-        # Get initial global noise by pooling over the input
-        z = torch.cat([x.mean(dim=1), x.sum(dim=1)], dim=1)
+        mask_bool = mask.squeeze(dim=-1).bool()
+        resultant_mean = torch.zeros((16, 128), dtype=x.dtype, device=x.device)
+        for i in range(16):
+            selected_x = x[i][mask_bool[i]]
+            resultant_mean[i] = selected_x.mean(dim=0)
+        
+        z = resultant_mean
         # Use # particles for conditioning
         if self.n_conditioning != 0:
             if self.n_normalized:
