@@ -597,8 +597,8 @@ class GAPT_D(nn.Module):
         x = self.input_embedding(x)
         
         mask_bool = mask.squeeze(dim=-1).bool()
-        resultant_mean = torch.zeros((16, 128), dtype=x.dtype, device=x.device)
-        for i in range(16):
+        resultant_mean = torch.zeros((x.shape[0], 128), dtype=x.dtype, device=x.device)
+        for i in range(x.shape[0]):
             selected_x = x[i][mask_bool[i]]
             resultant_mean[i] = selected_x.mean(dim=0)
         
