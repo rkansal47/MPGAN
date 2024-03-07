@@ -596,13 +596,15 @@ class GAPT_D(nn.Module):
 
         x = self.input_embedding(x)
         
-        mask_bool = mask.squeeze(dim=-1).bool()
-        resultant_mean = torch.zeros((x.shape[0], 128), dtype=x.dtype, device=x.device)
-        for i in range(x.shape[0]):
-            selected_x = x[i][mask_bool[i]]
-            resultant_mean[i] = selected_x.mean(dim=0)
-        
-        z = resultant_mean
+        # mask_bool = mask.squeeze(dim=-1).bool()
+        # resultant_mean = torch.zeros((x.shape[0], 128), dtype=x.dtype, device=x.device)
+        # for i in range(x.shape[0]):
+        #     selected_x = x[i][mask_bool[i]]
+        #     resultant_mean[i] = selected_x.mean(dim=0)
+        # assuming mask is 0 or 1
+        sum_num_jet_particles = torch.sum(mask, axis=1)
+        means = torch.sum(x * mask, axis=1) / sum_num_jet_particles
+        z = means
         # Use # particles for conditioning
         if self.n_conditioning != 0:
             if self.n_normalized:
