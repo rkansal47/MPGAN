@@ -204,7 +204,11 @@ def gen(
                 model_args, num_samples, num_particles, model, device, noise_std
             )
 
-    global_noise = torch.randn(num_samples, model_args['global_noise_dim']).to(device) if G.noise_conditioning else None
+    global_noise = (
+        torch.randn(num_samples, model_args["global_noise_dim"]).to(device)
+        if G.noise_conditioning
+        else None
+    )
     # print(noise.shape)
     gen_data = G(noise, labels, global_noise)
 
@@ -701,7 +705,7 @@ def eval_save_plot(
     best_epoch,
     **extra_args,
 ):
-    print('evaaaaaal')
+    print("evaaaaaal")
     G.eval()
     D.eval()
     save_models(D, G, D_optimizer, G_optimizer, args.models_path, epoch, multi_gpu=args.multi_gpu)

@@ -7,9 +7,9 @@
 Code for models in:
 
 
-[1] Kansal et. al., *Graph Generative Adversarial Networks for Sparse Data Generation in High Energy Physics*, [ML4PS @ NeurIPS 2020](https://ml4physicalsciences.github.io/2020/) [`arXiv:2012.00173`](https://arxiv.org/abs/2012.00173) \
-[2] Kansal et. al., *Particle Cloud Generation with Message Passing Generative Adversarial Networks*, [NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/c8512d142a2d849725f31a9a7a361ab9-Abstract.html) [`arXiv:2106.11535`](https://arxiv.org/abs/2106.11535) \
-[3] Kansal et. al., *On the Evaluation of Generative Models in High Energy Physics*, [`arXiv:2211.10295`](https://arxiv.org/abs/2211.10295)
+[1] Kansal et al., *Graph Generative Adversarial Networks for Sparse Data Generation in High Energy Physics*, [ML4PS @ NeurIPS 2020](https://ml4physicalsciences.github.io/2020/), [`2012.00173`](https://arxiv.org/abs/2012.00173). \
+[2] Kansal et al., *Particle Cloud Generation with Message Passing Generative Adversarial Networks*, [NeurIPS 2021](https://proceedings.neurips.cc/paper/2021/hash/c8512d142a2d849725f31a9a7a361ab9-Abstract.html), [`2106.11535`](https://arxiv.org/abs/2106.11535). \
+[3] Kansal et al., *Evaluating Generative Models in High Energy Physics*, [Phys. Rev. D **107** (2023) 076017](https://doi.org/10.1103/PhysRevD.107.076017), [`2211.10295`](https://arxiv.org/abs/2211.10295).
 
 
 ## Overview

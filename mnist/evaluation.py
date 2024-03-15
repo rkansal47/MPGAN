@@ -26,6 +26,7 @@ import logging
 cutoff = 0.32178
 FID_EVAL_SIZE = 8192
 
+
 # transform my format to torch_geometric's
 def tg_transform(X: Tensor, num_hits: int):
     batch_size = X.size(0)
