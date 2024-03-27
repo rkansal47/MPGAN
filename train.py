@@ -43,29 +43,24 @@ def main():
         feature_shifts=[0.0, 0.0, -0.5, -0.5] if args.mask else [0.0, 0.0, -0.5],
         feature_maxes=feature_maxes,
     )
-    jet_norm = FeaturewiseLinear(feature_scales=1.0 / args.num_hits)
-
+    jet_norm = FeaturewiseLinear(feature_scales=1.0 / args.num_hits) 
     data_args = {
         "jet_type": args.jets,
         "data_dir": args.datasets_path,
         "num_particles": args.num_hits,
-        "particle_features": JetNet.all_particle_features
+        "particle_features": JetNet.ALL_PARTICLE_FEATURES 
         if args.mask
-        else JetNet.all_particle_features[:-1],
-        "jet_features": "num_particles"
+        else JetNet.ALL_PARTICLE_FEATURES[:-1],
+        "jet_features": ["pt","num_particles"]
         if (args.clabels or args.mask_c or args.gapt_mask)
         else None,
         "particle_normalisation": particle_norm,
-        "jet_normalisation": jet_norm,
+        "jet_normalisation": jetnet.datasets.normalisations.FeaturewiseLinearBounded(),
         "split_fraction": [args.ttsplit, 1 - args.ttsplit, 0],
     }
 
-    # print('Data args:',data_args)
-    # exit()
-
     X_train = JetNet(**data_args, split="train")
     X_train_loaded = DataLoader(X_train, shuffle=True, batch_size=args.batch_size, pin_memory=True)
-
     X_test = JetNet(**data_args, split="valid")
     X_test_loaded = DataLoader(X_test, batch_size=args.batch_size, pin_memory=True)
     logging.info(f"Data loaded \n X_train \n {X_train} \n X_test \n {X_test}")
