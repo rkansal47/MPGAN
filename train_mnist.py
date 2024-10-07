@@ -286,9 +286,11 @@ def gen_multi_batch(
                 num_particles=num_particles,
                 model=model,
                 noise=noise,
-                labels=None
-                if labels is None
-                else labels[(i * batch_size) : (i * batch_size) + num_samples_in_batch],
+                labels=(
+                    None
+                    if labels is None
+                    else labels[(i * batch_size) : (i * batch_size) + num_samples_in_batch]
+                ),
                 noise_std=noise_std,
                 **extra_args,
             )

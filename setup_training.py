@@ -1476,9 +1476,9 @@ def get_model_args(args):
             "lfc": args.lfc,
             "lfc_latent_size": args.lfc_latent_size,
             "mask_learn_sep": args.mask_learn_sep,
-            "latent_node_size": args.latent_node_size
-            if args.latent_node_size
-            else args.hidden_node_size,
+            "latent_node_size": (
+                args.latent_node_size if args.latent_node_size else args.hidden_node_size
+            ),
         }
     elif args.model == "gapt":
         model_args = {"embed_dim": args.gapt_embed_dim}
