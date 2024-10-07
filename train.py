@@ -49,12 +49,12 @@ def main():
         "jet_type": args.jets,
         "data_dir": args.datasets_path,
         "num_particles": args.num_hits,
-        "particle_features": JetNet.all_particle_features
-        if args.mask
-        else JetNet.all_particle_features[:-1],
-        "jet_features": "num_particles"
-        if (args.clabels or args.mask_c or args.gapt_mask)
-        else None,
+        "particle_features": (
+            JetNet.all_particle_features if args.mask else JetNet.all_particle_features[:-1]
+        ),
+        "jet_features": (
+            "num_particles" if (args.clabels or args.mask_c or args.gapt_mask) else None
+        ),
         "particle_normalisation": particle_norm,
         "jet_normalisation": jet_norm,
         "split_fraction": [args.ttsplit, 1 - args.ttsplit, 0],
@@ -263,9 +263,11 @@ def gen_multi_batch(
                 num_particles=num_particles,
                 model=model,
                 noise=noise,
-                labels=None
-                if labels is None
-                else labels[(i * batch_size) : (i * batch_size) + num_samples_in_batch],
+                labels=(
+                    None
+                    if labels is None
+                    else labels[(i * batch_size) : (i * batch_size) + num_samples_in_batch]
+                ),
                 noise_std=noise_std,
                 **extra_args,
             )
